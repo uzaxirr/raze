@@ -1,7 +1,7 @@
 "use client";
 
 import { GhostWaving } from "./GhostSVGs";
-import PhoneMockup, { SwapScreen, SecurityScreen } from "./PhoneMockup";
+import PhoneMockup from "./PhoneMockup";
 
 export default function Hero() {
   return (
@@ -35,7 +35,7 @@ export default function Hero() {
 
       {/* Phone fan */}
       <div className="relative w-full max-w-[1440px] h-[620px] flex justify-center pb-[50px] mt-4">
-        {/* Left phone - Trade (richer content) */}
+        {/* Left phone - Trade */}
         <div
           className="absolute bottom-[50px] left-[240px] flex flex-col items-center gap-2 animate-phone-rise delay-300"
           style={{ rotate: "-7deg" }}
@@ -47,29 +47,37 @@ export default function Hero() {
               {
                 type: "bot",
                 content: (
-                  <>
-                    <SwapScreen />
-                    <div className="text-[8px] font-sans text-[#888] leading-[11px] pt-1">
-                      via Jupiter v2 &middot; Rate: 1 SOL = 134.9 USDC
+                  <div className="flex flex-col gap-[4px]">
+                    <div className="text-[11px] font-sans text-[#1A1A1A] leading-[15px]">
+                      5 sol → 674.50 usdc via jupiter. send it?
                     </div>
-                  </>
+                    <div className="bg-[#F5F5F5] rounded-[4px] p-[4px] flex flex-col gap-[2px]">
+                      <div className="flex justify-between">
+                        <span className="text-[8px] font-sans text-[#888]">send</span>
+                        <span className="text-[8px] font-mono font-semibold text-[#E65100]">5.0 SOL</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[8px] font-sans text-[#888]">get</span>
+                        <span className="text-[8px] font-mono font-semibold text-[#14A86C]">674.50 USDC</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-[3px]">
+                      <div className="flex-1 flex items-center justify-center bg-[#14A86C] rounded py-[3px]">
+                        <span className="text-[8px] font-semibold font-sans text-white">send it</span>
+                      </div>
+                      <div className="flex-1 flex items-center justify-center bg-[#EEE] rounded py-[3px]">
+                        <span className="text-[8px] font-medium font-sans text-[#999]">nah</span>
+                      </div>
+                    </div>
+                  </div>
                 ),
               },
-              { type: "user", content: "confirm" },
+              { type: "user", content: "send it" },
               {
                 type: "bot",
                 content: (
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-[3px]">
-                      <div className="w-[4px] h-[4px] rounded-full bg-[#14A86C]" />
-                      <span className="text-[9px] font-bold font-sans text-[#14A86C] leading-[12px]">SWAP COMPLETE</span>
-                    </div>
-                    <div className="text-[9px] font-sans text-[#555] leading-[12px]">
-                      674.50 USDC received
-                    </div>
-                    <div className="text-[8px] font-mono text-[#AAA] leading-[10px]">
-                      Confirmed in 0.4s
-                    </div>
+                  <div className="text-[11px] font-sans text-[#1A1A1A] leading-[15px]">
+                    done. 674.50 usdc in your wallet. want alerts if sol dumps more so you can feel smart? 😏
                   </div>
                 ),
               },
@@ -78,7 +86,7 @@ export default function Hero() {
           <span className="font-display text-sm font-semibold text-purple-dark">Trade</span>
         </div>
 
-        {/* Center phone - Research (richer content) */}
+        {/* Center phone - Research */}
         <div className="absolute bottom-[50px] left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-phone-rise delay-200">
           <PhoneMockup
             size="md"
@@ -87,38 +95,36 @@ export default function Hero() {
               {
                 type: "bot",
                 content: (
-                  <>
-                    <div className="text-[12px] font-bold font-sans text-[#1A1A1A] leading-[16px]">BONK Token Autopsy</div>
+                  <div className="flex flex-col gap-[4px]">
+                    <div className="text-[12px] font-sans text-[#1A1A1A] leading-[16px]">
+                      bonk? massive holder base, high liquidity, no bundles. legit project
+                    </div>
                     <div className="bg-[#F5F5F5] rounded-[5px] p-[5px] flex flex-col gap-[3px]">
                       <div className="flex justify-between">
-                        <span className="text-[10px] font-sans text-[#888] leading-[12px]">Price</span>
-                        <span className="text-[10px] font-mono font-semibold text-[#1A1A1A] leading-[12px]">$0.00003</span>
+                        <span className="text-[10px] font-sans text-[#888]">price</span>
+                        <span className="text-[10px] font-mono font-semibold text-[#1A1A1A]">$0.00003</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-[10px] font-sans text-[#888] leading-[12px]">24h</span>
-                        <span className="text-[10px] font-mono font-semibold text-[#14A86C] leading-[12px]">+4.2%</span>
+                        <span className="text-[10px] font-sans text-[#888]">mcap</span>
+                        <span className="text-[10px] font-mono font-semibold text-[#1A1A1A]">$2.1B</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-[10px] font-sans text-[#888] leading-[12px]">MCap</span>
-                        <span className="text-[10px] font-mono font-semibold text-[#1A1A1A] leading-[12px]">$2.1B</span>
+                        <span className="text-[10px] font-sans text-[#888]">holders</span>
+                        <span className="text-[10px] font-mono font-semibold text-[#1A1A1A]">847K</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-[10px] font-sans text-[#888] leading-[12px]">Holders</span>
-                        <span className="text-[10px] font-mono font-semibold text-[#1A1A1A] leading-[12px]">847K</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-[10px] font-sans text-[#888] leading-[12px]">Vol 24h</span>
-                        <span className="text-[10px] font-mono font-semibold text-[#1A1A1A] leading-[12px]">$84M</span>
+                        <span className="text-[10px] font-sans text-[#888]">vol 24h</span>
+                        <span className="text-[10px] font-mono font-semibold text-[#1A1A1A]">$84M</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-[3px] self-start bg-[#EAFFF5] rounded px-[5px] py-[3px]">
                       <div className="w-1 h-1 rounded-sm bg-[#14F195]" />
-                      <span className="text-[8px] font-mono font-medium text-[#14A86C] leading-[10px]">Low risk &middot; Legit project</span>
+                      <span className="text-[8px] font-mono font-medium text-[#14A86C]">low risk · legit</span>
                     </div>
-                    <div className="text-[9px] font-sans text-[#777] leading-[13px] pt-1">
-                      Meme coin with massive holder base. High liquidity, no bundles detected. 25% off ATH.
+                    <div className="text-[10px] text-[#888] leading-[14px]">
+                      you&apos;re late tho, 25% off ATH 💀
                     </div>
-                  </>
+                  </div>
                 ),
               },
             ]}
@@ -126,7 +132,7 @@ export default function Hero() {
           <span className="font-display text-sm font-semibold text-purple-dark">Research</span>
         </div>
 
-        {/* Right phone - Protect (richer content) */}
+        {/* Right phone - Protect */}
         <div
           className="absolute bottom-[50px] right-[240px] flex flex-col items-center gap-2 animate-phone-rise delay-400"
           style={{ rotate: "7deg" }}
@@ -136,23 +142,24 @@ export default function Hero() {
             messages={[
               {
                 type: "bot",
-                content: <SecurityScreen />,
+                content: (
+                  <div className="flex flex-col gap-[3px]">
+                    <div className="text-[10px] font-sans text-[#1A1A1A] leading-[14px]">
+                      yo heads up. XYZ Lending authority just changed. you have $4,200 in there
+                    </div>
+                    <div className="text-[9px] font-semibold text-[#CC0000]">pull it NOW 💀</div>
+                    <div className="flex items-center justify-center bg-[#CC0000] rounded py-[3px]">
+                      <span className="text-[8px] font-semibold font-sans text-white">withdraw all</span>
+                    </div>
+                  </div>
+                ),
               },
               { type: "user", content: "withdraw all from XYZ" },
               {
                 type: "bot",
                 content: (
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-[3px]">
-                      <div className="w-[4px] h-[4px] rounded-full bg-[#14A86C]" />
-                      <span className="text-[9px] font-bold font-sans text-[#14A86C] leading-[12px]">WITHDRAWN</span>
-                    </div>
-                    <div className="text-[9px] font-sans text-[#555] leading-[12px]">
-                      4,200 USDC safe in wallet
-                    </div>
-                    <div className="text-[8px] font-mono text-[#AAA] leading-[10px]">
-                      Confirmed in 0.8s
-                    </div>
+                  <div className="text-[10px] font-sans text-[#1A1A1A] leading-[14px]">
+                    done. 4,200 usdc safe in wallet. that was close ser 😮‍💨
                   </div>
                 ),
               },
