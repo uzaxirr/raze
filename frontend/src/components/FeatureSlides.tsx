@@ -40,6 +40,7 @@ interface SlideData {
   ghost: React.ReactNode;
   screen: React.ReactNode;
   userMessage: string;
+  agentCallout?: string;
 }
 
 const slides: SlideData[] = [
@@ -53,6 +54,7 @@ const slides: SlideData[] = [
     ghost: <GhostDollarEyes />,
     screen: <BalanceScreen />,
     userMessage: "what's in my wallet?",
+    agentCallout: "Noticed the buy price? Raze remembered it from last Tuesday — without you asking.",
   },
   {
     headline: "Drift-proof\nsecurity",
@@ -64,6 +66,7 @@ const slides: SlideData[] = [
     ghost: <GhostAlert />,
     screen: <SecurityScreen />,
     userMessage: "watch my programs",
+    agentCallout: "That alert came at 3:47 AM. Raze never sleeps.",
   },
   {
     headline: "Full token\nautopsies",
@@ -75,6 +78,7 @@ const slides: SlideData[] = [
     ghost: <GhostDetective />,
     screen: <TokenIntelScreen />,
     userMessage: "is BONK safe?",
+    agentCallout: "Checked security, holders, momentum, and sentiment before answering.",
   },
   {
     headline: "Instant\nswaps",
@@ -86,6 +90,7 @@ const slides: SlideData[] = [
     ghost: <GhostWinking />,
     screen: <SwapScreen />,
     userMessage: "swap 5 SOL to USDC",
+    agentCallout: "Dropped Polymarket alpha after the swap — you didn't ask for it.",
   },
   {
     headline: "Stalk any\nwallet",
@@ -97,6 +102,7 @@ const slides: SlideData[] = [
     ghost: <GhostSpy />,
     screen: <WalletStalkScreen />,
     userMessage: "what's this whale buying?",
+    agentCallout: "Knows you copy this whale regularly — offered to do it again.",
   },
   {
     headline: "Bundle\ndetection",
@@ -119,6 +125,7 @@ const slides: SlideData[] = [
     ghost: <GhostWatching />,
     screen: <WalletWatchingScreen />,
     userMessage: "watch toly.sol",
+    agentCallout: "Pinged you 2 minutes after setting the watch. Real-time via Helius.",
   },
   {
     headline: "Decode any\ntransaction",
@@ -141,6 +148,7 @@ const slides: SlideData[] = [
     ghost: <GhostBellRinger />,
     screen: <SmartAlertsScreen />,
     userMessage: "alert me when whales buy BONK",
+    agentCallout: "Set it once — Raze monitors Jupiter + Raydium 24/7 and pings you in Telegram.",
   },
   {
     headline: "Snipe new\ntokens",
@@ -152,6 +160,7 @@ const slides: SlideData[] = [
     ghost: <GhostHungry />,
     screen: <TokenSnipingScreen />,
     userMessage: "find me new tokens launched",
+    agentCallout: "\"Filtered how you like it\" — Raze learned your risk appetite over time.",
   },
   {
     headline: "Prediction\nmarkets",
@@ -163,6 +172,7 @@ const slides: SlideData[] = [
     ghost: <GhostFortuneTeller />,
     screen: <PredictionMarketsScreen />,
     userMessage: "what's trending on Polymarket?",
+    agentCallout: "Combined market odds with news sentiment to give you a real take — not just numbers.",
   },
   {
     headline: "Send\ncrypto",
@@ -272,6 +282,13 @@ export default function FeatureSlides() {
                 <p className="font-sans text-[15px] leading-[22px] text-[#1A1A1A]">
                   {slide.description}
                 </p>
+                {slide.agentCallout && (
+                  <div className="mt-3 pt-3 border-t border-white/30">
+                    <p className="font-sans text-[13px] leading-[18px] text-[#9945FF] font-medium">
+                      {slide.agentCallout}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
