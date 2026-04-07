@@ -1,0 +1,43 @@
+<svg width="200" height="220" viewBox="0 0 200 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M100 25 C60 25, 32 58, 32 98 L32 155 C32 161, 38 165, 46 160 C53 156, 58 161, 64 166 C70 171, 75 166, 80 161 C86 156, 91 161, 97 166 C103 171, 108 166, 113 161 C119 156, 124 161, 130 166 C136 171, 141 166, 146 161 C152 156, 158 161, 165 166 C172 161, 168 155, 168 150 L168 98 C168 58, 140 25, 100 25Z" fill="#9945FF"/>
+  <path d="M65 40 C50 55, 42 78, 42 98" stroke="#B76EFF" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.3"/>
+  <!-- Aviator goggles pushed up on forehead -->
+  <ellipse cx="80" cy="52" rx="16" ry="10" stroke="#8B6914" stroke-width="2.5" fill="rgba(200,220,255,0.25)"/>
+  <ellipse cx="124" cy="52" rx="16" ry="10" stroke="#8B6914" stroke-width="2.5" fill="rgba(200,220,255,0.25)"/>
+  <path d="M96 52 L108 52" stroke="#8B6914" stroke-width="2.5"/>
+  <!-- Goggle strap -->
+  <path d="M64 52 C55 48, 45 50, 40 55" stroke="#8B4513" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M140 52 C149 48, 159 50, 164 55" stroke="#8B4513" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- Lens reflection -->
+  <path d="M72 48 C76 44, 82 44, 86 46" stroke="#FFFFFF" stroke-width="1" fill="none" opacity="0.5"/>
+  <!-- Determined eyes -->
+  <g>
+    <ellipse cx="78" cy="88" rx="18" ry="20" fill="#FFFFFF"/>
+    <ellipse cx="78" cy="88" rx="12" ry="14" fill="#2D1B69"/>
+    <ellipse cx="80" cy="85" rx="7" ry="8" fill="#1A1040"/>
+    <ellipse cx="77" cy="82" rx="3.5" ry="3" fill="#FFFFFF" opacity="0.9"/>
+  </g>
+  <g>
+    <ellipse cx="126" cy="88" rx="18" ry="20" fill="#FFFFFF"/>
+    <ellipse cx="126" cy="88" rx="12" ry="14" fill="#2D1B69"/>
+    <ellipse cx="128" cy="85" rx="7" ry="8" fill="#1A1040"/>
+    <ellipse cx="125" cy="82" rx="3.5" ry="3" fill="#FFFFFF" opacity="0.9"/>
+  </g>
+  <!-- Determined grin -->
+  <path d="M84 116 C92 128, 112 128, 118 116" stroke="#FFFFFF" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  <!-- Scarf trailing to the right -->
+  <path d="M140 110 C155 108, 168 115, 178 108 C188 101, 192 108, 198 104" stroke="#FF4D6A" stroke-width="6" fill="none" stroke-linecap="round"/>
+  <path d="M140 116 C155 114, 168 120, 176 114" stroke="#FF4D6A" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.6"/>
+  <!-- Rocket flames at bottom -->
+  <path d="M75 165 C78 172, 82 180, 80 190" stroke="#FF6B35" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.8"/>
+  <path d="M100 168 C100 178, 100 188, 100 198" stroke="#FFD166" stroke-width="8" fill="none" stroke-linecap="round" opacity="0.9"/>
+  <path d="M125 165 C122 172, 118 180, 120 190" stroke="#FF6B35" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.8"/>
+  <!-- Speed lines -->
+  <line x1="45" y1="140" x2="25" y2="160" stroke="#B76EFF" stroke-width="2" opacity="0.3" stroke-linecap="round"/>
+  <line x1="155" y1="140" x2="175" y2="160" stroke="#B76EFF" stroke-width="2" opacity="0.3" stroke-linecap="round"/>
+  <line x1="40" y1="125" x2="22" y2="140" stroke="#B76EFF" stroke-width="1.5" opacity="0.2" stroke-linecap="round"/>
+  <line x1="160" y1="125" x2="178" y2="140" stroke="#B76EFF" stroke-width="1.5" opacity="0.2" stroke-linecap="round"/>
+  <!-- Blush -->
+  <ellipse cx="64" cy="108" rx="10" ry="5" fill="#FF8FCE" opacity="0.3"/>
+  <ellipse cx="140" cy="108" rx="10" ry="5" fill="#FF8FCE" opacity="0.3"/>
+</svg>

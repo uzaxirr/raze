@@ -1,0 +1,38 @@
+<svg width="200" height="220" viewBox="-5 -15 210 250" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M100 25 C60 25, 32 58, 32 98 L32 155 C32 161, 38 165, 46 160 C53 156, 58 161, 64 166 C70 171, 75 166, 80 161 C86 156, 91 161, 97 166 C103 171, 108 166, 113 161 C119 156, 124 161, 130 166 C136 171, 141 166, 146 161 C152 156, 158 161, 165 166 C172 161, 168 155, 168 150 L168 98 C168 58, 140 25, 100 25Z" fill="#9945FF"/>
+  <path d="M65 40 C50 55, 42 78, 42 98" stroke="#B76EFF" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.3"/>
+  <!-- Turban/headwrap -->
+  <path d="M55 35 C55 10, 80 -5, 102 -5 C124 -5, 148 10, 148 35 C148 38, 145 40, 100 40 C55 40, 55 38, 55 35Z" fill="#4A1A8A"/>
+  <path d="M60 30 C65 15, 85 5, 102 5 C119 5, 138 15, 143 30" fill="#5A2A9A"/>
+  <!-- Turban folds -->
+  <path d="M70 20 C80 12, 95 8, 102 8 C109 8, 124 12, 134 20" stroke="#7B3FBF" stroke-width="2" fill="none" opacity="0.5"/>
+  <path d="M75 28 C85 22, 95 18, 102 18 C109 18, 119 22, 129 28" stroke="#7B3FBF" stroke-width="1.5" fill="none" opacity="0.4"/>
+  <!-- Gem on forehead -->
+  <path d="M102 32 L97 38 L102 44 L107 38Z" fill="#14F195"/>
+  <path d="M102 34 L99 38 L102 42 L105 38Z" fill="#FFFFFF" opacity="0.4"/>
+  <!-- Mystical eyes looking up -->
+  <g>
+    <ellipse cx="78" cy="88" rx="18" ry="20" fill="#FFFFFF"/>
+    <ellipse cx="78" cy="86" rx="12" ry="14" fill="#4A1A8A"/>
+    <ellipse cx="76" cy="82" rx="7" ry="8" fill="#2A0A5A"/>
+    <ellipse cx="74" cy="79" rx="3" ry="2.5" fill="#FFFFFF" opacity="0.9"/>
+  </g>
+  <g>
+    <ellipse cx="126" cy="88" rx="18" ry="20" fill="#FFFFFF"/>
+    <ellipse cx="126" cy="86" rx="12" ry="14" fill="#4A1A8A"/>
+    <ellipse cx="124" cy="82" rx="7" ry="8" fill="#2A0A5A"/>
+    <ellipse cx="122" cy="79" rx="3" ry="2.5" fill="#FFFFFF" opacity="0.9"/>
+  </g>
+  <!-- Knowing mysterious smile -->
+  <path d="M88 118 C94 124, 108 124, 114 118" stroke="#FFFFFF" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- Sparkle particles -->
+  <circle cx="48" cy="58" r="2" fill="#FFD166" opacity="0.5"/>
+  <circle cx="156" cy="55" r="1.5" fill="#14F195" opacity="0.4"/>
+  <circle cx="44" cy="75" r="1.5" fill="#FF8FCE" opacity="0.4"/>
+  <!-- Stars around turban -->
+  <path d="M50 15 L52 20 L57 20 L53 23 L55 28 L50 25 L45 28 L47 23 L43 20 L48 20Z" fill="#FFD166" opacity="0.5"/>
+  <path d="M152 12 L153 16 L157 16 L154 18 L155 22 L152 20 L149 22 L150 18 L147 16 L151 16Z" fill="#14F195" opacity="0.4"/>
+  <!-- Blush -->
+  <ellipse cx="64" cy="108" rx="10" ry="5" fill="#FF8FCE" opacity="0.3"/>
+  <ellipse cx="140" cy="108" rx="10" ry="5" fill="#FF8FCE" opacity="0.3"/>
+</svg>
