@@ -287,6 +287,164 @@ export function BundleDetectionScreen() {
   );
 }
 
+export function WalletWatchingScreen() {
+  return (
+    <>
+      <div className="text-[12px] font-bold font-sans text-[#1A1A1A] leading-[16px]">Watching toly.sol</div>
+      <div className="text-[9px] font-sans text-[#555] leading-[13px]">
+        I&apos;ll ping you the moment anything moves.
+      </div>
+      <div className="flex items-center gap-[3px] self-start bg-[#F0EDFF] rounded-[3px] px-[5px] py-[2px]">
+        <div className="w-[3px] h-[3px] rounded-full bg-[#9945FF]" />
+        <span className="text-[7px] font-mono font-medium text-[#9945FF] leading-[10px]">watching toly.sol</span>
+      </div>
+      <div className="bg-[#FFF8E6] rounded-[3px] p-[3px] flex flex-col gap-[2px] mt-1" style={{ borderLeft: "2px solid #FFD166" }}>
+        <div className="flex items-center gap-[3px]">
+          <div className="w-[3px] h-[3px] rounded-full bg-[#FFD166]" />
+          <span className="text-[8px] font-bold font-sans text-[#996600] leading-[10px]">WALLET ALERT</span>
+        </div>
+        <div className="text-[9px] font-sans text-[#555] leading-[12px]">
+          toly.sol just swapped 500 SOL for USDC on Jupiter.
+        </div>
+        <div className="bg-[#F5F5F5] rounded-[3px] p-[3px] flex flex-col gap-[1px]">
+          <Row label="Sent" value="500 SOL" small valueColor="#E65100" />
+          <Row label="Got" value="67,450 USDC" small valueColor="#14A86C" />
+        </div>
+      </div>
+    </>
+  );
+}
+
+export function TransactionDecoderScreen() {
+  return (
+    <>
+      <div className="text-[12px] font-bold font-sans text-[#1A1A1A] leading-[16px]">Transaction Breakdown</div>
+      <div className="bg-[#F5F5F5] rounded-[5px] p-[5px] flex flex-col gap-[3px]">
+        <div className="flex justify-between">
+          <span className="text-[8px] font-sans text-[#888] leading-[10px]">Type</span>
+          <span className="text-[8px] font-mono font-semibold text-[#9945FF] leading-[10px]">Jupiter Swap</span>
+        </div>
+        <Row label="Sent" value="2.5 SOL" small valueColor="#E65100" />
+        <Row label="Got" value="12,450 BONK" small valueColor="#14A86C" />
+        <Row label="Rate" value="4,980/SOL" small />
+        <Row label="Fee" value="0.000005" small />
+        <Row label="Slip" value="0.3%" small />
+      </div>
+      <div className="text-[9px] font-sans text-[#777] leading-[12px]">
+        Clean swap via Jupiter v2. Good rate, you didn&apos;t get rekt.
+      </div>
+    </>
+  );
+}
+
+export function SmartAlertsScreen() {
+  return (
+    <>
+      <div className="text-[12px] font-bold font-sans text-[#1A1A1A] leading-[16px]">Alert Settings</div>
+      <div className="text-[9px] font-sans text-[#555] leading-[13px]">
+        Whale alert set. Monitoring Jupiter + Raydium for BONK buys above $50K.
+      </div>
+      <div className="flex items-center gap-[3px] self-start bg-[#F0EDFF] rounded-[3px] px-[5px] py-[2px]">
+        <div className="w-[3px] h-[3px] rounded-full bg-[#9945FF]" />
+        <span className="text-[7px] font-mono font-medium text-[#9945FF] leading-[10px]">whale alert active</span>
+      </div>
+      <div className="bg-[#F5F5F5] rounded-[3px] p-[4px] flex flex-col gap-[3px] mt-1">
+        <div className="text-[9px] font-sans text-[#555] leading-[12px]">
+          Done. I&apos;ll ping you the second SOL touches $100.
+        </div>
+        <div className="flex items-center gap-[3px] self-start bg-[#EAFFF5] rounded-[3px] px-[5px] py-[2px]">
+          <div className="w-[3px] h-[3px] rounded-full bg-[#14F195]" />
+          <span className="text-[7px] font-mono font-medium text-[#14A86C] leading-[10px]">2 alerts active</span>
+        </div>
+      </div>
+    </>
+  );
+}
+
+export function TokenSnipingScreen() {
+  return (
+    <>
+      <div className="text-[12px] font-bold font-sans text-[#1A1A1A] leading-[16px]">Fresh Tokens (1h)</div>
+      <div className="text-[8px] font-sans text-[#888] leading-[10px] -mt-[2px]">
+        Filtered: &gt;$10K mcap, &gt;50 holders, no bundles
+      </div>
+      <div className="flex flex-col gap-[3px]">
+        {[
+          { name: "$MOCHI", mcap: "$48K", holders: "182", change: "+340%", safe: true },
+          { name: "$SOBA", mcap: "$22K", holders: "94", change: "+89%", safe: true },
+          { name: "$RUGZ", mcap: "$120K", holders: "38", change: "+1200%", safe: false },
+        ].map((t) => (
+          <div key={t.name} className="bg-[#F5F5F5] rounded-[3px] p-[3px] flex items-center justify-between">
+            <div className="flex flex-col">
+              <span className="text-[9px] font-mono font-bold text-[#1A1A1A] leading-[12px]">{t.name}</span>
+              <span className="text-[7px] font-sans text-[#999] leading-[9px]">MCap {t.mcap} &middot; {t.holders} holders</span>
+            </div>
+            <div className="flex flex-col items-end">
+              <span className="text-[9px] font-mono font-bold text-[#14A86C] leading-[12px]">{t.change}</span>
+              <span className={`text-[7px] font-mono leading-[9px] ${t.safe ? "text-[#14A86C]" : "text-[#CC0000]"}`}>
+                {t.safe ? "Safe" : "Bundles!"}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+export function PredictionMarketsScreen() {
+  return (
+    <>
+      <div className="text-[12px] font-bold font-sans text-[#1A1A1A] leading-[16px]">Polymarket Trending</div>
+      {[
+        { q: "Will SOL hit $200 by June?", yes: "62%", no: "38%", vol: "$4.2M" },
+        { q: "ETH ETF approval in April?", yes: "78%", no: "22%", vol: "$12.8M" },
+      ].map((m, i) => (
+        <div key={i} className="bg-[#F5F5F5] rounded-[3px] p-[3px] flex flex-col gap-[2px]">
+          <span className="text-[9px] font-sans font-medium text-[#1A1A1A] leading-[12px]">{m.q}</span>
+          <div className="flex gap-[4px]">
+            <div className="flex-1 bg-[#EAFFF5] rounded-[2px] flex items-center justify-center py-[2px]">
+              <span className="text-[8px] font-mono font-bold text-[#14A86C] leading-[10px]">Yes {m.yes}</span>
+            </div>
+            <div className="flex-1 bg-[#FFF5F5] rounded-[2px] flex items-center justify-center py-[2px]">
+              <span className="text-[8px] font-mono font-bold text-[#CC0000] leading-[10px]">No {m.no}</span>
+            </div>
+          </div>
+          <span className="text-[7px] font-sans text-[#AAA] leading-[9px]">Volume: {m.vol}</span>
+        </div>
+      ))}
+    </>
+  );
+}
+
+export function SendCryptoScreen() {
+  return (
+    <>
+      <div className="text-[12px] font-bold font-sans text-[#1A1A1A] leading-[16px]">Transfer Preview</div>
+      <div className="bg-[#F5F5F5] rounded-[5px] p-[5px] flex flex-col gap-[3px]">
+        <Row label="To" value="alice.sol" small />
+        <Row label="Amount" value="10 USDC" small />
+        <Row label="Fee" value="~$0.001" small />
+      </div>
+      <div className="flex gap-[3px]">
+        <div className="flex-1 flex items-center justify-center bg-[#14A86C] rounded py-1">
+          <span className="text-[9px] font-semibold font-sans text-white leading-[12px]">Send</span>
+        </div>
+        <div className="flex-1 flex items-center justify-center bg-[#EEE] rounded py-1">
+          <span className="text-[9px] font-medium font-sans text-[#999] leading-[12px]">Cancel</span>
+        </div>
+      </div>
+      <div className="flex items-center gap-[3px] mt-1">
+        <div className="w-[4px] h-[4px] rounded-full bg-[#14A86C]" />
+        <span className="text-[9px] font-bold font-sans text-[#14A86C] leading-[12px]">SENT SUCCESSFULLY</span>
+      </div>
+      <div className="text-[8px] font-mono text-[#AAA] leading-[10px]">
+        10 USDC sent to alice.sol. Confirmed in 0.4s.
+      </div>
+    </>
+  );
+}
+
 function Row({
   label,
   value,
