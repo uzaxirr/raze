@@ -166,6 +166,7 @@ export default function PhoneMockup({ messages, className = "", size = "md" }: P
 
 // Pre-built phone screen content — Raze voice: savage, lowercase, sarcastic friend
 
+// MEMORY: references past buy price without being asked
 export function BalanceScreen() {
   return (
     <div className="text-[11px] font-sans text-[#1A1A1A] leading-[15px]">
@@ -178,23 +179,25 @@ export function BalanceScreen() {
           <Row label="total" value="$12,847" valueBold />
         </div>
       </div>
-      <div className="text-[9px] text-[#888] mt-[3px]">want me to find plays for that sol or you just checking to feel poor?</div>
+      <div className="text-[9px] text-[#888] mt-[3px]">oh btw your bonk is up 35% since you bought last tuesday. first W in a while 🎉</div>
     </div>
   );
 }
 
+// 24/7 WATCHING: unprompted alert at 3AM — Raze never sleeps
 export function SecurityScreen() {
   return (
     <div className="flex flex-col gap-[4px]">
+      <div className="text-[8px] font-mono text-[#AAA] leading-[10px]">3:47 AM</div>
       <div className="text-[11px] font-sans text-[#1A1A1A] leading-[15px]">
-        yo heads up. XYZ Lending authority just changed. you have $4,200 in there
+        yo wake up. XYZ Lending authority just changed. you have $4,200 in there and the new auth is unknown
       </div>
       <div className="bg-[#FFF5F5] rounded-[3px] p-[4px] flex flex-col gap-[2px]" style={{ borderLeft: "2px solid #FF4545" }}>
         <Row label="exposure" value="$4,200" small valueColor="#CC0000" />
         <Row label="old auth" value="9xK4...nP2q" small />
         <Row label="new auth" value="3fRz...unknown" small valueColor="#CC0000" />
       </div>
-      <div className="text-[10px] font-sans font-semibold text-[#CC0000] leading-[14px]">pull it NOW before you become exit liquidity 💀</div>
+      <div className="text-[10px] font-sans font-semibold text-[#CC0000] leading-[14px]">pull it NOW 💀</div>
       <div className="flex items-center justify-center bg-[#CC0000] rounded py-1 px-1">
         <span className="text-[9px] font-semibold font-sans text-white leading-[12px]">withdraw all</span>
       </div>
@@ -202,63 +205,61 @@ export function SecurityScreen() {
   );
 }
 
+// THINK/ANALYZE: shows Raze checked multiple sources before giving opinion
 export function TokenIntelScreen() {
   return (
     <div className="flex flex-col gap-[4px]">
+      <div className="text-[9px] font-mono text-[#9945FF] leading-[12px] opacity-60">checked security, holders, momentum, sentiment...</div>
       <div className="text-[11px] font-sans text-[#1A1A1A] leading-[15px]">
-        bonk? massive holder base, high liquidity, no bundles. legit project
+        bonk looks clean. massive holder base, high liquidity, no bundles
       </div>
       <div className="bg-[#F5F5F5] rounded-[5px] p-[5px] flex flex-col gap-[3px]">
         <Row label="price" value="$0.00003" small />
         <Row label="mcap" value="$2.1B" small />
         <Row label="holders" value="847K" small />
-        <Row label="vol 24h" value="$84M" small />
+        <Row label="momentum" value="6/8" small valueColor="#14A86C" />
       </div>
       <div className="flex items-center gap-[2px] self-start bg-[#EAFFF5] rounded-[3px] px-[5px] py-[2px]">
         <div className="w-[3px] h-[3px] rounded-sm bg-[#14F195]" />
         <span className="text-[7px] font-mono font-medium text-[#14A86C] leading-[10px]">low risk · legit</span>
       </div>
-      <div className="text-[9px] text-[#888] leading-[12px]">you&apos;re late tho, 25% off ATH 💀</div>
+      <div className="text-[9px] text-[#888] leading-[12px]">you&apos;re late tho, 25% off ATH. similar setup to when you missed WIF 💀</div>
     </div>
   );
 }
 
+// PROACTIVE ALPHA: drops unrequested info after completing the swap
 export function SwapScreen() {
   return (
     <div className="flex flex-col gap-[4px]">
       <div className="text-[11px] font-sans text-[#1A1A1A] leading-[15px]">
-        5 sol → 674.50 usdc via jupiter. send it?
+        done. 674.50 usdc in your wallet
       </div>
       <div className="bg-[#F5F5F5] rounded-[5px] p-[5px] flex flex-col gap-[3px]">
-        <Row label="send" value="5.0 SOL" small valueColor="#E65100" />
-        <Row label="get" value="674.50 USDC" small valueColor="#14A86C" />
-        <Row label="rate" value="1 SOL = 134.9" small />
-        <Row label="slip" value="0.5%" small />
+        <Row label="sent" value="5.0 SOL" small valueColor="#E65100" />
+        <Row label="got" value="674.50 USDC" small valueColor="#14A86C" />
+        <Row label="via" value="Jupiter v2" small />
+        <Row label="time" value="0.4s" small />
       </div>
-      <div className="flex gap-[3px]">
-        <div className="flex-1 flex items-center justify-center bg-[#14A86C] rounded py-1">
-          <span className="text-[9px] font-semibold font-sans text-white leading-[12px]">send it</span>
-        </div>
-        <div className="flex-1 flex items-center justify-center bg-[#EEE] rounded py-1">
-          <span className="text-[9px] font-medium font-sans text-[#999] leading-[12px]">nah</span>
-        </div>
-      </div>
+      <div className="text-[9px] text-[#888] leading-[12px]">oh btw &apos;sol to $250 by march&apos; is 62% on polymarket. probably wrong knowing this market</div>
     </div>
   );
 }
 
+// MEMORY: "like usual" — remembers user copies this whale regularly
 export function WalletStalkScreen() {
   return (
     <div className="flex flex-col gap-[4px]">
       <div className="text-[11px] font-sans text-[#1A1A1A] leading-[15px]">
-        this wallet is on a tear. $2.4M portfolio, 72% win rate. mostly memes + solana infra plays
+        your favorite whale is cooking again. $2.4M bag, 72% win rate
       </div>
       <div className="bg-[#F5F5F5] rounded-[5px] p-[5px] flex flex-col gap-[3px]">
         <Row label="portfolio" value="$2.4M" small />
         <Row label="7d PnL" value="+$184K" small valueColor="#14A86C" />
         <Row label="win rate" value="72%" small />
+        <Row label="latest" value="bought $WIF" small valueColor="#9945FF" />
       </div>
-      <div className="text-[9px] text-[#888] leading-[12px]">want me to copy their next trade? might help with your decision making</div>
+      <div className="text-[9px] text-[#888] leading-[12px]">last time you copied them you made 40%. want me to ape in like usual?</div>
     </div>
   );
 }
@@ -284,26 +285,28 @@ export function BundleDetectionScreen() {
   );
 }
 
+// 24/7 REAL-TIME: unprompted ping hours after setting the watch
 export function WalletWatchingScreen() {
   return (
     <div className="flex flex-col gap-[4px]">
       <div className="text-[11px] font-sans text-[#1A1A1A] leading-[15px]">
-        done. watching <span className="font-mono text-[10px] bg-[#F0EDFF] px-[3px] rounded">toly.sol</span> now. pinging you when anything moves
+        done. watching <span className="font-mono text-[10px] bg-[#F0EDFF] px-[3px] rounded">toly.sol</span>
       </div>
       <div className="flex items-center gap-[3px] self-start bg-[#F0EDFF] rounded-[3px] px-[5px] py-[2px]">
         <div className="w-[3px] h-[3px] rounded-full bg-[#9945FF]" />
         <span className="text-[7px] font-mono font-medium text-[#9945FF] leading-[10px]">watching toly.sol</span>
       </div>
-      <div className="bg-[#FFF8E6] rounded-[3px] p-[3px] flex flex-col gap-[2px] mt-[2px]" style={{ borderLeft: "2px solid #FFD166" }}>
-        <div className="text-[9px] font-sans text-[#555] leading-[12px]">
-          toly.sol just swapped 500 SOL → USDC on jupiter
+      <div className="text-[8px] font-mono text-[#AAA] leading-[10px] mt-[4px]">2 minutes later</div>
+      <div className="bg-[#FFF8E6] rounded-[3px] p-[3px] flex flex-col gap-[2px]" style={{ borderLeft: "2px solid #FFD166" }}>
+        <div className="text-[9px] font-sans text-[#1A1A1A] leading-[12px]">
+          toly.sol just swapped 500 SOL for USDC on jupiter 👀
         </div>
         <div className="bg-[#F5F5F5] rounded-[3px] p-[3px] flex flex-col gap-[1px]">
           <Row label="sent" value="500 SOL" small valueColor="#E65100" />
           <Row label="got" value="67,450 USDC" small valueColor="#14A86C" />
         </div>
       </div>
-      <div className="text-[9px] text-[#888] leading-[12px]">interesting move. bullish or does he know something 👀</div>
+      <div className="text-[9px] text-[#888] leading-[12px]">he&apos;s dumping. bearish signal or just taking profits? your call ser</div>
     </div>
   );
 }
@@ -348,11 +351,12 @@ export function SmartAlertsScreen() {
   );
 }
 
+// PROACTIVE + MEMORY: uses their risk preferences to filter results
 export function TokenSnipingScreen() {
   return (
     <div className="flex flex-col gap-[4px]">
       <div className="text-[11px] font-sans text-[#1A1A1A] leading-[15px]">
-        filtered for &gt;$10K mcap, 50+ holders, no bundles. here&apos;s what&apos;s moving:
+        filtered how you like it — no micro caps, no bundled trash:
       </div>
       <div className="flex flex-col gap-[3px]">
         {[
@@ -374,35 +378,32 @@ export function TokenSnipingScreen() {
           </div>
         ))}
       </div>
-      <div className="text-[9px] text-[#888] leading-[12px]">$RUGZ screams rug btw. the other two look decent</div>
+      <div className="text-[9px] text-[#888] leading-[12px]">$MOCHI looks like your usual type — degen but not suicidal. $RUGZ is an obvious rug skip it</div>
     </div>
   );
 }
 
+// THINK/ANALYZE: combines odds + sentiment research to give an actual take
 export function PredictionMarketsScreen() {
   return (
     <div className="flex flex-col gap-[4px]">
+      <div className="text-[9px] font-mono text-[#9945FF] leading-[12px] opacity-60">checked odds + news + social sentiment...</div>
       <div className="text-[11px] font-sans text-[#1A1A1A] leading-[15px]">
-        here&apos;s the action rn:
+        SOL $200 by june? market says 62% yes but sentiment is very bullish (4.2/5). might be undervalued tbh
       </div>
-      {[
-        { q: "SOL $200 by June?", yes: "62%", no: "38%", vol: "$4.2M" },
-        { q: "ETH ETF in April?", yes: "78%", no: "22%", vol: "$12.8M" },
-      ].map((m, i) => (
-        <div key={i} className="bg-[#F5F5F5] rounded-[3px] p-[3px] flex flex-col gap-[2px]">
-          <span className="text-[9px] font-sans font-medium text-[#1A1A1A] leading-[12px]">{m.q}</span>
-          <div className="flex gap-[4px]">
-            <div className="flex-1 bg-[#EAFFF5] rounded-[2px] flex items-center justify-center py-[2px]">
-              <span className="text-[8px] font-mono font-bold text-[#14A86C] leading-[10px]">Yes {m.yes}</span>
-            </div>
-            <div className="flex-1 bg-[#FFF5F5] rounded-[2px] flex items-center justify-center py-[2px]">
-              <span className="text-[8px] font-mono font-bold text-[#CC0000] leading-[10px]">No {m.no}</span>
-            </div>
+      <div className="bg-[#F5F5F5] rounded-[3px] p-[3px] flex flex-col gap-[2px]">
+        <span className="text-[9px] font-sans font-medium text-[#1A1A1A] leading-[12px]">SOL $200 by June?</span>
+        <div className="flex gap-[4px]">
+          <div className="flex-1 bg-[#EAFFF5] rounded-[2px] flex items-center justify-center py-[2px]">
+            <span className="text-[8px] font-mono font-bold text-[#14A86C] leading-[10px]">Yes 62%</span>
           </div>
-          <span className="text-[7px] font-sans text-[#AAA] leading-[9px]">vol: {m.vol}</span>
+          <div className="flex-1 bg-[#FFF5F5] rounded-[2px] flex items-center justify-center py-[2px]">
+            <span className="text-[8px] font-mono font-bold text-[#CC0000] leading-[10px]">No 38%</span>
+          </div>
         </div>
-      ))}
-      <div className="text-[9px] text-[#888] leading-[12px]">ETH ETF looking juicy ngl. sentiment is very bullish</div>
+        <span className="text-[7px] font-sans text-[#AAA] leading-[9px]">vol: $4.2M · sentiment: bullish</span>
+      </div>
+      <div className="text-[9px] text-[#888] leading-[12px]">you were asking about SOL last week too. want alerts when odds shift? might actually make money for once</div>
     </div>
   );
 }
