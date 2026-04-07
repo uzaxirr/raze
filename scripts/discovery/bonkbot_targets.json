@@ -1,0 +1,385 @@
+{
+  "scan_date": "2026-03-08 12:32 UTC",
+  "source": "BONKbot Chat",
+  "scan_days": 3,
+  "messages_scanned": 349,
+  "messages_analyzed": 207,
+  "llm_calls": 9,
+  "unique_targets": 12,
+  "targets": [
+    {
+      "username": "id_5518780529",
+      "full_name": "h j",
+      "user_id": 5518780529,
+      "messages": [
+        {
+          "text": "hey guys, i lost my google authenticator qr code , yesterday someone here told me its dead for me i cant recover, but can i create a new wallet with bonkbot to have a new qr code and new wallet or its dead too ?",
+          "date": "2026-03-06 19:45",
+          "message_id": 816924
+        },
+        {
+          "text": "Ok so my sol are stuck and no way to recover",
+          "date": "2026-03-06 03:01",
+          "message_id": 816891
+        },
+        {
+          "text": "Thats crazy , i dont understand if somebody lose his Phone or need to change his Phone and need to reinstall google authenticator or i dont know , no solution then ? I have just sent my money in here and now i m stuck i cant withdraw",
+          "date": "2026-03-06 02:42",
+          "message_id": 816889
+        },
+        {
+          "text": "So you mean i m fcked and stuck with my money i cant withdraw?",
+          "date": "2026-03-06 02:37",
+          "message_id": 816885
+        },
+        {
+          "text": "Good morning i have a problem to withdraw my sol from bonkbot, i had a problem with google authenticitor so now i need to reinstall it but i need the link .. how to find please ?",
+          "date": "2026-03-06 02:05",
+          "message_id": 816858
+        }
+      ],
+      "all_categories": [
+        "Emotional frustration with support",
+        "Stuck capital",
+        "Frustration with support",
+        "Lost access to funds",
+        "UX friction / complex setup",
+        "2FA management pain",
+        "Common UX failure (phone change scenario)",
+        "Frustration with inflexible security",
+        "Withdrawal friction",
+        "Poor UX/support for common scenarios",
+        "Tool limitation - no account recovery"
+      ],
+      "max_confidence": 0.88,
+      "reasonings": [
+        "User lost Google Authenticator QR code and is now unable to withdraw funds from BONKbot. This is a critical pain point showing BONKbot's inflexible security model that locks users out without recovery options. User is actively frustrated and seeking alternatives.",
+        "Direct statement of being locked out: 'my sol are stuck and no way to recover'. This is peak frustration - user has capital trapped in BONKbot due to its rigid 2FA system with no recovery mechanism.",
+        "User articulates the exact real-world scenario BONKbot fails at: reinstalling authenticator after changing phones. This is a common, legitimate situation that any modern trading platform should handle. User is actively frustrated ('now i m stuck i cant withdraw') and comparing to Binance which has better recovery.",
+        "Clear emotional signal of being stuck with capital: 'So you mean i m fcked and stuck with my money i cant withdraw?' This is someone who needs an alternative tool that doesn't have rigid recovery limitations.",
+        "User is struggling with 2FA setup and recovery flows for withdrawals\u2014a core trading function. This shows BONKbot's UX is clunky around account security. They need a simpler, more intuitive interface for critical operations. While not directly about trading features, this friction reduces their ability to execute quickly."
+      ],
+      "raze_angles": [
+        "Raze offers a superior onboarding experience with passkey-based security (Chrome/Google Password Manager) that doesn't have the single-point-of-failure 2FA recovery problem. Users can securely access their trading agent without losing access if they change phones.",
+        "Raze's modern security architecture (passkeys + BYOMCP flexibility) means users maintain control of their funds with recovery options. The natural language interface also makes it easier to manage account security proactively.",
+        "Raze uses passkey technology that syncs across devices (Google Password Manager), eliminating the phone-change recovery nightmare. Users can switch phones without losing access to their trading agent.",
+        "Raze's flexible security model and natural language support (with sentiment-aware responses) would help users feel heard and provide actual solutions instead of 'sorry, no other way' responses.",
+        "Raze's natural language interface (no button menus, just talk) eliminates setup confusion. Users can simply say 'withdraw X SOL' instead of navigating menus and 2FA flows. AI handles intent parsing naturally."
+      ],
+      "score": 51.8,
+      "suggested_dm": "yo i feel you on the 2fa nightmare\u2014losing access to your authenticator shouldn't mean losing your funds. raze has account recovery built in so you're never actually locked out, plus way smoother phone change scenarios. want to test drive it free for a week? \ud83d\udd11"
+    },
+    {
+      "username": "hamidullah1984",
+      "full_name": "Hamid",
+      "user_id": 1327787321,
+      "messages": [
+        {
+          "text": "Guys the bonk bots do not show token gains over 5mins 1 hour etc, just shows 0% change in token value over all timeframe",
+          "date": "2026-03-08 10:32",
+          "message_id": 817190
+        },
+        {
+          "text": "Guys bonk not still\nSlow?",
+          "date": "2026-03-07 18:36",
+          "message_id": 817096
+        },
+        {
+          "text": "Have tried All. Just slow",
+          "date": "2026-03-07 17:25",
+          "message_id": 817042
+        }
+      ],
+      "all_categories": [
+        "speed",
+        "performance",
+        "Lack of real-time data visualization",
+        "bot reliability",
+        "speed/slowness",
+        "Feature gap vs active trader needs",
+        "Limited analytics/charting features"
+      ],
+      "max_confidence": 0.75,
+      "reasonings": [
+        "User is frustrated that BONKbot doesn't display token performance metrics across different timeframes (5min, 1hour, etc.) - showing 0% change across all periods. This indicates they want better price action tracking and technical analysis, which active traders rely on. They're hitting a ceiling of what BONKbot's basic interface offers.",
+        "User asking if BONKbot is still slow\u2014indicates they've experienced slowness issues and are considering alternatives. Active trader hitting ceiling of current tool.",
+        "User has tried all BONKbot instances (McQueen, Furiosa, Monza) and still experiences slowness. This indicates a fundamental platform limitation, not a temporary issue. They've exhausted BONKbot's solutions."
+      ],
+      "raze_angles": [
+        "Raze's natural language interface + sentiment analysis (LunarCrush data) + multi-factor momentum scoring gives traders real-time, granular performance insights without needing to check multiple sites. Users can simply ask 'show me this token's momentum over 5min, 1hr, 4hr' and get instant analysis.",
+        "Raze's natural language interface eliminates menu lag; built-in LunarCrush sentiment analysis + Helius webhooks provide instant market insights without waiting for slow UI",
+        "Raze's AI-powered natural language trading bypasses the button-menu bottleneck that causes BONKbot delays. Faster execution, no instance switching required."
+      ],
+      "score": 34.5,
+      "suggested_dm": "yo noticed you're frustrated with bonk's charting lag and those garbage timeframe gaps \u2013 raze actually has real-time granular data viz that doesn't feel like watching paint dry \ud83d\udcca grab a free week and see if it moves different for you"
+    },
+    {
+      "username": "Vip21_Vip",
+      "full_name": "Vip Vip",
+      "user_id": 8378117207,
+      "messages": [
+        {
+          "text": "What happen with the bot so slow i 3 hours",
+          "date": "2026-03-07 19:44",
+          "message_id": 817102
+        },
+        {
+          "text": "What happen i lose so much money Becouse the bot \ud83e\udd26\ud83c\udffd\u200d\u2642\ufe0f\ud83e\udd26\ud83c\udffd\u200d\u2642\ufe0f\ud83e\udd26\ud83c\udffd\u200d\u2642\ufe0f",
+          "date": "2026-03-07 19:38",
+          "message_id": 817101
+        }
+      ],
+      "all_categories": [
+        "bot slowness",
+        "lost opportunity",
+        "speed/slowness",
+        "financial loss",
+        "execution failure",
+        "transaction failure"
+      ],
+      "max_confidence": 0.81,
+      "reasonings": [
+        "User explicitly complains about 3-hour bot slowness causing missed trading opportunities (typical in volatile crypto markets). This is a direct performance limitation of BONKbot. They lost money due to execution delays.",
+        "User directly attributes significant financial losses to BONKbot's slowness. Clear frustration and quantifiable damage. This is a high-intent frustrated user with direct tool failure pain."
+      ],
+      "raze_angles": [
+        "Raze's natural language interface + real-time sentiment analysis (LunarCrush) enables faster decision-making without menu delays; webhook-based whale tracking alerts users immediately to market moves",
+        "Raze's multi-factor momentum scoring + real-time sentiment analysis provides faster, AI-driven trade signals; webhook alerts ensure no delays in execution"
+      ],
+      "score": 30.1,
+      "suggested_dm": "yo i see you got hit with that bot lag issue \ud83e\udee0 raze executes way faster so you won't miss moves like that again\u2014wanna test it free for a week and see the difference?"
+    },
+    {
+      "username": "inobama",
+      "full_name": "Malic",
+      "user_id": 6561197188,
+      "messages": [
+        {
+          "text": "Why bonk bot is not working? All trades got fucked up cant sell or buy or even open home page",
+          "date": "2026-03-07 17:37",
+          "message_id": 817051
+        }
+      ],
+      "all_categories": [
+        "failed transactions",
+        "platform outage",
+        "speed",
+        "reliability"
+      ],
+      "max_confidence": 0.88,
+      "reasonings": [
+        "User experienced multiple failed transactions (can't buy/sell) and platform unavailability (/home page down). This is a critical failure \u2014 lost trading opportunity and potential capital at risk. They need a reliable alternative that won't go down."
+      ],
+      "raze_angles": [
+        "Raze provides independent trading infrastructure with real-time whale tracking alerts and sentiment analysis to catch moves before platform outages matter. Token security scanning prevents losses from scams."
+      ],
+      "score": 22.8,
+      "suggested_dm": "hey, saw you got rekt by bonk's outages \ud83d\ude05 raze doesn't have that infrastructure mess\u2014trades actually go through when you need them to. wanna try it free for a week and never deal with that again?"
+    },
+    {
+      "username": "id_8186200339",
+      "full_name": "Lope",
+      "user_id": 8186200339,
+      "messages": [
+        {
+          "text": "So is anyone here that is willing to share some real tips to get some money from launching own coin. I see bots everywhere , and made my own coin but cant get volume since pump fun is just fake sales",
+          "date": "2026-03-05 16:26",
+          "message_id": 816797
+        }
+      ],
+      "all_categories": [
+        "Manual work / research overhead",
+        "Volume/liquidity problems",
+        "Overwhelmed by too many bots",
+        "Tool limitations (no sniping)"
+      ],
+      "max_confidence": 0.75,
+      "reasonings": [
+        "User is actively trading (made their own coin), frustrated with Pump Fun's fake sales, struggling with volume generation, and explicitly mentions 'bots everywhere' \u2014 indicating they're aware multiple tools exist but aren't satisfied. They're doing manual work to launch coins and looking for better solutions. This is a power user hitting the ceiling of existing tools."
+      ],
+      "raze_angles": [
+        "Raze's token sniping with multi-factor momentum scoring + sentiment analysis (LunarCrush) could help identify real volume vs. fake sales on Pump Fun. AI natural language interface makes it easier to manage multiple strategies without menu fatigue."
+      ],
+      "score": 21.5,
+      "suggested_dm": "hey, saw you're frustrated with the bot spam and manual grind launching your own coin \u2013 raze handles volume/liquidity checks + sniping in one place so you're not juggling 5 different tools. wanna test drive it free for a week? \ud83d\ude80"
+    },
+    {
+      "username": "H0M3R23",
+      "full_name": "H0M3R",
+      "user_id": 1885220628,
+      "messages": [
+        {
+          "text": "you can only withdraw SOL from bonkbot, if you want to withdraw other tokens you'll have to import your seedphrase first to phantom",
+          "date": "2026-03-07 01:00",
+          "message_id": 816969
+        }
+      ],
+      "all_categories": [
+        "Limited withdrawal options",
+        "Cumbersome multi-step processes",
+        "Lack of token flexibility"
+      ],
+      "max_confidence": 0.75,
+      "reasonings": [
+        "User is hitting BONKbot's withdrawal limitations \u2014 can only withdraw SOL, requires seedphrase import to Phantom for other tokens. This is a clear UX/feature ceiling. They're dealing with friction that Raze eliminates through its natural language interface and integrated token management."
+      ],
+      "raze_angles": [
+        "Raze handles token transfers seamlessly through natural conversation + integrated wallet management. No seedphrase export needed. User can say 'send X tokens to wallet Y' and it handles the security & execution."
+      ],
+      "score": 18.5,
+      "suggested_dm": "yo i feel that seedphrase importing pain \ud83e\udee0 raze lets you withdraw basically any token directly without jumping through hoops - wanna test drive it free for a week?"
+    },
+    {
+      "username": "wizzbull1",
+      "full_name": ".",
+      "user_id": 1516324410,
+      "messages": [
+        {
+          "text": "Then I did an update and all my coins are gone.",
+          "date": "2026-03-07 18:21",
+          "message_id": 817084
+        }
+      ],
+      "all_categories": [
+        "reliability",
+        "bot update bug",
+        "fund loss"
+      ],
+      "max_confidence": 0.74,
+      "reasonings": [
+        "User lost all coins after a BONKbot update. Catastrophic failure caused by tool malfunction. Very high frustration and direct financial harm. Seeking alternative is likely."
+      ],
+      "raze_angles": [
+        "Raze's BYOMCP (bring your own MCP) architecture gives users control; token security scanning would have prevented interaction with problematic tokens; natural language interface provides transparency"
+      ],
+      "score": 18.4,
+      "suggested_dm": "yo @wizzbull1 saw you lost funds on a bot update\u2014that's brutal \ud83d\ude2c raze is built different with way better safety checks and fund security. wanna test drive it free for a week and actually sleep at night?"
+    },
+    {
+      "username": "id_6957793138",
+      "full_name": "Wesh Wesh",
+      "user_id": 6957793138,
+      "messages": [
+        {
+          "text": "My bot widraw is delect explain me what the problem i'am deposit 8$ for my teste now no widraw",
+          "date": "2026-03-07 19:56",
+          "message_id": 817109
+        }
+      ],
+      "all_categories": [
+        "bot reliability",
+        "deposit loss",
+        "withdrawal issues"
+      ],
+      "max_confidence": 0.72,
+      "reasonings": [
+        "User lost $8 deposit due to withdrawal failure in BONKbot. This is a direct financial loss caused by tool failure. They're confused and frustrated, seeking answers. Raze's token security scanning and real-time alerts could have prevented this, and better UX would prevent future issues."
+      ],
+      "raze_angles": [
+        "Token security scanning + honeypot/rug detection prevents deposits into problematic tokens; natural language support for clearer issue resolution"
+      ],
+      "score": 18.2,
+      "suggested_dm": "yo seen you having withdrawal issues with your bot \u2013 that's rough \ud83e\udee1 raze handles deposits/withdrawals way more reliably, no sketchy delays. wanna test it out free for a week and see the difference?"
+    },
+    {
+      "username": "DatGatGuy",
+      "full_name": "Dat Gat",
+      "user_id": 7728753871,
+      "messages": [
+        {
+          "text": "Hey can you send tokens from bonk to a wallet? if so how?",
+          "date": "2026-03-07 00:56",
+          "message_id": 816962
+        }
+      ],
+      "all_categories": [
+        "Manual workarounds required",
+        "Poor UX/documentation",
+        "Unclear BONKbot functionality"
+      ],
+      "max_confidence": 0.72,
+      "reasonings": [
+        "DatGatGuy is asking how to send tokens from BONKbot to wallet \u2014 a basic feature that's apparently not obvious or intuitive. Combined with messages [12-13] showing multiple failed attempts, this indicates frustration with BONKbot's interface and clarity."
+      ],
+      "raze_angles": [
+        "Raze's natural language interface eliminates button-menu confusion. Instead of hunting through BONKbot's UI, user just says 'transfer 1000 BONK to my Phantom wallet' and gets it done with clear AI guidance."
+      ],
+      "score": 18.2,
+      "suggested_dm": "hey! saw you asking about sending bonk around \u2013 raze handles that flow way smoother than the manual workarounds. wanna try it free for a week and skip the headache? \ud83d\udd17"
+    },
+    {
+      "username": "eff4ce",
+      "full_name": "Commando",
+      "user_id": 6509827379,
+      "messages": [
+        {
+          "text": "Yeah he was a scammer, thank you guys! He got 40 bucks from me. But I safely deleted all the wallets and accounts :) Thanks BONKBOT. Hope I can be good example.",
+          "date": "2026-03-06 01:36",
+          "message_id": 816852
+        }
+      ],
+      "all_categories": [
+        "Lost money due to tool limitations",
+        "Security concerns / scam vulnerability",
+        "Manual wallet management friction"
+      ],
+      "max_confidence": 0.72,
+      "reasonings": [
+        "User was scammed for $40 and had to manually manage wallet deletions and account cleanup. This indicates they lack automated security scanning and verification tools that would prevent falling for scams. They're also dealing with multi-step manual processes (wallet creation, deletion, verification) that a bot should handle."
+      ],
+      "raze_angles": [
+        "Raze's token security scanning (honeypot/rug pull detection) + whale wallet tracking alerts would prevent exposure to scam tokens. The natural language interface also builds trust vs. DMs from imposters. BYOMCP allows integration with additional security tools."
+      ],
+      "score": 18.2,
+      "suggested_dm": "yo, sorry that happened to you. raze handles wallet management way differently so you're not constantly exposed to scams like that\u2014wanna try it free for a week and see if it clicks better for you? \ud83d\udd10"
+    },
+    {
+      "username": "NSkiltz",
+      "full_name": "Skilt",
+      "user_id": 7621315247,
+      "messages": [
+        {
+          "text": "why is bonkbot so slow atm",
+          "date": "2026-03-07 17:56",
+          "message_id": 817067
+        }
+      ],
+      "all_categories": [
+        "performance",
+        "speed"
+      ],
+      "max_confidence": 0.72,
+      "reasonings": [
+        "User is frustrated with BONKbot's speed/performance issues. Direct complaint about a core limitation that affects trading execution. This is a clear pain point where a faster, AI-powered alternative would be valuable."
+      ],
+      "raze_angles": [
+        "Raze's natural language interface and real-time momentum scoring operates independently of BONKbot infrastructure, eliminating speed bottlenecks. No instance switching needed."
+      ],
+      "score": 15.2
+    },
+    {
+      "username": "w3b3g",
+      "full_name": "Web3 G",
+      "user_id": 6005751371,
+      "messages": [
+        {
+          "text": "Nope, it's not a sniper bot, we don't have that feature yet",
+          "date": "2026-03-05 16:25",
+          "message_id": 816796
+        }
+      ],
+      "all_categories": [
+        "Tool limitation acknowledged by bot support",
+        "Missing feature (sniping)"
+      ],
+      "max_confidence": 0.72,
+      "reasonings": [
+        "User explicitly asked for sniping feature and BONKbot support confirmed 'we don't have that feature yet.' This is a direct feature gap. User is asking for something BONKbot can't deliver, making them prime for Raze's sniping capabilities."
+      ],
+      "raze_angles": [
+        "Raze offers token sniping with multi-factor momentum scoring \u2014 directly addressing the feature gap BONKbot acknowledged it lacks."
+      ],
+      "score": 15.2
+    }
+  ]
+}

@@ -70,3 +70,7 @@ test.py
 # Frontend
 frontend/node_modules/
 frontend/.next/
+
+# Remotion
+remotion/node_modules/
+remotion/.remotion/

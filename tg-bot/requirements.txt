@@ -1,0 +1,6 @@
+python-telegram-bot>=21.0
+agno
+fastapi
+python-dotenv>=1.0.0
+sqlalchemy>=2.0.0
+psycopg[binary]

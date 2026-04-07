@@ -1,0 +1,11 @@
+# Core MCP framework
+fastmcp>=0.5.8
+
+# Environment configuration
+python-dotenv==1.0.1
+
+# Required for this server
+httpx==0.27.2           # For Helius RPC calls
+anthropic==0.40.0       # For Claude NLP parsing
+pydantic==2.10.3        # For data validation
+async-lru>=2.0.0        # For caching RPC responses

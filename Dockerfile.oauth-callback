@@ -1,0 +1,22 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Copy requirements
+COPY services/oauth_callback/requirements.txt ./
+
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Set Python path
+ENV PYTHONPATH=/app
+
+# Expose port
+EXPOSE 8080
+
+# Run the OAuth callback server
+WORKDIR /app/services/oauth_callback
+CMD ["python", "-m", "uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8080"]

@@ -1,0 +1,12 @@
+# Core MCP framework
+fastmcp>=2.0.0
+
+# Environment configuration
+python-dotenv>=1.0.0
+
+# HTTP client (will use version compatible with fastmcp)
+httpx>=0.27.0
+
+# Solana transaction building
+solders>=0.21.0
+base58>=2.1.0

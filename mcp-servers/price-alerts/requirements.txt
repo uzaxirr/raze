@@ -1,0 +1,9 @@
+# Core MCP framework
+fastmcp>=2.0.0
+
+# Environment configuration
+python-dotenv>=1.0.0
+
+# Database
+sqlalchemy>=2.0.0
+psycopg[binary]
