@@ -1,0 +1,17 @@
+<svg width="260" height="260" viewBox="0 0 260 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M130 50 C90 50, 64 82, 64 118 L64 172 C64 177, 70 181, 78 176 C85 172, 90 177, 96 182 C102 187, 107 182, 112 177 C118 172, 123 177, 129 182 C135 187, 140 182, 145 177 C151 172, 156 177, 162 182 C168 187, 173 182, 178 177 C184 172, 190 177, 197 182 C204 177, 200 172, 200 167 L200 118 C200 82, 172 50, 130 50Z" fill="#9945FF"/>
+  <ellipse cx="108" cy="108" rx="18" ry="20" fill="#FFFFFF"/>
+  <ellipse cx="108" cy="108" rx="12" ry="14" fill="#2D1B69"/>
+  <ellipse cx="111" cy="105" rx="7" ry="8" fill="#1A1040"/>
+  <ellipse cx="107" cy="102" rx="3.5" ry="3" fill="#FFFFFF" opacity="0.95"/>
+  <ellipse cx="152" cy="108" rx="18" ry="20" fill="#FFFFFF"/>
+  <ellipse cx="152" cy="108" rx="12" ry="14" fill="#2D1B69"/>
+  <ellipse cx="155" cy="105" rx="7" ry="8" fill="#1A1040"/>
+  <ellipse cx="151" cy="102" rx="3.5" ry="3" fill="#FFFFFF" opacity="0.95"/>
+  <ellipse cx="130" cy="135" rx="12" ry="8.5" fill="#7B2FE0"/>
+  <ellipse cx="130" cy="132" rx="10" ry="4" fill="#FFFFFF" opacity="0.4"/>
+  <path d="M64 108 C50 92, 38 72, 32 55" stroke="#9945FF" stroke-width="9" fill="none" stroke-linecap="round"/>
+  <circle cx="30" cy="51" r="7" fill="#9945FF"/>
+  <path d="M200 108 C214 92, 226 72, 232 55" stroke="#9945FF" stroke-width="9" fill="none" stroke-linecap="round"/>
+  <circle cx="234" cy="51" r="7" fill="#9945FF"/>
+</svg>

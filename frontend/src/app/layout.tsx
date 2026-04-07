@@ -21,6 +21,9 @@ export const metadata: Metadata = {
   title: "Raze — Your On-Chain Intelligence",
   description:
     "Trade, research, and explore Solana through natural conversation. Your wallet, your trades, your alpha — all in one Telegram chat.",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
