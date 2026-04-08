@@ -24,6 +24,18 @@ export const metadata: Metadata = {
   icons: {
     icon: "/favicon.svg",
   },
+  metadataBase: new URL("https://raze.fun"),
+  openGraph: {
+    title: "Raze — Your crypto friend who never sleeps",
+    description: "Trade, research, and explore Solana through natural conversation. All in one Telegram chat.",
+    siteName: "Raze",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Raze — Your crypto friend who never sleeps",
+    description: "Trade, research, and explore Solana through natural conversation. All in one Telegram chat.",
+  },
 };
 
 export default function RootLayout({
