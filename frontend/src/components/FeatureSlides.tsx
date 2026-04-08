@@ -267,7 +267,7 @@ export default function FeatureSlides() {
       id="features"
       ref={sectionRef}
       style={{
-        backgroundColor: isDemoMode ? "#F0EDFF" : active.bgColor,
+        backgroundColor: isDemoMode ? "#EDE8FF" : active.bgColor,
         transition: "background-color 0.7s ease",
         clipPath: "inset(0 0 0 0)",
       }}
@@ -391,16 +391,24 @@ export default function FeatureSlides() {
         <div
           ref={moreTriggerRef}
           className="min-h-screen flex items-center relative"
-          style={{ backgroundColor: isDemoMode ? "#F5F3FF" : undefined, transition: "background-color 0.7s ease" }}
+          style={{ transition: "background-color 0.7s ease" }}
         >
           {/* Mobile */}
           <div className="lg:hidden flex flex-col items-center w-full px-6 py-12 gap-5">
             <div className="slide-content flex flex-col items-center text-center" data-active={String(isDemoMode)}>
+              <div className="w-[50px] h-[55px] mb-2">
+                <svg width="50" height="55" viewBox="0 0 200 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M100 25 C60 25, 32 58, 32 98 L32 155 C32 161, 38 165, 46 160 C58 161, 64 166, 80 161 C97 166, 113 161, 146 161 C165 166, 168 150, 168 98 C168 58, 140 25, 100 25Z" fill="#9945FF"/>
+                  <ellipse cx="74" cy="88" rx="18" ry="20" fill="#FFFFFF"/><ellipse cx="74" cy="88" rx="10" ry="12" fill="#2D1B69"/>
+                  <ellipse cx="126" cy="88" rx="18" ry="20" fill="#FFFFFF"/><ellipse cx="126" cy="88" rx="10" ry="12" fill="#2D1B69"/>
+                  <path d="M85 110 C90 118, 110 118, 115 110" stroke="#FFFFFF" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
+                </svg>
+              </div>
               <h2 className="font-display text-[30px] font-bold leading-[34px] tracking-[-0.04em] text-[#1A1A1A]">
-                But that&apos;s not all
+                Ask Raze anything
               </h2>
               <p className="font-sans text-[13px] leading-[19px] text-[#888] mt-2 max-w-[300px]">
-                Raze can do way more. Just type what you want.
+                Just type what you want.
               </p>
             </div>
             {/* Inline demo phone for mobile */}
@@ -414,11 +422,19 @@ export default function FeatureSlides() {
           {/* Desktop */}
           <div className="hidden lg:flex items-center w-full h-screen">
             <div className="slide-content ml-20 max-w-[400px]" data-active={String(isDemoMode)}>
+              <div className="w-[70px] h-[77px] mb-4 animate-float">
+                <svg width="70" height="77" viewBox="0 0 200 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M100 25 C60 25, 32 58, 32 98 L32 155 C32 161, 38 165, 46 160 C58 161, 64 166, 80 161 C97 166, 113 161, 146 161 C165 166, 168 150, 168 98 C168 58, 140 25, 100 25Z" fill="#9945FF"/>
+                  <ellipse cx="74" cy="88" rx="18" ry="20" fill="#FFFFFF"/><ellipse cx="74" cy="88" rx="10" ry="12" fill="#2D1B69"/>
+                  <ellipse cx="126" cy="88" rx="18" ry="20" fill="#FFFFFF"/><ellipse cx="126" cy="88" rx="10" ry="12" fill="#2D1B69"/>
+                  <path d="M85 110 C90 118, 110 118, 115 110" stroke="#FFFFFF" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
+                </svg>
+              </div>
               <h2 className="font-display text-[52px] font-bold leading-[54px] tracking-[-0.04em] text-[#1A1A1A]">
-                But that&apos;s<br />not all
+                Ask Raze<br />anything
               </h2>
               <p className="font-sans text-[16px] leading-[24px] text-[#888] mt-4 max-w-[360px]">
-                Raze can do way more than what you just saw. PnL tracking, DeFi staking, limit orders, sentiment analysis, wallet deep-dives — just type what you want.
+                PnL tracking, DeFi staking, limit orders, sentiment analysis, wallet deep-dives — just type what you want.
               </p>
             </div>
           </div>

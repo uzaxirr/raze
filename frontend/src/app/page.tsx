@@ -1,7 +1,6 @@
 import Nav from "@/components/Nav";
 import Hero from "@/components/Hero";
 import FeatureSlides from "@/components/FeatureSlides";
-import CTAFooter from "@/components/CTAFooter";
 
 export default function Home() {
   return (
@@ -9,7 +8,6 @@ export default function Home() {
       <Nav />
       <Hero />
       <FeatureSlides />
-      <CTAFooter />
     </main>
   );
 }

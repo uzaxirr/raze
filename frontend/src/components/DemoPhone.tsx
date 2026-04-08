@@ -58,21 +58,29 @@ export default function DemoPhone({ active }: { active: boolean }) {
         }, 18 + Math.random() * 12); // FAST typing
         return () => clearTimeout(t);
       } else {
-        const t = setTimeout(() => setPhase("sending"), 300);
+        const t = setTimeout(() => setPhase("sending"), 200);
         return () => clearTimeout(t);
       }
     }
 
     if (phase === "sending") {
-      setMessages((prev) => [...prev, { type: "user", text: convo.user }]);
+      setMessages((prev) => {
+        // Guard: don't add if last message is already this user msg
+        if (prev.length > 0 && prev[prev.length - 1].text === convo.user) return prev;
+        return [...prev, { type: "user", text: convo.user }];
+      });
       setInputText("");
-      const t = setTimeout(() => setPhase("botReply"), 500);
+      const t = setTimeout(() => setPhase("botReply"), 300);
       return () => clearTimeout(t);
     }
 
     if (phase === "botReply") {
-      setMessages((prev) => [...prev, { type: "bot", text: convo.bot }]);
-      const t = setTimeout(() => setPhase("pause"), 2200); // Show reply briefly
+      setMessages((prev) => {
+        // Guard: don't add if last message is already this bot msg
+        if (prev.length > 0 && prev[prev.length - 1].text === convo.bot) return prev;
+        return [...prev, { type: "bot", text: convo.bot }];
+      });
+      const t = setTimeout(() => setPhase("pause"), 1800);
       return () => clearTimeout(t);
     }
 

@@ -41,28 +41,25 @@ export default function PhoneMockup({ messages, className = "", size = "md" }: P
           backgroundColor: "#000",
         }}
       >
-        {/* Status bar */}
+        {/* Status bar — compact */}
         <div
           className="flex items-end justify-between shrink-0"
-          style={{ backgroundColor: "#517DA2", height: 52, paddingLeft: 22, paddingRight: 18 }}
+          style={{ backgroundColor: "#517DA2", height: 36, paddingLeft: 20, paddingRight: 16 }}
         >
-          <span className="text-white text-[12px] font-semibold font-sans" style={{ paddingBottom: 6, letterSpacing: "0.02em" }}>9:41</span>
-          <div className="flex items-center gap-[3px]" style={{ paddingBottom: 7 }}>
-            {/* Signal bars */}
-            <svg width="14" height="10" viewBox="0 0 14 10" fill="none" className="shrink-0">
+          <span className="text-white text-[10px] font-semibold font-sans" style={{ paddingBottom: 4, letterSpacing: "0.02em" }}>9:41</span>
+          <div className="flex items-center gap-[3px]" style={{ paddingBottom: 5 }}>
+            <svg width="12" height="8" viewBox="0 0 14 10" fill="none" className="shrink-0">
               <rect x="0" y="7" width="2.5" height="3" rx="0.5" fill="#FFFFFF" />
               <rect x="3.5" y="5" width="2.5" height="5" rx="0.5" fill="#FFFFFF" />
               <rect x="7" y="2.5" width="2.5" height="7.5" rx="0.5" fill="#FFFFFF" />
               <rect x="10.5" y="0" width="2.5" height="10" rx="0.5" fill="#FFFFFF" />
             </svg>
-            {/* WiFi */}
-            <svg width="12" height="10" viewBox="0 0 12 10" fill="none" className="shrink-0">
+            <svg width="10" height="8" viewBox="0 0 12 10" fill="none" className="shrink-0">
               <path d="M6 9.5 C6.8 9.5 7.5 8.8 7.5 8 C7.5 7.2 6.8 6.5 6 6.5 C5.2 6.5 4.5 7.2 4.5 8 C4.5 8.8 5.2 9.5 6 9.5Z" fill="#FFFFFF" />
               <path d="M2.5 5.5 C3.5 4.2 4.6 3.5 6 3.5 C7.4 3.5 8.5 4.2 9.5 5.5" stroke="#FFFFFF" strokeWidth="1.2" strokeLinecap="round" fill="none" />
               <path d="M0.5 3 C2.2 1.2 4 0 6 0 C8 0 9.8 1.2 11.5 3" stroke="#FFFFFF" strokeWidth="1.2" strokeLinecap="round" fill="none" />
             </svg>
-            {/* Battery */}
-            <svg width="20" height="9" viewBox="0 0 25 12" fill="none" className="shrink-0">
+            <svg width="17" height="8" viewBox="0 0 25 12" fill="none" className="shrink-0">
               <rect x="0.5" y="0.5" width="20" height="11" rx="2.5" stroke="rgba(255,255,255,0.4)" strokeWidth="1" />
               <rect x="2" y="2" width="14" height="8" rx="1.5" fill="#FFFFFF" />
               <path d="M22 4.5 C23 4.5 23.5 5 23.5 6 C23.5 7 23 7.5 22 7.5" fill="rgba(255,255,255,0.4)" />
@@ -70,14 +67,13 @@ export default function PhoneMockup({ messages, className = "", size = "md" }: P
           </div>
         </div>
 
-        {/* Chat header */}
+        {/* Chat header — compact */}
         <div
-          className="flex items-center gap-[7px] px-3 pt-1 pb-2"
+          className="flex items-center gap-[6px] px-[10px] py-[5px]"
           style={{ backgroundColor: "#517DA2" }}
         >
-          {/* Mini ghost avatar - white bg with purple ghost */}
-          <div className="w-7 h-7 rounded-[14px] bg-white shrink-0 flex items-center justify-center overflow-hidden">
-            <svg width="18" height="18" viewBox="0 0 200 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <div className="w-[22px] h-[22px] rounded-[11px] bg-white shrink-0 flex items-center justify-center overflow-hidden">
+            <svg width="14" height="14" viewBox="0 0 200 220" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M100 25 C60 25, 32 58, 32 98 L32 155 C32 161, 38 165, 46 160 C58 161, 64 166, 80 161 C97 166, 113 161, 146 161 C165 166, 168 150, 168 98 C168 58, 140 25, 100 25Z" fill="#9945FF" />
               <ellipse cx="74" cy="88" rx="14" ry="16" fill="#FFFFFF" />
               <ellipse cx="74" cy="88" rx="8" ry="10" fill="#2D1B69" />
@@ -87,8 +83,8 @@ export default function PhoneMockup({ messages, className = "", size = "md" }: P
             </svg>
           </div>
           <div className="flex flex-col">
-            <span className="text-white text-[13px] font-semibold font-sans leading-[15px]">Raze</span>
-            <span className="text-white/60 text-[9px] font-sans leading-[11px]">online</span>
+            <span className="text-white text-[11px] font-semibold font-sans leading-[13px]">Raze</span>
+            <span className="text-white/60 text-[8px] font-sans leading-[10px]">online</span>
           </div>
         </div>
 
@@ -126,36 +122,36 @@ export default function PhoneMockup({ messages, className = "", size = "md" }: P
           )}
         </div>
 
-        {/* Message input bar */}
+        {/* Message input bar — compact */}
         <div
-          className="flex items-center gap-[6px] shrink-0"
-          style={{ backgroundColor: "#EFEFE4", padding: "6px 8px" }}
+          className="flex items-center gap-[5px] shrink-0"
+          style={{ backgroundColor: "#EFEFE4", padding: "4px 7px" }}
         >
           <div
             className="flex-1 rounded-full bg-white flex items-center"
-            style={{ padding: "5px 10px" }}
+            style={{ padding: "4px 9px" }}
           >
-            <span className="text-[10px] font-sans text-[#999] leading-[12px]">Message</span>
+            <span className="text-[9px] font-sans text-[#999] leading-[11px]">Message</span>
           </div>
-          <div className="w-[22px] h-[22px] rounded-full bg-[#517DA2] flex items-center justify-center shrink-0">
-            <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+          <div className="w-[20px] h-[20px] rounded-full bg-[#517DA2] flex items-center justify-center shrink-0">
+            <svg width="9" height="9" viewBox="0 0 12 12" fill="none">
               <path d="M1 6 L10 1 L7 6 L10 11Z" fill="#FFFFFF" />
             </svg>
           </div>
         </div>
         {/* Home indicator */}
-        <div className="flex justify-center py-[5px]" style={{ backgroundColor: "#EFEFE4" }}>
-          <div className="rounded-full bg-black opacity-15" style={{ width: 48, height: 4 }} />
+        <div className="flex justify-center py-[4px]" style={{ backgroundColor: "#EFEFE4" }}>
+          <div className="rounded-full bg-black opacity-15" style={{ width: 40, height: 3 }} />
         </div>
 
         {/* Notch */}
         <div
           className="absolute bg-black"
           style={{
-            width: s.notch,
-            height: 24,
-            borderRadius: 12,
-            top: 10,
+            width: s.notch * 0.85,
+            height: 20,
+            borderRadius: 10,
+            top: 8,
             left: "50%",
             transform: "translateX(-50%)",
           }}
