@@ -30,13 +30,11 @@ export const metadata: Metadata = {
     description: "Trade, research, and explore Solana through natural conversation. All in one Telegram chat.",
     siteName: "Raze",
     type: "website",
-    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Raze — Your crypto friend who never sleeps",
     description: "Trade, research, and explore Solana through natural conversation. All in one Telegram chat.",
-    images: ["/og-image.png"],
   },
 };
 
