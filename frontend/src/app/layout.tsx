@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   icons: {
     icon: "/favicon.svg",
   },
-  metadataBase: new URL("https://frontend-production-e170.up.railway.app"),
+  metadataBase: new URL("https://raze.fun"),
   openGraph: {
     title: "Raze — Your crypto friend who never sleeps",
     description: "Trade, research, and explore Solana through natural conversation. All in one Telegram chat.",
