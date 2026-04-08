@@ -242,12 +242,6 @@ export default function FeatureSlides() {
       ? { right: -140, top: 30 }
       : { top: -150, left: "50%", transform: "translateX(-50%)" };
 
-  const ghostPosMobile = (pos: string): React.CSSProperties =>
-    pos === "left"
-      ? { left: -50, top: 20 }
-      : pos === "right"
-      ? { right: -50, top: 15 }
-      : { top: -80, left: "50%", transform: "translateX(-50%)" };
 
   return (
     <section
@@ -266,91 +260,128 @@ export default function FeatureSlides() {
           <div
             key={i}
             ref={(el) => setTriggerRef(el, i)}
-            className="min-h-screen flex flex-col lg:flex-row items-center relative px-6 lg:px-0 py-16 lg:py-0"
+            className="min-h-screen flex items-center relative"
           >
-            {/* Mobile: headline + query centered at top */}
-            <div
-              className="slide-content w-full lg:hidden flex flex-col items-center text-center mb-6"
-              data-active={String(activeSlide === i)}
-            >
-              <h2 className="font-display text-[30px] font-bold leading-[34px] tracking-[-0.04em] text-[#1A1A1A] whitespace-pre-line">
-                {slide.headline}
-              </h2>
-              <p className="font-mono text-[13px] leading-[18px] pt-2" style={{ color: slide.queryColor }}>
-                {slide.query}
-              </p>
-            </div>
-
-            {/* Desktop: Left headline */}
-            <div
-              className="slide-content hidden lg:block ml-20 max-w-[340px]"
-              data-active={String(activeSlide === i)}
-            >
-              <h2 className="font-display text-[52px] font-bold leading-[54px] tracking-[-0.04em] text-[#1A1A1A] whitespace-pre-line">
-                {slide.headline}
-              </h2>
-              <p className="font-mono text-[14px] leading-[18px] pt-3" style={{ color: slide.queryColor }}>
-                {slide.query}
-              </p>
-            </div>
-
-            {/* Mobile: frosted pill below phone area (spacer for sticky phone) */}
-            <div className="h-[380px] lg:hidden" />
-            <div
-              className="slide-content w-full lg:hidden mt-4"
-              data-active={String(activeSlide === i)}
-              style={{ transitionDelay: activeSlide === i ? "120ms" : "0ms" }}
-            >
-              <div className="frosted-pill rounded-2xl px-5 py-4">
-                <p className="font-sans text-[14px] leading-[21px] text-[#1A1A1A]">
-                  {slide.description}
+            {/* ===== MOBILE LAYOUT: vertical stack ===== */}
+            <div className="lg:hidden flex flex-col items-center w-full px-6 py-12 gap-5">
+              {/* Headline + query */}
+              <div
+                className="slide-content flex flex-col items-center text-center"
+                data-active={String(activeSlide === i)}
+              >
+                <h2 className="font-display text-[30px] font-bold leading-[34px] tracking-[-0.04em] text-[#1A1A1A] whitespace-pre-line">
+                  {slide.headline}
+                </h2>
+                <p className="font-mono text-[12px] leading-[16px] pt-2" style={{ color: slide.queryColor }}>
+                  {slide.query}
                 </p>
-                {slide.agentCallout && (
-                  <div className="mt-3 pt-3 border-t border-white/30">
-                    <p className="font-sans text-[12px] leading-[17px] text-[#9945FF] font-medium">
-                      {slide.agentCallout}
-                    </p>
-                  </div>
-                )}
+              </div>
+
+              {/* Phone + ghost inline */}
+              <div className="relative flex items-center justify-center" style={{ width: 260, minHeight: 340 }}>
+                {/* Ghost peeking */}
+                <div
+                  className="absolute transition-all duration-500 ease-out"
+                  style={{
+                    ...(slide.ghostPosition === "left"
+                      ? { left: -20, top: 10 }
+                      : slide.ghostPosition === "right"
+                      ? { right: -20, top: 10 }
+                      : { top: -60, left: "50%", transform: "translateX(-50%)" }),
+                    opacity: activeSlide === i ? 1 : 0,
+                    scale: activeSlide === i ? "0.5" : "0.3",
+                  }}
+                >
+                  {slide.ghost}
+                </div>
+                {/* Phone */}
+                <div
+                  className="transition-opacity duration-300"
+                  style={{ opacity: activeSlide === i ? 1 : 0 }}
+                >
+                  <PhoneMockup
+                    size="sm"
+                    messages={[
+                      { type: "user", content: slide.userMessage },
+                      { type: "bot", content: slide.screen },
+                    ]}
+                  />
+                </div>
+              </div>
+
+              {/* Frosted pill */}
+              <div
+                className="slide-content w-full"
+                data-active={String(activeSlide === i)}
+                style={{ transitionDelay: activeSlide === i ? "120ms" : "0ms" }}
+              >
+                <div className="frosted-pill rounded-2xl px-5 py-4">
+                  <p className="font-sans text-[14px] leading-[21px] text-[#1A1A1A]">
+                    {slide.description}
+                  </p>
+                  {slide.agentCallout && (
+                    <div className="mt-3 pt-3 border-t border-white/30">
+                      <p className="font-sans text-[12px] leading-[17px] text-[#9945FF] font-medium">
+                        {slide.agentCallout}
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Desktop: Right frosted pill */}
-            <div
-              className="slide-content hidden lg:block absolute right-20 max-w-[270px]"
-              data-active={String(activeSlide === i)}
-              style={{ transitionDelay: activeSlide === i ? "120ms" : "0ms" }}
-            >
-              <div className="frosted-pill rounded-2xl px-6 py-5">
-                <p className="font-sans text-[15px] leading-[22px] text-[#1A1A1A]">
-                  {slide.description}
+            {/* ===== DESKTOP LAYOUT: left headline, center phone (sticky), right pill ===== */}
+            <div className="hidden lg:flex items-center w-full h-screen">
+              {/* Left headline */}
+              <div
+                className="slide-content ml-20 max-w-[340px]"
+                data-active={String(activeSlide === i)}
+              >
+                <h2 className="font-display text-[52px] font-bold leading-[54px] tracking-[-0.04em] text-[#1A1A1A] whitespace-pre-line">
+                  {slide.headline}
+                </h2>
+                <p className="font-mono text-[14px] leading-[18px] pt-3" style={{ color: slide.queryColor }}>
+                  {slide.query}
                 </p>
-                {slide.agentCallout && (
-                  <div className="mt-3 pt-3 border-t border-white/30">
-                    <p className="font-sans text-[13px] leading-[18px] text-[#9945FF] font-medium">
-                      {slide.agentCallout}
-                    </p>
-                  </div>
-                )}
+              </div>
+
+              {/* Right frosted pill */}
+              <div
+                className="slide-content absolute right-20 max-w-[270px]"
+                data-active={String(activeSlide === i)}
+                style={{ transitionDelay: activeSlide === i ? "120ms" : "0ms" }}
+              >
+                <div className="frosted-pill rounded-2xl px-6 py-5">
+                  <p className="font-sans text-[15px] leading-[22px] text-[#1A1A1A]">
+                    {slide.description}
+                  </p>
+                  {slide.agentCallout && (
+                    <div className="mt-3 pt-3 border-t border-white/30">
+                      <p className="font-sans text-[13px] leading-[18px] text-[#9945FF] font-medium">
+                        {slide.agentCallout}
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         ))}
 
-        {/* Sticky phone overlay - positioned to not interfere with scroll */}
+        {/* Sticky phone overlay - DESKTOP ONLY */}
         <div
-          className="sticky bottom-0 h-0 pointer-events-none"
+          className="hidden lg:block sticky bottom-0 h-0 pointer-events-none"
           style={{ zIndex: 15 }}
         >
-          {/* Desktop phone */}
           <div
-            className={`hidden lg:flex ${phoneVisible ? "phone-enter" : "phone-hidden"}`}
+            className={phoneVisible ? "phone-enter" : "phone-hidden"}
             style={{
               position: "absolute",
               left: "50%",
               bottom: 0,
               height: "100vh",
               width: 500,
+              display: "flex",
               alignItems: "center",
               justifyContent: "center",
             }}
@@ -381,57 +412,6 @@ export default function FeatureSlides() {
                   >
                     <PhoneMockup
                       size="md"
-                      messages={[
-                        { type: "user", content: slide.userMessage },
-                        { type: "bot", content: slide.screen },
-                      ]}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Mobile phone */}
-          <div
-            className={`lg:hidden ${phoneVisible ? "phone-enter" : "phone-hidden"}`}
-            style={{
-              position: "absolute",
-              left: "50%",
-              bottom: 0,
-              height: "100vh",
-              width: 300,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <div className="relative">
-              {/* Ghost per slide - smaller on mobile */}
-              {slides.map((slide, i) => (
-                <div
-                  key={`ghost-m-${i}`}
-                  className="absolute transition-all duration-500 ease-out"
-                  style={{
-                    ...ghostPosMobile(slide.ghostPosition),
-                    opacity: activeSlide === i ? 1 : 0,
-                    scale: activeSlide === i ? "0.45" : "0.25",
-                  }}
-                >
-                  {slide.ghost}
-                </div>
-              ))}
-
-              {/* Stacked phone screens - sm size on mobile */}
-              <div className="relative" style={{ width: 230, height: 460 }}>
-                {slides.map((slide, i) => (
-                  <div
-                    key={`phone-m-${i}`}
-                    className="absolute inset-0 transition-opacity duration-300 ease-in-out"
-                    style={{ opacity: activeSlide === i ? 1 : 0 }}
-                  >
-                    <PhoneMockup
-                      size="sm"
                       messages={[
                         { type: "user", content: slide.userMessage },
                         { type: "bot", content: slide.screen },
