@@ -27,8 +27,9 @@ export default function PhoneMockup({ messages, className = "", size = "md" }: P
         height: s.h,
         borderRadius: s.radius,
         padding: 3,
-        background: "linear-gradient(145deg, #e0e0e0 0%, #c0c0c0 100%)",
-        boxShadow: "0 20px 60px rgba(80, 40, 180, 0.18)",
+        background: "linear-gradient(145deg, #A8A8B0 0%, #78787F 100%)",
+        boxShadow: "0 20px 50px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.3)",
+        border: "2px solid rgba(0,0,0,0.15)",
       }}
     >
       <div
