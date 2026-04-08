@@ -103,6 +103,18 @@ body::before {
   animation: phone-rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Prompt bar cursor */
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Cursor blink for demo phone */
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
 /* Ghost eye blink */
 @keyframes blink {
   0%, 92%, 100% { transform: scaleY(1); }

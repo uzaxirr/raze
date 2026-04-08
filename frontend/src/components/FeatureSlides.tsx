@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import DemoPhone from "./DemoPhone";
 import PhoneMockup, {
   BalanceScreen,
   SecurityScreen,
@@ -187,11 +188,16 @@ const slides: SlideData[] = [
   },
 ];
 
+const TOTAL_FEATURE_SLIDES = slides.length; // 12
+const MORE_SLIDE_INDEX = TOTAL_FEATURE_SLIDES; // index 12 = "but that's not all"
+
 export default function FeatureSlides() {
   const [activeSlide, setActiveSlide] = useState(0);
   const [phoneVisible, setPhoneVisible] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
   const triggerRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const moreTriggerRef = useRef<HTMLDivElement | null>(null);
+  const isDemoMode = activeSlide >= MORE_SLIDE_INDEX;
 
   const setTriggerRef = useCallback((el: HTMLDivElement | null, i: number) => {
     triggerRefs.current[i] = el;
@@ -232,7 +238,20 @@ export default function FeatureSlides() {
     return () => observers.forEach((o) => o.disconnect());
   }, []);
 
-  const active = slides[activeSlide];
+  // Observe "more" trigger slide
+  useEffect(() => {
+    if (!moreTriggerRef.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) setActiveSlide(MORE_SLIDE_INDEX);
+      },
+      { rootMargin: "-40% 0px -40% 0px" }
+    );
+    observer.observe(moreTriggerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const active = isDemoMode ? slides[slides.length - 1] : slides[activeSlide];
 
   // Ghost positions: desktop uses absolute offsets, mobile uses smaller offsets
   const ghostPosDesktop = (pos: string): React.CSSProperties =>
@@ -248,7 +267,7 @@ export default function FeatureSlides() {
       id="features"
       ref={sectionRef}
       style={{
-        backgroundColor: active.bgColor,
+        backgroundColor: isDemoMode ? "#F0EDFF" : active.bgColor,
         transition: "background-color 0.7s ease",
         clipPath: "inset(0 0 0 0)",
       }}
@@ -368,6 +387,43 @@ export default function FeatureSlides() {
           </div>
         ))}
 
+        {/* "But that's not all" slide — triggers demo mode */}
+        <div
+          ref={moreTriggerRef}
+          className="min-h-screen flex items-center relative"
+          style={{ backgroundColor: isDemoMode ? "#F5F3FF" : undefined, transition: "background-color 0.7s ease" }}
+        >
+          {/* Mobile */}
+          <div className="lg:hidden flex flex-col items-center w-full px-6 py-12 gap-5">
+            <div className="slide-content flex flex-col items-center text-center" data-active={String(isDemoMode)}>
+              <h2 className="font-display text-[30px] font-bold leading-[34px] tracking-[-0.04em] text-[#1A1A1A]">
+                But that&apos;s not all
+              </h2>
+              <p className="font-sans text-[13px] leading-[19px] text-[#888] mt-2 max-w-[300px]">
+                Raze can do way more. Just type what you want.
+              </p>
+            </div>
+            {/* Inline demo phone for mobile */}
+            <div style={{ width: 230, height: 460, borderRadius: 36, padding: 3, background: "linear-gradient(145deg, #A8A8B0 0%, #78787F 100%)", boxShadow: "0 20px 50px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.3)", border: "2px solid rgba(0,0,0,0.15)" }}>
+              <div style={{ width: 224, height: 454, borderRadius: 34, overflow: "hidden" }}>
+                <DemoPhone active={isDemoMode} />
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop */}
+          <div className="hidden lg:flex items-center w-full h-screen">
+            <div className="slide-content ml-20 max-w-[400px]" data-active={String(isDemoMode)}>
+              <h2 className="font-display text-[52px] font-bold leading-[54px] tracking-[-0.04em] text-[#1A1A1A]">
+                But that&apos;s<br />not all
+              </h2>
+              <p className="font-sans text-[16px] leading-[24px] text-[#888] mt-4 max-w-[360px]">
+                Raze can do way more than what you just saw. PnL tracking, DeFi staking, limit orders, sentiment analysis, wallet deep-dives — just type what you want.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Sticky phone overlay - DESKTOP ONLY */}
         <div
           className="hidden lg:block sticky bottom-0 h-0 pointer-events-none"
@@ -394,21 +450,22 @@ export default function FeatureSlides() {
                   className="absolute transition-all duration-500 ease-out"
                   style={{
                     ...ghostPosDesktop(slide.ghostPosition),
-                    opacity: activeSlide === i ? 1 : 0,
-                    scale: activeSlide === i ? "1" : "0.6",
+                    opacity: !isDemoMode && activeSlide === i ? 1 : 0,
+                    scale: !isDemoMode && activeSlide === i ? "1" : "0.6",
                   }}
                 >
                   {slide.ghost}
                 </div>
               ))}
 
-              {/* Stacked phone screens */}
+              {/* Stacked phone screens + demo phone */}
               <div className="relative" style={{ width: 255, height: 510 }}>
+                {/* Regular feature slides */}
                 {slides.map((slide, i) => (
                   <div
                     key={`phone-${i}`}
                     className="absolute inset-0 transition-opacity duration-300 ease-in-out"
-                    style={{ opacity: activeSlide === i ? 1 : 0 }}
+                    style={{ opacity: !isDemoMode && activeSlide === i ? 1 : 0 }}
                   >
                     <PhoneMockup
                       size="md"
@@ -419,6 +476,17 @@ export default function FeatureSlides() {
                     />
                   </div>
                 ))}
+                {/* Demo phone for "more" mode */}
+                <div
+                  className="absolute inset-0 transition-opacity duration-500 ease-in-out"
+                  style={{ opacity: isDemoMode ? 1 : 0 }}
+                >
+                  <div style={{ width: 255, height: 510, borderRadius: 40, padding: 3, background: "linear-gradient(145deg, #A8A8B0 0%, #78787F 100%)", boxShadow: "0 20px 50px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.3)", border: "2px solid rgba(0,0,0,0.15)" }}>
+                    <div style={{ width: 249, height: 504, borderRadius: 38, overflow: "hidden" }}>
+                      <DemoPhone active={isDemoMode} />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
