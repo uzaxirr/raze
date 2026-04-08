@@ -46,7 +46,7 @@ export default function Nav() {
               <span
                 className="inline-block"
                 style={{
-                  animation: "dot-drop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 1s both",
+                  animation: "dot-drop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s both",
                 }}
               >
                 .
@@ -54,7 +54,7 @@ export default function Nav() {
               <span
                 className="inline-block"
                 style={{
-                  animation: "fun-slide 0.4s cubic-bezier(0.16, 1, 0.3, 1) 1.3s both",
+                  animation: "fun-slide 0.4s cubic-bezier(0.16, 1, 0.3, 1) 1.2s both",
                 }}
               >
                 fun
