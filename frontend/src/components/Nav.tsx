@@ -40,8 +40,26 @@ export default function Nav() {
           <span className="nav-ghost inline-block">
             <GhostNavLogo />
           </span>
-          <span className="font-display text-xl font-bold text-[#1A1A1A] group-hover:text-purple transition-colors">
+          <span className="font-display text-xl font-bold text-[#1A1A1A] group-hover:text-purple transition-colors flex items-baseline">
             raze
+            <span className="inline-flex items-baseline overflow-hidden">
+              <span
+                className="inline-block"
+                style={{
+                  animation: "dot-drop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 1s both",
+                }}
+              >
+                .
+              </span>
+              <span
+                className="inline-block"
+                style={{
+                  animation: "fun-slide 0.4s cubic-bezier(0.16, 1, 0.3, 1) 1.3s both",
+                }}
+              >
+                fun
+              </span>
+            </span>
           </span>
         </a>
         <div className="flex items-center gap-9">
