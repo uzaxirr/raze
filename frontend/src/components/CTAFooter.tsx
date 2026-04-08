@@ -23,7 +23,7 @@ export default function CTAFooter() {
     <footer
       id="cta"
       ref={sectionRef}
-      className="flex flex-col items-center w-full px-16 pt-24 pb-16 gap-6 relative overflow-hidden"
+      className="flex flex-col items-center w-full px-6 md:px-16 pt-16 md:pt-24 pb-12 md:pb-16 gap-5 md:gap-6 relative overflow-hidden"
       style={{
         background: "linear-gradient(180deg, #FAFAFE 0%, #F0EDFF 40%, #E4DCFF 100%)",
       }}
@@ -46,21 +46,23 @@ export default function CTAFooter() {
           transition: "all 0.8s cubic-bezier(0.16, 1, 0.3, 1)",
         }}
       >
-        <GhostCelebrating className="animate-float" />
+        <div className="w-[60px] h-[70px] md:w-[90px] md:h-[105px]">
+          <GhostCelebrating className="animate-float w-full h-full" />
+        </div>
 
-        <h2 className="font-display text-[48px] font-bold leading-[52px] tracking-[-0.03em] text-[#1A1A1A] text-center max-w-[520px]">
+        <h2 className="font-display text-[28px] md:text-[48px] font-bold leading-[32px] md:leading-[52px] tracking-[-0.03em] text-[#1A1A1A] text-center max-w-[520px]">
           Your on-chain intelligence, one message away
         </h2>
 
-        <p className="font-sans text-[17px] leading-[26px] text-[#666] text-center max-w-[420px]">
+        <p className="font-sans text-[15px] md:text-[17px] leading-[23px] md:leading-[26px] text-[#666] text-center max-w-[420px]">
           Trade, research, and explore Solana through natural conversation. Your wallet, your trades, your alpha.
         </p>
 
         <a
           href="#"
-          className="btn-glow bg-purple rounded-full px-10 py-4 mt-2"
+          className="btn-glow bg-purple rounded-full px-8 md:px-10 py-3.5 md:py-4 mt-2"
         >
-          <span className="font-sans text-[17px] font-semibold text-white leading-[22px]">
+          <span className="font-sans text-[15px] md:text-[17px] font-semibold text-white leading-[20px] md:leading-[22px]">
             Start Chatting
           </span>
         </a>

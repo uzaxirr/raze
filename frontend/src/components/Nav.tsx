@@ -35,7 +35,7 @@ export default function Nav() {
         borderBottom: scrolled ? "1px solid rgba(0,0,0,0.04)" : "1px solid transparent",
       }}
     >
-      <div className="flex items-center justify-between w-full max-w-[1440px] mx-auto px-16 py-4">
+      <div className="flex items-center justify-between w-full max-w-[1440px] mx-auto px-6 md:px-16 py-4">
         <a href="/" className="flex items-center gap-2.5 group">
           <span className="nav-ghost inline-block">
             <GhostNavLogo />
@@ -47,13 +47,13 @@ export default function Nav() {
         <div className="flex items-center gap-9">
           <a
             href="#features"
-            className="font-sans text-[14px] text-[#888] hover:text-[#1A1A1A] transition-colors"
+            className="hidden md:inline font-sans text-[14px] text-[#888] hover:text-[#1A1A1A] transition-colors"
           >
             Features
           </a>
           <a
             href="#cta"
-            className="font-sans text-[14px] text-[#888] hover:text-[#1A1A1A] transition-colors"
+            className="hidden md:inline font-sans text-[14px] text-[#888] hover:text-[#1A1A1A] transition-colors"
           >
             How it works
           </a>

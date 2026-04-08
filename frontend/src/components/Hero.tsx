@@ -12,12 +12,16 @@ export default function Hero() {
       }}
     >
       {/* Top: headline + ghost */}
-      <div className="flex items-center justify-center gap-20 w-full max-w-[1440px] px-[120px] pt-16 pb-12">
-        <div className="flex flex-col gap-6 max-w-[520px]">
-          <h1 className="font-display text-[64px] font-bold leading-[66px] tracking-[-0.04em] text-[#1A1A1A] animate-fade-up">
+      <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-20 w-full max-w-[1440px] px-6 md:px-[120px] pt-10 md:pt-16 pb-8 md:pb-12">
+        {/* Ghost on top for mobile, right side for desktop */}
+        <div className="md:hidden w-[80px] h-[80px] shrink-0 animate-float">
+          <GhostWaving className="w-full h-full" />
+        </div>
+        <div className="flex flex-col gap-4 md:gap-6 max-w-[520px] items-center md:items-start text-center md:text-left">
+          <h1 className="font-display text-[36px] md:text-[64px] font-bold leading-[40px] md:leading-[66px] tracking-[-0.04em] text-[#1A1A1A] animate-fade-up">
             Built for people who live on-chain
           </h1>
-          <p className="font-sans text-[18px] leading-[28px] text-[#666] animate-fade-up delay-100">
+          <p className="font-sans text-[15px] md:text-[18px] leading-[24px] md:leading-[28px] text-[#666] animate-fade-up delay-100">
             Trade, research, and explore Solana through natural conversation. Your wallet, your
             trades, your alpha — all in one Telegram chat.
           </p>
@@ -30,14 +34,14 @@ export default function Hero() {
             </a>
           </div>
         </div>
-        <GhostWaving className="shrink-0 animate-float" />
+        <GhostWaving className="hidden md:block shrink-0 animate-float" />
       </div>
 
-      {/* Phone fan */}
-      <div className="relative w-full max-w-[1440px] h-[620px] flex justify-center pb-[50px] mt-4">
-        {/* Left phone - Trade */}
+      {/* Phone fan - desktop: 3 phones, mobile: single center phone */}
+      <div className="relative w-full max-w-[1440px] flex justify-center pb-[50px] mt-4 md:h-[620px]">
+        {/* Left phone - Trade (hidden on mobile) */}
         <div
-          className="absolute bottom-[50px] left-[240px] flex flex-col items-center gap-2 animate-phone-rise delay-300"
+          className="hidden md:flex absolute bottom-[50px] left-[240px] flex-col items-center gap-2 animate-phone-rise delay-300"
           style={{ rotate: "-7deg" }}
         >
           <PhoneMockup
@@ -87,9 +91,52 @@ export default function Hero() {
         </div>
 
         {/* Center phone - Research */}
-        <div className="absolute bottom-[50px] left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-phone-rise delay-200">
+        <div className="flex flex-col items-center gap-2 animate-phone-rise delay-200 md:absolute md:bottom-[50px] md:left-1/2 md:-translate-x-1/2">
+          <PhoneMockup
+            size="sm"
+            className="md:hidden"
+            messages={[
+              { type: "user", content: "is BONK safe? full breakdown" },
+              {
+                type: "bot",
+                content: (
+                  <div className="flex flex-col gap-[4px]">
+                    <div className="text-[12px] font-sans text-[#1A1A1A] leading-[16px]">
+                      bonk? massive holder base, high liquidity, no bundles. legit project
+                    </div>
+                    <div className="bg-[#F5F5F5] rounded-[5px] p-[5px] flex flex-col gap-[3px]">
+                      <div className="flex justify-between">
+                        <span className="text-[10px] font-sans text-[#888]">price</span>
+                        <span className="text-[10px] font-mono font-semibold text-[#1A1A1A]">$0.00003</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[10px] font-sans text-[#888]">mcap</span>
+                        <span className="text-[10px] font-mono font-semibold text-[#1A1A1A]">$2.1B</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[10px] font-sans text-[#888]">holders</span>
+                        <span className="text-[10px] font-mono font-semibold text-[#1A1A1A]">847K</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[10px] font-sans text-[#888]">vol 24h</span>
+                        <span className="text-[10px] font-mono font-semibold text-[#1A1A1A]">$84M</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-[3px] self-start bg-[#EAFFF5] rounded px-[5px] py-[3px]">
+                      <div className="w-1 h-1 rounded-sm bg-[#14F195]" />
+                      <span className="text-[8px] font-mono font-medium text-[#14A86C]">low risk · legit</span>
+                    </div>
+                    <div className="text-[10px] text-[#888] leading-[14px]">
+                      you&apos;re late tho, 25% off ATH 💀
+                    </div>
+                  </div>
+                ),
+              },
+            ]}
+          />
           <PhoneMockup
             size="md"
+            className="hidden md:block"
             messages={[
               { type: "user", content: "is BONK safe? full breakdown" },
               {
@@ -132,9 +179,9 @@ export default function Hero() {
           <span className="font-display text-sm font-semibold text-purple-dark">Research</span>
         </div>
 
-        {/* Right phone - Protect */}
+        {/* Right phone - Protect (hidden on mobile) */}
         <div
-          className="absolute bottom-[50px] right-[240px] flex flex-col items-center gap-2 animate-phone-rise delay-400"
+          className="hidden md:flex absolute bottom-[50px] right-[240px] flex-col items-center gap-2 animate-phone-rise delay-400"
           style={{ rotate: "7deg" }}
         >
           <PhoneMockup
