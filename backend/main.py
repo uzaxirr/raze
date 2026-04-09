@@ -107,7 +107,7 @@ async def lifespan(app: FastAPI):
 agent = Agent(
     name="Raze",
     model=Claude(
-        id="claude-sonnet-4-5",
+        id="claude-sonnet-4-20250514",
         cache_system_prompt=True,
         extended_cache_time=True,
     ),
