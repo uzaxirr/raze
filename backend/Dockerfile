@@ -20,15 +20,14 @@ COPY --from=idl-builder /idl/target/release/idl-guesser /usr/local/bin/idl-guess
 RUN chmod +x /usr/local/bin/idl-guesser
 
 # Install Python dependencies
-COPY requirements-all.txt .
+COPY backend/requirements-all.txt .
 RUN pip install --no-cache-dir -r requirements-all.txt
 
-# Force rebuild: 2025-12-30-bot-separation
-# Copy application code
-COPY . .
+# Copy backend application code
+COPY backend/ .
 
 # Copy supervisor config
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY backend/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Make startup script executable
 RUN chmod +x /app/start.sh

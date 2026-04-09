@@ -3,11 +3,11 @@ FROM python:3.12-slim
 WORKDIR /app
 
 # Install Python dependencies
-COPY requirements-all.txt .
+COPY backend/requirements-all.txt .
 RUN pip install --no-cache-dir -r requirements-all.txt
 
-# Copy application code
-COPY . .
+# Copy backend application code
+COPY backend/ .
 
 # Run the telegram bot
 CMD ["python", "tg-bot/main.py"]
