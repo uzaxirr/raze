@@ -70,13 +70,13 @@ export default function Nav() {
             Features
           </a>
           <a
-            href="#cta"
+            href="https://t.me/razeaii_bot"
             className="hidden md:inline font-sans text-[14px] text-[#888] hover:text-[#1A1A1A] transition-colors"
           >
             How it works
           </a>
           <a
-            href="#cta"
+            href="https://t.me/razeaii_bot"
             className="btn-glow bg-[#1A1A1A] rounded-full px-[22px] py-[10px]"
           >
             <span className="font-sans text-[13px] font-medium text-white leading-4">

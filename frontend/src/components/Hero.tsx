@@ -26,7 +26,7 @@ export default function Hero() {
             trades, your alpha — all in one Telegram chat.
           </p>
           <div className="flex gap-3.5 pt-1 animate-fade-up delay-200">
-            <a href="#cta" className="btn-glow bg-purple rounded-full px-7 py-3.5">
+            <a href="https://t.me/razeaii_bot" className="btn-glow bg-purple rounded-full px-7 py-3.5">
               <span className="font-sans text-[15px] font-semibold text-white leading-[18px]">Start Chatting</span>
             </a>
             <a href="#features" className="border-[1.5px] border-[#D0D0D0] hover:border-[#9945FF] hover:text-[#9945FF] transition-all rounded-full px-7 py-3.5">
