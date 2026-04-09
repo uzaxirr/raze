@@ -3,7 +3,6 @@ import logging
 import asyncio
 from contextlib import asynccontextmanager
 from agno.agent import Agent
-from agno.tracing import setup_tracing
 from agno.tools.mcp import MCPTools
 from agno.tools.workflow import WorkflowTools
 from agno.os import AgentOS
@@ -26,12 +25,6 @@ db = PostgresDb(
     db_schema="public",
 )
 
-tracing_db = PostgresDb(
-    db_url=DATABASE_URL,
-    db_schema="public",
-    id="tracing_db"
-)
-setup_tracing(db=tracing_db)
 read_mcp = MCPTools(
     transport="sse",
     url="http://127.0.0.1:8001/sse"
@@ -143,8 +136,7 @@ agent_os = AgentOS(
     agents=[agent],
     workflows=[token_sniper_workflow],
     lifespan=lifespan,
-    tracing=True,
-    tracing_db=tracing_db,
+    db=db,
 )
 app = agent_os.get_app()
 
