@@ -16,7 +16,6 @@ COLORS = {
     "token-data": "\033[95m",         # Magenta
     "transaction-executor": "\033[96m", # Cyan
     "price-alerts": "\033[91m",       # Red
-    "prediction-markets": "\033[35m", # Purple
     "market-research": "\033[32m",    # Dark Green
     "agent": "\033[93m",              # Yellow
     "price-monitor": "\033[90m",      # Gray
@@ -51,11 +50,6 @@ MCP_SERVERS = [
         "name": "price-alerts",
         "cmd": ["fastmcp", "run", "server.py", "--transport", "sse", "--port", "8005"],
         "cwd": "mcp-servers/price-alerts",
-    },
-    {
-        "name": "prediction-markets",
-        "cmd": ["fastmcp", "run", "server.py", "--transport", "sse", "--port", "8006"],
-        "cwd": "mcp-servers/prediction-markets",
     },
     {
         "name": "market-research",
@@ -185,7 +179,6 @@ async def run_all():
     print(f"  {COLORS['token-data']}token-data{COLORS['reset']}           -> http://0.0.0.0:8003")
     print(f"  {COLORS['transaction-executor']}transaction-executor{COLORS['reset']} -> http://0.0.0.0:8004")
     print(f"  {COLORS['price-alerts']}price-alerts{COLORS['reset']}         -> http://0.0.0.0:8005")
-    print(f"  {COLORS['prediction-markets']}prediction-markets{COLORS['reset']}   -> http://0.0.0.0:8006")
     print(f"  {COLORS['market-research']}market-research{COLORS['reset']}      -> http://0.0.0.0:8007")
     print(f"  {COLORS['agent']}agent{COLORS['reset']}                -> http://0.0.0.0:7777")
     print(f"  {COLORS['price-monitor']}price-monitor{COLORS['reset']}        -> background service")

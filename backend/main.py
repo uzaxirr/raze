@@ -57,11 +57,6 @@ price_alerts = MCPTools(
     url="http://127.0.0.1:8005/sse"
 )
 
-prediction_markets = MCPTools(
-    transport="sse",
-    url="http://127.0.0.1:8006/sse"
-)
-
 market_research = MCPTools(
     transport="sse",
     url="http://127.0.0.1:8007/sse"
@@ -72,7 +67,7 @@ sniper_workflow = WorkflowTools(
 )
 
 # List of all MCP tools to pre-connect
-ALL_MCP_TOOLS = [read_mcp, sns_resolver, token_data, transaction_executor, price_alerts, prediction_markets, market_research]
+ALL_MCP_TOOLS = [read_mcp, sns_resolver, token_data, transaction_executor, price_alerts, market_research]
 
 
 @asynccontextmanager
@@ -94,7 +89,6 @@ async def lifespan(app: FastAPI):
         connect_mcp(token_data, "token-data"),
         connect_mcp(transaction_executor, "transaction-executor"),
         connect_mcp(price_alerts, "price-alerts"),
-        connect_mcp(prediction_markets, "prediction-markets"),
         connect_mcp(market_research, "market-research"),
     )
     logger.info("All MCP servers pre-connected")
@@ -120,7 +114,7 @@ agent = Agent(
     tools=[
         # ReasoningTools(add_instructions=True),  # Agent decides when to think deeply
         read_mcp, sns_resolver, token_data, transaction_executor,
-        price_alerts, prediction_markets, market_research, sniper_workflow
+        price_alerts, market_research, sniper_workflow
     ],
     db=db,
     # debug_mode=True,

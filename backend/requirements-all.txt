@@ -29,9 +29,6 @@ base58>=2.1.0
 # AI/LLM
 anthropic>=0.40.0
 
-# Prediction Markets (Polymarket via Dome)
-dome-api-sdk
-
 # Utilities
 python-dotenv>=1.0.0
 pydantic>=2.10.3
