@@ -60,9 +60,9 @@ mcp-servers/**/.env
 .ai/
 test.py
 
-# Screenshots (dev debugging)
-*.png
-!frontend/public/**/*.png
+# Screenshots (dev debugging) — only at repo root, so brand assets
+# under frontend/public/**/*.png and similar ship normally.
+/*.png
 .playwright-mcp/
 
 # OMC state
