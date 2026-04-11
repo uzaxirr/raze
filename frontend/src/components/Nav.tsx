@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { GhostNavLogo } from "./GhostSVGs";
+import ImpMascot from "./ImpMascot";
 
 export default function Nav() {
   const [hidden, setHidden] = useState(false);
@@ -38,7 +38,10 @@ export default function Nav() {
       <div className="flex items-center justify-between w-full max-w-[1440px] mx-auto px-6 md:px-16 py-4">
         <a href="/" className="flex items-center gap-2.5 group">
           <span className="nav-ghost inline-block">
-            <GhostNavLogo />
+            <ImpMascot
+              expression="waving"
+              className="w-[34px] h-[34px] object-contain"
+            />
           </span>
           <span className="font-display text-xl font-bold text-[#1A1A1A] group-hover:text-purple transition-colors flex items-baseline">
             raze

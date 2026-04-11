@@ -1,6 +1,6 @@
 "use client";
 
-import { GhostWaving } from "./GhostSVGs";
+import ImpMascot from "./ImpMascot";
 import PhoneMockup from "./PhoneMockup";
 
 export default function Hero() {
@@ -14,8 +14,8 @@ export default function Hero() {
       {/* Top: headline + ghost */}
       <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-20 w-full max-w-[1440px] px-6 md:px-[120px] pt-10 md:pt-16 pb-8 md:pb-12">
         {/* Ghost on top for mobile, right side for desktop */}
-        <div className="md:hidden w-[80px] h-[80px] shrink-0 animate-float">
-          <GhostWaving className="w-full h-full" />
+        <div className="md:hidden w-[110px] h-[110px] shrink-0 animate-float">
+          <ImpMascot expression="waving" className="w-full h-full" />
         </div>
         <div className="flex flex-col gap-4 md:gap-6 max-w-[520px] items-center md:items-start text-center md:text-left">
           <h1 className="font-display text-[36px] md:text-[64px] font-bold leading-[40px] md:leading-[66px] tracking-[-0.04em] text-[#1A1A1A] animate-fade-up">
@@ -34,7 +34,10 @@ export default function Hero() {
             </a>
           </div>
         </div>
-        <GhostWaving className="hidden md:block shrink-0 animate-float" />
+        <ImpMascot
+          expression="waving"
+          className="hidden md:block shrink-0 animate-float w-[220px] h-[220px]"
+        />
       </div>
 
       {/* Phone fan - desktop: 3 phones, mobile: single center phone */}

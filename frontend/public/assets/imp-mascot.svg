@@ -1,0 +1,84 @@
+<svg width="400" height="440" viewBox="0 0 400 440" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Sparkle (top-left — balances the waving right arm) -->
+  <path d="M 60 90 L 66 108 L 84 114 L 66 120 L 60 138 L 54 120 L 36 114 L 54 108 Z"
+        fill="#FFD166" stroke="#2D1B69" stroke-width="3" stroke-linejoin="round"/>
+
+  <!-- Tail with arrow tip (curves out behind body to the right) -->
+  <path d="M 305 288
+           C 345 282, 372 300, 372 340
+           L 360 332
+           L 372 356
+           L 348 346
+           L 360 328
+           C 358 302, 330 300, 305 304 Z"
+        fill="#FFFFFF" stroke="#2D1B69" stroke-width="7"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Right arm (waving up — rounded mitten shape) -->
+  <path d="M 302 165
+           C 338 148, 372 112, 360 72
+           C 348 48, 318 52, 300 90
+           C 286 120, 284 152, 296 170 Z"
+        fill="#FFFFFF" stroke="#2D1B69" stroke-width="7"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Left horn (chunky triangle, rounded tip) -->
+  <path d="M 155 100
+           Q 142 62, 156 48
+           Q 170 56, 178 82
+           Z"
+        fill="#FFFFFF" stroke="#2D1B69" stroke-width="7"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Right horn (chunky triangle, rounded tip) -->
+  <path d="M 245 100
+           Q 258 62, 244 48
+           Q 230 56, 222 82
+           Z"
+        fill="#FFFFFF" stroke="#2D1B69" stroke-width="7"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Main body (rounded egg with wavy bottom fringe) -->
+  <path d="M 90 200
+           Q 90 95, 200 95
+           Q 310 95, 310 200
+           L 310 310
+           Q 310 342, 278 344
+           Q 258 348, 244 338
+           Q 222 352, 200 340
+           Q 178 352, 156 338
+           Q 142 348, 122 344
+           Q 90 342, 90 310 Z"
+        fill="#FFFFFF" stroke="#2D1B69" stroke-width="8"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Eyebrows (subtle arches) -->
+  <path d="M 126 158 Q 148 146, 172 158"
+        stroke="#2D1B69" stroke-width="6" fill="none" stroke-linecap="round"/>
+  <path d="M 228 158 Q 252 146, 274 158"
+        stroke="#2D1B69" stroke-width="6" fill="none" stroke-linecap="round"/>
+
+  <!-- Left eye -->
+  <circle cx="150" cy="192" r="24" fill="#FFFFFF" stroke="#2D1B69" stroke-width="7"/>
+  <circle cx="156" cy="197" r="11" fill="#2D1B69"/>
+  <circle cx="159" cy="192" r="3.2" fill="#FFFFFF"/>
+
+  <!-- Right eye -->
+  <circle cx="250" cy="192" r="24" fill="#FFFFFF" stroke="#2D1B69" stroke-width="7"/>
+  <circle cx="256" cy="197" r="11" fill="#2D1B69"/>
+  <circle cx="259" cy="192" r="3.2" fill="#FFFFFF"/>
+
+  <!-- Cheeks (pink blush) -->
+  <ellipse cx="112" cy="232" rx="16" ry="7" fill="#FF8FCE" opacity="0.75"/>
+  <ellipse cx="288" cy="232" rx="16" ry="7" fill="#FF8FCE" opacity="0.75"/>
+
+  <!-- Smirk mouth -->
+  <path d="M 162 246 Q 200 278, 238 248"
+        stroke="#2D1B69" stroke-width="7" fill="none"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Fang (small white triangle hanging from smirk) -->
+  <path d="M 221 262 L 223 274 L 228 262 Z"
+        fill="#FFFFFF" stroke="#2D1B69" stroke-width="4"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

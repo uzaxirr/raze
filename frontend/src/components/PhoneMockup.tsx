@@ -72,15 +72,19 @@ export default function PhoneMockup({ messages, className = "", size = "md" }: P
           className="flex items-center gap-[6px] px-[10px] py-[5px]"
           style={{ backgroundColor: "#517DA2" }}
         >
-          <div className="w-[22px] h-[22px] rounded-[11px] bg-white shrink-0 flex items-center justify-center overflow-hidden">
-            <svg width="14" height="14" viewBox="0 0 200 220" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M100 25 C60 25, 32 58, 32 98 L32 155 C32 161, 38 165, 46 160 C58 161, 64 166, 80 161 C97 166, 113 161, 146 161 C165 166, 168 150, 168 98 C168 58, 140 25, 100 25Z" fill="#9945FF" />
-              <ellipse cx="74" cy="88" rx="14" ry="16" fill="#FFFFFF" />
-              <ellipse cx="74" cy="88" rx="8" ry="10" fill="#2D1B69" />
-              <ellipse cx="126" cy="88" rx="14" ry="16" fill="#FFFFFF" />
-              <ellipse cx="126" cy="88" rx="8" ry="10" fill="#2D1B69" />
-              <path d="M85 115 C90 122, 110 122, 115 115" stroke="#FFFFFF" strokeWidth="4" fill="none" strokeLinecap="round" />
-            </svg>
+          <div className="w-[22px] h-[22px] rounded-[11px] bg-[#F0EDFF] shrink-0 overflow-hidden relative">
+            <img
+              src="/assets/imp-expressions/waving.png"
+              alt="Raze"
+              className="absolute left-1/2 top-1/2 pointer-events-none"
+              style={{
+                width: "200%",
+                height: "200%",
+                objectFit: "contain",
+                transform: "translate(-50%, -38%)",
+              }}
+              draggable={false}
+            />
           </div>
           <div className="flex flex-col">
             <span className="text-white text-[11px] font-semibold font-sans leading-[13px]">Raze</span>

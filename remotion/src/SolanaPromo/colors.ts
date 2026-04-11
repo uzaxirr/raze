@@ -1,31 +1,22 @@
-// Raze Brand Colors
 export const COLORS = {
-  // Primary
-  primary: "#FF6A2B", // Raze Orange
-  primarySoft: "#FFE3D6",
-  logoRed: "#D74242",
-
-  // Backgrounds
-  background: "#FAFAFA",
-  dark: "#0D0C0F",
-  darkAlt: "#131316",
-
-  // Telegram Dark Theme
-  tgBg: "#0E1621",
-  tgChat: "#17212B",
-  tgUser: "#2B5278",
-  tgBot: "#182533",
-  tgBlue: "#5288C1",
-  tgText: "#F5F5F5",
-  tgMuted: "#6C7883",
-
-  // Text
-  text: "#0D0C0F",
-  textLight: "#64748B",
+  primary: "#9945FF",
+  primaryDark: "#7B2FE0",
+  primaryDeep: "#2D1B69",
+  green: "#14F195",
+  greenDark: "#14A86C",
+  pink: "#FF8FCE",
+  gold: "#FFD166",
+  red: "#CC0000",
+  bg: "#FAFAFE",
+  bgPurple: "#EDE8FF",
+  bgGreen: "#DFFFF0",
+  bgPink: "#FFE8F5",
+  dark: "#1A1A1A",
+  text: "#1A1A1A",
+  textMuted: "#777777",
   white: "#FFFFFF",
-
-  // Accents
-  green: "#22C55E",
-  red: "#EF4444",
-  yellow: "#EAB308",
+  tgHeader: "#517DA2",
+  tgChat: "#C8D9E6",
+  tgUser: "#EEFFDE",
+  tgBot: "#FFFFFF",
 };

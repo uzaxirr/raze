@@ -16,20 +16,7 @@ import PhoneMockup, {
   PredictionMarketsScreen,
   SendCryptoScreen,
 } from "./PhoneMockup";
-import {
-  GhostDollarEyes,
-  GhostAlert,
-  GhostDetective,
-  GhostWinking,
-  GhostSpy,
-  GhostAngry,
-  GhostWatching,
-  GhostNerdy,
-  GhostBellRinger,
-  GhostHungry,
-  GhostFortuneTeller,
-  GhostRocket,
-} from "./GhostSVGs";
+import ImpMascot from "./ImpMascot";
 
 interface SlideData {
   headline: string;
@@ -52,7 +39,7 @@ const slides: SlideData[] = [
     description: "See your full portfolio instantly. SOL, tokens, total value, and 24h gains — all in one message.",
     bgColor: "#EDE8FF",
     ghostPosition: "left",
-    ghost: <GhostDollarEyes />,
+    ghost: <ImpMascot expression="happy" className="w-[200px] h-[200px]" />,
     screen: <BalanceScreen />,
     userMessage: "what's in my wallet?",
     agentCallout: "Noticed the buy price? Raze remembered it from last Tuesday — without you asking.",
@@ -64,7 +51,7 @@ const slides: SlideData[] = [
     description: "After the $270M Drift hack, Raze watches every program you use. You'll know in seconds, not weeks.",
     bgColor: "#FFE0E0",
     ghostPosition: "right",
-    ghost: <GhostAlert />,
+    ghost: <ImpMascot expression="angry" className="w-[200px] h-[200px]" />,
     screen: <SecurityScreen />,
     userMessage: "watch my programs",
     agentCallout: "That alert came at 3:47 AM. Raze never sleeps.",
@@ -76,7 +63,7 @@ const slides: SlideData[] = [
     description: "Price, ATH, holders, volume, risk score. Know if it's pumping, dumping, or dead before you ape in.",
     bgColor: "#DFFFF0",
     ghostPosition: "top",
-    ghost: <GhostDetective />,
+    ghost: <ImpMascot expression="curious" className="w-[200px] h-[200px]" />,
     screen: <TokenIntelScreen />,
     userMessage: "is BONK safe?",
     agentCallout: "Checked security, holders, momentum, and sentiment before answering.",
@@ -88,7 +75,7 @@ const slides: SlideData[] = [
     description: "Best route found automatically. Preview the trade, confirm with one tap. No dApp switching needed.",
     bgColor: "#E8E0FF",
     ghostPosition: "left",
-    ghost: <GhostWinking />,
+    ghost: <ImpMascot expression="confident" className="w-[200px] h-[200px]" />,
     screen: <SwapScreen />,
     userMessage: "swap 5 SOL to USDC",
     agentCallout: "Dropped Polymarket alpha after the swap — you didn't ask for it.",
@@ -99,8 +86,8 @@ const slides: SlideData[] = [
     queryColor: "#E85ABF",
     description: "Track any wallet's portfolio, PnL, and recent moves. Copy-trade the best or dodge the worst.",
     bgColor: "#FFE8F5",
-    ghostPosition: "right",
-    ghost: <GhostSpy />,
+    ghostPosition: "left",
+    ghost: <ImpMascot expression="sneaky" className="w-[200px] h-[200px]" />,
     screen: <WalletStalkScreen />,
     userMessage: "what's this whale buying?",
     agentCallout: "Knows you copy this whale regularly — offered to do it again.",
@@ -112,7 +99,7 @@ const slides: SlideData[] = [
     description: "Spot coordinated buys before the dump. Raze scans for wallet clusters buying in the same block.",
     bgColor: "#FFF0DD",
     ghostPosition: "top",
-    ghost: <GhostAngry />,
+    ghost: <ImpMascot expression="nervous" className="w-[200px] h-[200px]" />,
     screen: <BundleDetectionScreen />,
     userMessage: "check $DOGGO for bundles",
   },
@@ -123,7 +110,7 @@ const slides: SlideData[] = [
     description: "Get pinged the moment any wallet moves. Track the biggest players in real-time — swaps, transfers, everything.",
     bgColor: "#EDE8FF",
     ghostPosition: "right",
-    ghost: <GhostWatching />,
+    ghost: <ImpMascot expression="shocked" className="w-[200px] h-[200px]" />,
     screen: <WalletWatchingScreen />,
     userMessage: "watch toly.sol",
     agentCallout: "Pinged you 2 minutes after setting the watch. Real-time via Helius.",
@@ -135,7 +122,7 @@ const slides: SlideData[] = [
     description: "Paste any transaction hash and get a human-readable breakdown. Rate, slippage, fees — all decoded instantly.",
     bgColor: "#DFFFF0",
     ghostPosition: "left",
-    ghost: <GhostNerdy />,
+    ghost: <ImpMascot expression="thinking" className="w-[200px] h-[200px]" />,
     screen: <TransactionDecoderScreen />,
     userMessage: "decode this tx 4sGjMx...",
   },
@@ -146,7 +133,7 @@ const slides: SlideData[] = [
     description: "Set custom alerts for whale moves, price targets, or authority changes. Raze watches 24/7 so you don't have to.",
     bgColor: "#FFE8F5",
     ghostPosition: "top",
-    ghost: <GhostBellRinger />,
+    ghost: <ImpMascot expression="pointing" className="w-[200px] h-[200px]" />,
     screen: <SmartAlertsScreen />,
     userMessage: "alert me when whales buy BONK",
     agentCallout: "Set it once — Raze monitors Jupiter + Raydium 24/7 and pings you in Telegram.",
@@ -158,7 +145,7 @@ const slides: SlideData[] = [
     description: "Fresh tokens filtered for safety. See mcap, holders, bundle risk — skip the rugs, find the gems.",
     bgColor: "#DFFFF0",
     ghostPosition: "right",
-    ghost: <GhostHungry />,
+    ghost: <ImpMascot expression="laughing" className="w-[200px] h-[200px]" />,
     screen: <TokenSnipingScreen />,
     userMessage: "find me new tokens launched",
     agentCallout: "\"Filtered how you like it\" — Raze learned your risk appetite over time.",
@@ -170,7 +157,7 @@ const slides: SlideData[] = [
     description: "See what the crowd thinks. Live odds on crypto events, ETF approvals, and price targets — all inside Telegram.",
     bgColor: "#E8E0FF",
     ghostPosition: "left",
-    ghost: <GhostFortuneTeller />,
+    ghost: <ImpMascot expression="pondering" className="w-[200px] h-[200px]" />,
     screen: <PredictionMarketsScreen />,
     userMessage: "what's trending on Polymarket?",
     agentCallout: "Combined market odds with news sentiment to give you a real take — not just numbers.",
@@ -182,7 +169,7 @@ const slides: SlideData[] = [
     description: "Transfer tokens to any .sol address in one message. Preview, confirm, done — faster than any wallet app.",
     bgColor: "#DFFFF0",
     ghostPosition: "top",
-    ghost: <GhostRocket />,
+    ghost: <ImpMascot expression="excited" className="w-[200px] h-[200px]" />,
     screen: <SendCryptoScreen />,
     userMessage: "send 10 USDC to alice.sol",
   },
@@ -256,10 +243,10 @@ export default function FeatureSlides() {
   // Ghost positions: desktop uses absolute offsets, mobile uses smaller offsets
   const ghostPosDesktop = (pos: string): React.CSSProperties =>
     pos === "left"
-      ? { left: -140, top: 40 }
+      ? { left: -150, top: 30 }
       : pos === "right"
-      ? { right: -140, top: 30 }
-      : { top: -150, left: "50%", transform: "translateX(-50%)" };
+      ? { right: -150, top: 30 }
+      : { top: -190, left: "50%", transform: "translateX(-50%)" };
 
 
   return (
@@ -297,18 +284,26 @@ export default function FeatureSlides() {
               </div>
 
               {/* Phone + ghost inline */}
-              <div className="relative flex items-center justify-center" style={{ width: 260, minHeight: 340 }}>
+              <div
+                className="relative flex items-center justify-center"
+                style={{
+                  width: 260,
+                  minHeight: 340,
+                  // Reserve headroom when mascot peeks from the top
+                  marginTop: slide.ghostPosition === "top" ? 60 : 0,
+                }}
+              >
                 {/* Ghost peeking */}
                 <div
-                  className="absolute transition-all duration-500 ease-out"
+                  className="absolute transition-all duration-500 ease-out pointer-events-none"
                   style={{
                     ...(slide.ghostPosition === "left"
-                      ? { left: -20, top: 10 }
+                      ? { left: -90, top: 60 }
                       : slide.ghostPosition === "right"
-                      ? { right: -20, top: 10 }
-                      : { top: -60, left: "50%", transform: "translateX(-50%)" }),
+                      ? { right: -90, top: 60 }
+                      : { top: -140, left: "50%", transform: "translateX(-50%)" }),
                     opacity: activeSlide === i ? 1 : 0,
-                    scale: activeSlide === i ? "0.5" : "0.3",
+                    scale: activeSlide === i ? "0.7" : "0.5",
                   }}
                 >
                   {slide.ghost}
@@ -396,13 +391,8 @@ export default function FeatureSlides() {
           {/* Mobile */}
           <div className="lg:hidden flex flex-col items-center w-full px-6 py-12 gap-5">
             <div className="slide-content flex flex-col items-center text-center" data-active={String(isDemoMode)}>
-              <div className="w-[50px] h-[55px] mb-2">
-                <svg width="50" height="55" viewBox="0 0 200 220" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M100 25 C60 25, 32 58, 32 98 L32 155 C32 161, 38 165, 46 160 C58 161, 64 166, 80 161 C97 166, 113 161, 146 161 C165 166, 168 150, 168 98 C168 58, 140 25, 100 25Z" fill="#9945FF"/>
-                  <ellipse cx="74" cy="88" rx="18" ry="20" fill="#FFFFFF"/><ellipse cx="74" cy="88" rx="10" ry="12" fill="#2D1B69"/>
-                  <ellipse cx="126" cy="88" rx="18" ry="20" fill="#FFFFFF"/><ellipse cx="126" cy="88" rx="10" ry="12" fill="#2D1B69"/>
-                  <path d="M85 110 C90 118, 110 118, 115 110" stroke="#FFFFFF" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
-                </svg>
+              <div className="w-[70px] h-[70px] mb-2">
+                <ImpMascot expression="celebrating" className="w-full h-full" />
               </div>
               <h2 className="font-display text-[30px] font-bold leading-[34px] tracking-[-0.04em] text-[#1A1A1A]">
                 Ask Raze anything
@@ -422,13 +412,8 @@ export default function FeatureSlides() {
           {/* Desktop */}
           <div className="hidden lg:flex items-center w-full h-screen">
             <div className="slide-content ml-20 max-w-[400px]" data-active={String(isDemoMode)}>
-              <div className="w-[70px] h-[77px] mb-4 animate-float">
-                <svg width="70" height="77" viewBox="0 0 200 220" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M100 25 C60 25, 32 58, 32 98 L32 155 C32 161, 38 165, 46 160 C58 161, 64 166, 80 161 C97 166, 113 161, 146 161 C165 166, 168 150, 168 98 C168 58, 140 25, 100 25Z" fill="#9945FF"/>
-                  <ellipse cx="74" cy="88" rx="18" ry="20" fill="#FFFFFF"/><ellipse cx="74" cy="88" rx="10" ry="12" fill="#2D1B69"/>
-                  <ellipse cx="126" cy="88" rx="18" ry="20" fill="#FFFFFF"/><ellipse cx="126" cy="88" rx="10" ry="12" fill="#2D1B69"/>
-                  <path d="M85 110 C90 118, 110 118, 115 110" stroke="#FFFFFF" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
-                </svg>
+              <div className="w-[90px] h-[90px] mb-4 animate-float">
+                <ImpMascot expression="celebrating" className="w-full h-full" />
               </div>
               <h2 className="font-display text-[52px] font-bold leading-[54px] tracking-[-0.04em] text-[#1A1A1A]">
                 Ask Raze<br />anything

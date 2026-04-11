@@ -2,6 +2,15 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Personal OS & Strategic Context
+
+This codebase is part of Uzaxir's multi-company work. Strategic context lives in the Obsidian vault and is imported below so every session in this codebase has full context without re-explaining.
+
+- Vault conventions and scope rules: @/Users/uzaxirr/Obsidian/personal-os/CLAUDE.md
+- Raze project-level context (goals, status, decisions): @/Users/uzaxirr/Obsidian/personal-os/04-projects/raze/CLAUDE.md
+
+When strategic decisions are made in this session (pivots, new features, deadline changes), reflect them in `04-projects/raze/CLAUDE.md` in the vault so future sessions pick them up. Codebase-specific details (architecture, commands, deployment) stay in this file.
+
 ## Project Overview
 
 Solana MCP Agent - A crypto trading assistant powered by Agno AI agents, MCP (Model Context Protocol) servers, and a Telegram bot interface. Users interact via Telegram to perform Solana blockchain operations through natural language.
