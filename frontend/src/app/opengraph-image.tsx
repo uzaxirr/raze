@@ -1,19 +1,18 @@
+import { readFileSync } from "fs";
+import { join } from "path";
 import { ImageResponse } from "next/og";
 
-export const runtime = "edge";
 export const alt = "Raze — Your crypto friend who never sleeps";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-export default async function Image() {
-  // Fetch the mascot PNG at request/build time. Using `new URL` relative to
-  // this module lets Next.js resolve the public asset on both edge & node.
-  const impResponse = await fetch(
-    new URL("../../public/assets/imp-expressions/waving.png", import.meta.url)
-  );
-  const impBuffer = await impResponse.arrayBuffer();
-  const impDataUrl = `data:image/png;base64,${Buffer.from(impBuffer).toString("base64")}`;
+// Read the mascot PNG once at cold-start and cache as a base64 data URL.
+// Runs in the Node runtime so edge is not declared above.
+const impDataUrl = `data:image/png;base64,${readFileSync(
+  join(process.cwd(), "public/assets/imp-expressions/waving.png")
+).toString("base64")}`;
 
+export default function Image() {
   return new ImageResponse(
     (
       <div
