@@ -21,9 +21,8 @@ export const metadata: Metadata = {
   title: "Raze — Your On-Chain Intelligence",
   description:
     "Trade, research, and explore Solana through natural conversation. Your wallet, your trades, your alpha — all in one Telegram chat.",
-  icons: {
-    icon: "/favicon.svg",
-  },
+  // Favicon + Apple touch icon are auto-wired by Next.js via the
+  // file-based convention: src/app/icon.png and src/app/apple-icon.png.
   metadataBase: new URL("https://raze.fun"),
   openGraph: {
     title: "Raze — Your crypto friend who never sleeps",
