@@ -6,8 +6,7 @@ export const alt = "Raze — Your crypto friend who never sleeps";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-// Read the mascot PNG once at cold-start and cache as a base64 data URL.
-// Runs in the Node runtime so edge is not declared above.
+// Read the mascot PNG once at module load (cold-start on Node runtime).
 const impDataUrl = `data:image/png;base64,${readFileSync(
   join(process.cwd(), "public/assets/imp-expressions/waving.png")
 ).toString("base64")}`;

@@ -1,0 +1,11 @@
+node_modules
+.next
+out
+build
+.git
+.env*
+*.log
+.DS_Store
+.vercel
+*.tsbuildinfo
+next-env.d.ts
