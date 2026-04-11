@@ -52,6 +52,49 @@ body::before {
   50% { transform: translateY(-14px); }
 }
 
+/* ------------------------------------------------------------------
+ * Compound "breathing" idle for mascots — three independent loops
+ * with prime-ish, non-harmonic periods so the composite transform
+ * never visually repeats (LCM is ~10 minutes). Each loop is applied
+ * to a nested wrapper div so their transforms stack cleanly instead
+ * of overwriting each other.
+ * ------------------------------------------------------------------ */
+@keyframes imp-breath-y {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+@keyframes imp-breath-scale {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.02); }
+}
+@keyframes imp-breath-rotate {
+  0%, 100% { transform: rotate(-1deg); }
+  50%      { transform: rotate(1deg); }
+}
+
+.imp-breath-y {
+  animation: imp-breath-y 5.3s ease-in-out infinite;
+  will-change: transform;
+}
+.imp-breath-scale {
+  animation: imp-breath-scale 4.1s ease-in-out infinite;
+  will-change: transform;
+}
+.imp-breath-rotate {
+  animation: imp-breath-rotate 6.7s ease-in-out infinite;
+  will-change: transform;
+  transform-origin: 50% 70%; /* pivot around lower belly — feels anchored */
+}
+
+/* Reduced motion: flatten all idle loops so the mascot simply rests. */
+@media (prefers-reduced-motion: reduce) {
+  .imp-breath-y,
+  .imp-breath-scale,
+  .imp-breath-rotate {
+    animation: none;
+  }
+}
+
 @keyframes sparkle {
   0%, 100% { opacity: 0.2; }
   50% { opacity: 0.8; }

@@ -293,9 +293,9 @@ export default function FeatureSlides() {
                   marginTop: slide.ghostPosition === "top" ? 60 : 0,
                 }}
               >
-                {/* Ghost peeking */}
+                {/* Ghost peeking — spring bounce-in when slide becomes active */}
                 <div
-                  className="absolute transition-all duration-500 ease-out pointer-events-none"
+                  className="absolute pointer-events-none"
                   style={{
                     ...(slide.ghostPosition === "left"
                       ? { left: -90, top: 60 }
@@ -303,7 +303,13 @@ export default function FeatureSlides() {
                       ? { right: -90, top: 60 }
                       : { top: -140, left: "50%", transform: "translateX(-50%)" }),
                     opacity: activeSlide === i ? 1 : 0,
-                    scale: activeSlide === i ? "0.7" : "0.5",
+                    scale: activeSlide === i ? "0.7" : "0.35",
+                    rotate: activeSlide === i ? "0deg" : "-8deg",
+                    transition:
+                      "opacity 0.35s ease-out, " +
+                      "scale 0.72s cubic-bezier(0.34, 1.56, 0.64, 1), " +
+                      "rotate 0.72s cubic-bezier(0.34, 1.56, 0.64, 1)",
+                    transformOrigin: "bottom center",
                   }}
                 >
                   {slide.ghost}
@@ -412,8 +418,14 @@ export default function FeatureSlides() {
           {/* Desktop */}
           <div className="hidden lg:flex items-center w-full h-screen">
             <div className="slide-content ml-20 max-w-[400px]" data-active={String(isDemoMode)}>
-              <div className="w-[90px] h-[90px] mb-4 animate-float">
-                <ImpMascot expression="celebrating" className="w-full h-full" />
+              <div className="w-[90px] h-[90px] mb-4">
+                <div className="imp-breath-y w-full h-full">
+                  <div className="imp-breath-scale w-full h-full">
+                    <div className="imp-breath-rotate w-full h-full">
+                      <ImpMascot expression="celebrating" className="w-full h-full" />
+                    </div>
+                  </div>
+                </div>
               </div>
               <h2 className="font-display text-[52px] font-bold leading-[54px] tracking-[-0.04em] text-[#1A1A1A]">
                 Ask Raze<br />anything
@@ -444,20 +456,29 @@ export default function FeatureSlides() {
             }}
           >
             <div className="relative">
-              {/* Ghost per slide */}
-              {slides.map((slide, i) => (
-                <div
-                  key={`ghost-${i}`}
-                  className="absolute transition-all duration-500 ease-out"
-                  style={{
-                    ...ghostPosDesktop(slide.ghostPosition),
-                    opacity: !isDemoMode && activeSlide === i ? 1 : 0,
-                    scale: !isDemoMode && activeSlide === i ? "1" : "0.6",
-                  }}
-                >
-                  {slide.ghost}
-                </div>
-              ))}
+              {/* Ghost per slide — spring bounce-in when slide becomes active */}
+              {slides.map((slide, i) => {
+                const isActive = !isDemoMode && activeSlide === i;
+                return (
+                  <div
+                    key={`ghost-${i}`}
+                    className="absolute"
+                    style={{
+                      ...ghostPosDesktop(slide.ghostPosition),
+                      opacity: isActive ? 1 : 0,
+                      scale: isActive ? "1" : "0.55",
+                      rotate: isActive ? "0deg" : "-8deg",
+                      transformOrigin: "bottom center",
+                      transition:
+                        "opacity 0.4s ease-out, " +
+                        "scale 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), " +
+                        "rotate 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)",
+                    }}
+                  >
+                    {slide.ghost}
+                  </div>
+                );
+              })}
 
               {/* Stacked phone screens + demo phone */}
               <div className="relative" style={{ width: 255, height: 510 }}>

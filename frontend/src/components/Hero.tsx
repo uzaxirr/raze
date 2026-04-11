@@ -1,21 +1,105 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import ImpMascot from "./ImpMascot";
 import PhoneMockup from "./PhoneMockup";
 
 export default function Hero() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const tiltRef = useRef<HTMLDivElement>(null);
+
+  // Cursor-magnetic tilt on the desktop hero imp. Runs an rAF loop that
+  // lerps toward the cursor position relative to the hero section and
+  // writes transforms imperatively (no React re-renders).
+  useEffect(() => {
+    const section = sectionRef.current;
+    const tilt = tiltRef.current;
+    if (!section || !tilt) return;
+
+    // Honor system-level reduced motion preference.
+    if (typeof window !== "undefined" &&
+        window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+
+    let targetX = 0;
+    let targetY = 0;
+    let currentX = 0;
+    let currentY = 0;
+    let rafId = 0;
+
+    const scheduleTick = () => {
+      if (!rafId) rafId = requestAnimationFrame(tick);
+    };
+
+    const onMove = (e: MouseEvent) => {
+      const rect = tilt.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      // Normalize distance by a "pull radius" so cursor far away still tilts
+      // fully, cursor on mascot is neutral.
+      const pullRadius = 420;
+      targetX = Math.max(-1, Math.min(1, (e.clientX - cx) / pullRadius));
+      targetY = Math.max(-1, Math.min(1, (e.clientY - cy) / pullRadius));
+      scheduleTick();
+    };
+
+    const onLeave = () => {
+      targetX = 0;
+      targetY = 0;
+      scheduleTick();
+    };
+
+    const tick = () => {
+      rafId = 0;
+      // Smooth lerp toward target
+      currentX += (targetX - currentX) * 0.09;
+      currentY += (targetY - currentY) * 0.09;
+
+      const tx = currentX * 10; // horizontal pull in px
+      const ty = currentY * 6; // vertical pull in px
+      const rz = currentX * 5; // head tilt toward cursor (deg)
+
+      tilt.style.transform =
+        `translate3d(${tx.toFixed(2)}px, ${ty.toFixed(2)}px, 0) rotate(${rz.toFixed(2)}deg)`;
+
+      // Keep ticking until we're essentially at rest.
+      const settled =
+        Math.abs(targetX - currentX) < 0.001 &&
+        Math.abs(targetY - currentY) < 0.001;
+      if (!settled) scheduleTick();
+    };
+
+    section.addEventListener("mousemove", onMove);
+    section.addEventListener("mouseleave", onLeave);
+
+    return () => {
+      section.removeEventListener("mousemove", onMove);
+      section.removeEventListener("mouseleave", onLeave);
+      if (rafId) cancelAnimationFrame(rafId);
+      tilt.style.transform = "";
+    };
+  }, []);
+
   return (
     <section
+      ref={sectionRef}
       className="w-full flex flex-col items-center pt-[70px]"
       style={{
         background: "linear-gradient(180deg, #FAFAFE 0%, #F0EDFF 60%, #E4DCFF 100%)",
       }}
     >
-      {/* Top: headline + ghost */}
+      {/* Top: headline + mascot */}
       <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-20 w-full max-w-[1440px] px-6 md:px-[120px] pt-10 md:pt-16 pb-8 md:pb-12">
-        {/* Ghost on top for mobile, right side for desktop */}
-        <div className="md:hidden w-[110px] h-[110px] shrink-0 animate-float">
-          <ImpMascot expression="waving" className="w-full h-full" />
+        {/* Mobile mascot — idle breath only (no cursor on touch devices) */}
+        <div className="md:hidden w-[110px] h-[110px] shrink-0">
+          <div className="imp-breath-y w-full h-full">
+            <div className="imp-breath-scale w-full h-full">
+              <div className="imp-breath-rotate w-full h-full">
+                <ImpMascot expression="waving" className="w-full h-full" />
+              </div>
+            </div>
+          </div>
         </div>
         <div className="flex flex-col gap-4 md:gap-6 max-w-[520px] items-center md:items-start text-center md:text-left">
           <h1 className="font-display text-[36px] md:text-[64px] font-bold leading-[40px] md:leading-[66px] tracking-[-0.04em] text-[#1A1A1A] animate-fade-up">
@@ -34,10 +118,20 @@ export default function Hero() {
             </a>
           </div>
         </div>
-        <ImpMascot
-          expression="waving"
-          className="hidden md:block shrink-0 animate-float w-[220px] h-[220px]"
-        />
+        {/* Desktop mascot — cursor-magnetic tilt wraps compound breath */}
+        <div
+          ref={tiltRef}
+          className="hidden md:block shrink-0 w-[220px] h-[220px]"
+          style={{ willChange: "transform" }}
+        >
+          <div className="imp-breath-y w-full h-full">
+            <div className="imp-breath-scale w-full h-full">
+              <div className="imp-breath-rotate w-full h-full">
+                <ImpMascot expression="waving" className="w-full h-full" />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Phone fan - desktop: 3 phones, mobile: single center phone */}
