@@ -8,7 +8,7 @@ import {
   useWallet,
   useConnection,
 } from "@solana/wallet-adapter-react";
-import { PhantomWalletAdapter } from "@solana/wallet-adapter-wallets";
+import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
 import { Transaction, VersionedTransaction } from "@solana/web3.js";
 
 interface TxData {
@@ -49,7 +49,9 @@ function SigningUI() {
   useEffect(() => {
     async function fetchTx() {
       try {
-        const res = await fetch(`/api/sign?id=${id}`);
+        const res = await fetch(`/api/sign?id=${id}`, {
+          headers: { "ngrok-skip-browser-warning": "true" },
+        });
         if (res.status === 404 || res.status === 410) {
           setState("expired");
           return;
