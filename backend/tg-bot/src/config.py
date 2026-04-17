@@ -5,11 +5,13 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Load from project root
-_root = Path(__file__).resolve().parent
-while not (_root / '.env').exists() and _root != _root.parent:
-    _root = _root.parent
-load_dotenv(_root / '.env')
+# Load the tg-bot's own .env file, NOT the repo-root .env.
+# Walking the directory tree for any .env used to pick up backend/.env when the
+# bot's own .env was missing — and because load_dotenv doesn't override existing
+# env vars by default, a stale TELEGRAM_BOT_TOKEN in the parent shell could shadow
+# the tg-bot value and make the bot poll the wrong token (→ Conflict errors).
+_tg_bot_dir = Path(__file__).resolve().parent.parent  # .../backend/tg-bot
+load_dotenv(_tg_bot_dir / '.env', override=True)
 
 
 class Config:

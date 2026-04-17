@@ -25,14 +25,14 @@ export const metadata: Metadata = {
   // file-based convention: src/app/icon.png and src/app/apple-icon.png.
   metadataBase: new URL("https://raze.fun"),
   openGraph: {
-    title: "Raze — Your crypto friend who never sleeps",
+    title: "Raze — Everything Solana in one chat",
     description: "Trade, research, and explore Solana through natural conversation. All in one Telegram chat.",
     siteName: "Raze",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Raze — Your crypto friend who never sleeps",
+    title: "Raze — Everything Solana in one chat",
     description: "Trade, research, and explore Solana through natural conversation. All in one Telegram chat.",
   },
 };

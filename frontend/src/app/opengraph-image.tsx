@@ -2,7 +2,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { ImageResponse } from "next/og";
 
-export const alt = "Raze — Your crypto friend who never sleeps";
+export const alt = "Raze — Everything Solana in one chat";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -65,7 +65,7 @@ export default function Image() {
               letterSpacing: "-0.04em",
             }}
           >
-            Your crypto friend who never sleeps
+            Everything Solana in one chat
           </div>
 
           {/* Description */}
