@@ -103,7 +103,7 @@ export default function Hero() {
         </div>
         <div className="flex flex-col gap-4 md:gap-6 max-w-[520px] items-center md:items-start text-center md:text-left">
           <h1 className="font-display text-[36px] md:text-[64px] font-bold leading-[40px] md:leading-[66px] tracking-[-0.04em] text-[#1A1A1A] animate-fade-up">
-            Built for people who live on-chain
+            Everything Solana inside one chat
           </h1>
           <p className="font-sans text-[15px] md:text-[18px] leading-[24px] md:leading-[28px] text-[#666] animate-fade-up delay-100">
             Trade, research, and explore Solana through natural conversation. Your wallet, your

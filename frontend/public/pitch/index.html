@@ -188,33 +188,35 @@
   /* =============================================
      SLIDE 2 — PROBLEM
      ============================================= */
-  .slide-2 { justify-content: space-between; }
-  .slide-2 .top { display: flex; flex-direction: column; gap: 36px; }
-  .slide-2 .label-row { margin-bottom: 4px; }
+  .slide-2 { justify-content: space-between; padding: 100px 120px 80px; }
+  .slide-2 .top { display: flex; flex-direction: column; gap: 20px; }
+  .slide-2 .headline { font-size: 58px; }
+  .slide-2 .label-row { margin-bottom: 0; }
 
   .journey-trigger {
     font-family: 'Inter', sans-serif;
-    font-size: 22px;
+    font-size: 20px;
     color: #888888;
     line-height: 1.5;
     max-width: 900px;
   }
   .journey-trigger strong { color: var(--green); font-weight: 600; }
 
+  /* 4x2 grid with descriptions */
   .journey-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 18px;
-    margin-top: 8px;
+    gap: 16px;
+    margin-top: 12px;
   }
   .journey-step {
     background: var(--card-bg);
     border: 1px solid var(--card-border);
     border-radius: 14px;
-    padding: 24px 22px;
+    padding: 22px 20px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     position: relative;
     overflow: hidden;
     transition: border-color 0.3s, transform 0.3s;
@@ -226,72 +228,115 @@
   .journey-step::before {
     content: "";
     position: absolute;
-    top: 0; left: 0; right: 0; height: 3px;
+    top: 0; left: 0; width: 4px; height: 100%;
+    border-radius: 14px 0 0 14px;
   }
   .journey-step .step-num {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 600;
-    color: #4A4260;
+    color: #3A3550;
+    letter-spacing: 0.05em;
   }
   .journey-step .step-tool {
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 20px;
+    font-size: 19px;
     font-weight: 700;
-    color: #FFFFFF;
   }
   .journey-step .step-action {
     font-family: 'Inter', sans-serif;
-    font-size: 14px;
+    font-size: 13px;
     color: var(--text-soft);
-    line-height: 1.5;
+    line-height: 1.55;
   }
-  .journey-step .step-time {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    color: #CC0000;
-    margin-top: auto;
-  }
-  /* Accent top bars per tool */
+  /* Tool names + left bar in brand colors */
   .js-dex::before { background: #14F195; }
+  .js-dex .step-tool { color: #14F195; }
   .js-bird::before { background: #FF6A00; }
+  .js-bird .step-tool { color: #FF6A00; }
   .js-rug::before { background: #FFD166; }
+  .js-rug .step-tool { color: #FFD166; }
   .js-sol::before { background: #00D4AA; }
+  .js-sol .step-tool { color: #00D4AA; }
   .js-bub::before { background: #E85ABF; }
-  .js-twt::before { background: #F0ECF9; }
+  .js-bub .step-tool { color: #E85ABF; }
+  .js-twt::before { background: #EDEDED; }
+  .js-twt .step-tool { color: #EDEDED; }
   .js-jup::before { background: #C4F82A; }
+  .js-jup .step-tool { color: #C4F82A; }
 
-  /* The "still not sure" final step */
-  .journey-step.js-fail {
-    border-color: #CC000044;
-    background: #1A0A0A;
+  /* Punchline — full width, red warning feel */
+  .journey-punchline {
+    grid-column: 1 / -1;
+    background: linear-gradient(90deg, #140808, #0A0A0A);
+    border: 1px solid #CC000030;
+    border-radius: 14px;
+    padding: 22px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
   }
-  .journey-step.js-fail::before { background: #CC0000; }
+  .journey-punchline::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; width: 4px; height: 100%;
+    background: #CC0000;
+    border-radius: 14px 0 0 14px;
+  }
+  .jp-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: #FF6B6B;
+  }
+  .jp-sub {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    color: #6B4444;
+    margin-top: 3px;
+  }
+  .jp-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    font-weight: 800;
+    color: #CC0000;
+    letter-spacing: -0.02em;
+  }
 
+  /* Big centered comparison */
   .journey-total {
     display: flex;
     align-items: center;
-    gap: 32px;
-    margin-top: 16px;
+    justify-content: center;
+    gap: 56px;
+    margin-top: 20px;
+    padding: 24px 0 0;
+    border-top: 1px solid #1A1A1A;
   }
+  .jt-block { display: flex; flex-direction: column; align-items: center; gap: 4px; }
   .journey-total .jt-time {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 48px;
+    font-size: 72px;
     font-weight: 800;
     color: #CC0000;
     letter-spacing: -0.03em;
+    line-height: 1;
   }
   .journey-total .jt-vs {
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 28px;
-    color: #4A4260;
+    font-size: 32px;
+    color: #3A3A4A;
+    align-self: center;
   }
   .journey-total .jt-raze {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 48px;
+    font-size: 72px;
     font-weight: 800;
     color: var(--green);
     letter-spacing: -0.03em;
+    line-height: 1;
   }
   .journey-total .jt-label {
     font-family: 'Inter', sans-serif;
@@ -824,60 +869,54 @@
 
         <div class="journey-grid">
           <div class="journey-step js-dex reveal delay-1">
-            <div class="step-num">01</div>
+            <div class="step-num">STEP 01</div>
             <div class="step-tool">DexScreener</div>
-            <div class="step-action">Find the contract. Check price, volume, mcap.</div>
-            <div class="step-time">~1.5 min</div>
+            <div class="step-action">Find the contract address. Check price, volume, market cap. See if anyone's actually trading it.</div>
           </div>
           <div class="journey-step js-bird reveal delay-2">
-            <div class="step-num">02</div>
+            <div class="step-num">STEP 02</div>
             <div class="step-tool">Birdeye</div>
-            <div class="step-action">Cross-check liquidity, FDV, 24h txns.</div>
-            <div class="step-time">~1.5 min</div>
+            <div class="step-action">Cross-check the liquidity depth, FDV, and 24h transaction count. Compare with DexScreener data.</div>
           </div>
           <div class="journey-step js-rug reveal delay-3">
-            <div class="step-num">03</div>
+            <div class="step-num">STEP 03</div>
             <div class="step-tool">RugCheck</div>
-            <div class="step-action">Mint authority? LP locked? Insider %?</div>
-            <div class="step-time">~2 min</div>
+            <div class="step-action">Paste the contract. Is mint authority revoked? LP locked? What % do insiders hold?</div>
           </div>
           <div class="journey-step js-sol reveal delay-4">
-            <div class="step-num">04</div>
+            <div class="step-num">STEP 04</div>
             <div class="step-tool">Solscan</div>
-            <div class="step-action">Top holders. Transfer count. Creator wallet.</div>
-            <div class="step-time">~1.5 min</div>
+            <div class="step-action">Check top holders distribution. How many transfers? Who created it?</div>
           </div>
           <div class="journey-step js-bub reveal delay-1">
-            <div class="step-num">05</div>
+            <div class="step-num">STEP 05</div>
             <div class="step-tool">BubbleMaps</div>
-            <div class="step-action">Wallet clusters. Coordinated buys. Bundles.</div>
-            <div class="step-time">~1 min</div>
+            <div class="step-action">Look for wallet clusters. Are coordinated wallets buying in the same block? Bundle detection.</div>
           </div>
           <div class="journey-step js-twt reveal delay-2">
-            <div class="step-num">06</div>
+            <div class="step-num">STEP 06</div>
             <div class="step-tool">Twitter / X</div>
-            <div class="step-action">Real hype or bot farm? KOL mentions?</div>
-            <div class="step-time">~1.5 min</div>
+            <div class="step-action">Search the ticker. Is this real hype or a bot farm? Any credible KOLs talking about it?</div>
           </div>
           <div class="journey-step js-jup reveal delay-3">
-            <div class="step-num">07</div>
+            <div class="step-num">STEP 07</div>
             <div class="step-tool">Jupiter</div>
-            <div class="step-action">Finally ready to swap... but is it safe?</div>
-            <div class="step-time">~1 min</div>
+            <div class="step-action">Finally ready to swap... but after all that, you're still not 100% sure it's safe.</div>
           </div>
-          <div class="journey-step js-fail reveal delay-4">
-            <div class="step-num">??</div>
-            <div class="step-tool">Still not sure.</div>
-            <div class="step-action">7 tools. None of them talked to each other.</div>
-            <div class="step-time">~10 min total</div>
+          <div class="journey-punchline reveal delay-4">
+            <div>
+              <div class="jp-text">Still not sure.</div>
+              <div class="jp-sub">7 tools. None of them talked to each other. You're the integration layer.</div>
+            </div>
+            <div class="jp-time">~10 min</div>
           </div>
         </div>
       </div>
 
       <div class="journey-total reveal">
-        <div><div class="jt-time">10:00</div><div class="jt-label">manually</div></div>
+        <div class="jt-block"><div class="jt-time">10:00</div><div class="jt-label">manually</div></div>
         <div class="jt-vs">vs</div>
-        <div><div class="jt-raze">0:04</div><div class="jt-label">with Raze</div></div>
+        <div class="jt-block"><div class="jt-raze">0:04</div><div class="jt-label">with Raze</div></div>
       </div>
     </div>
 
@@ -1003,7 +1042,7 @@ score 8/8 — clean af</div></div>
     <div class="slide slide-6" data-index="5">
       <img class="reveal" src="imp-celebrating.png" alt="Raze" style="width:180px;height:180px;object-fit:contain;filter:drop-shadow(0 0 40px rgba(153,69,255,0.4));">
       <h1 class="reveal">Try it right now</h1>
-      <div class="sub reveal">Open Telegram. Search @razeaii_bot. Type anything.</div>
+      <div class="sub reveal">raze.fun</div>
       <div class="close-links reveal">
         <div class="close-link">
           <div class="val">raze.fun</div>
@@ -1020,7 +1059,6 @@ score 8/8 — clean af</div></div>
           <div class="lbl">Twitter / X</div>
         </div>
       </div>
-      <div class="credit reveal">Built by Uzair Ali</div>
     </div>
 
   </div>
