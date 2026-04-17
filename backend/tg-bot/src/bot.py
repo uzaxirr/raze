@@ -40,7 +40,18 @@ logger = logging.getLogger(__name__)
 
 # Pattern for embedded chart images: [CHART_IMAGE]base64data[/CHART_IMAGE]
 import re
+import urllib.parse
 CHART_IMAGE_PATTERN = re.compile(r'\[CHART_IMAGE\](.*?)\[/CHART_IMAGE\]', re.DOTALL)
+SIGN_TX_PATTERN = re.compile(r'\[SIGN_TX\](.*?)\[/SIGN_TX\]', re.DOTALL)
+
+# Wallet app deep link URL templates
+WALLET_DEEP_LINKS = {
+    "phantom": "https://phantom.app/ul/v1/signAndSendTransaction?transaction={}",
+    "backpack": "https://backpack.app/ul/v1/signAndSendTransaction?transaction={}",
+    "solflare": "https://solflare.com/ul/v1/signAndSendTransaction?transaction={}",
+}
+
+WALLET_APP_CYCLE = ["phantom", "backpack", "solflare"]
 
 
 def extract_chart_image(text: str) -> tuple[str, str | None]:
@@ -55,6 +66,24 @@ def extract_chart_image(text: str) -> tuple[str, str | None]:
         base64_data = match.group(1).strip()
         clean_text = CHART_IMAGE_PATTERN.sub('', text).strip()
         return clean_text, base64_data
+    return text, None
+
+
+def extract_sign_tx(text: str, wallet_app: str = "phantom") -> tuple[str, str | None]:
+    """
+    Extract unsigned transaction from response text and build a deep link URL.
+
+    Returns:
+        (clean_text, deep_link_url or None)
+    """
+    match = SIGN_TX_PATTERN.search(text)
+    if match:
+        tx_base64 = match.group(1).strip()
+        clean_text = SIGN_TX_PATTERN.sub('', text).strip()
+        encoded_tx = urllib.parse.quote(tx_base64, safe='')
+        url_template = WALLET_DEEP_LINKS.get(wallet_app, WALLET_DEEP_LINKS["phantom"])
+        deep_link_url = url_template.format(encoded_tx)
+        return clean_text, deep_link_url
     return text, None
 
 # Beta notice banner
@@ -144,6 +173,52 @@ def update_user_network(telegram_user_id: int, network: str) -> bool:
         db.close()
 
 
+def update_signing_mode(telegram_user_id: int, mode: str) -> bool:
+    """Update user's signing mode (internal or external)."""
+    if mode not in ("internal", "external"):
+        return False
+    db = SessionLocal()
+    try:
+        user = db.query(UserProfile).filter_by(telegram_user_id=telegram_user_id).first()
+        if user:
+            user.signing_mode = mode
+            db.commit()
+            return True
+        return False
+    finally:
+        db.close()
+
+
+def update_external_wallet(telegram_user_id: int, address: str) -> bool:
+    """Update user's external wallet address."""
+    db = SessionLocal()
+    try:
+        user = db.query(UserProfile).filter_by(telegram_user_id=telegram_user_id).first()
+        if user:
+            user.external_wallet_address = address
+            db.commit()
+            return True
+        return False
+    finally:
+        db.close()
+
+
+def update_wallet_app(telegram_user_id: int, app: str) -> bool:
+    """Update user's preferred wallet app."""
+    if app not in WALLET_APP_CYCLE:
+        return False
+    db = SessionLocal()
+    try:
+        user = db.query(UserProfile).filter_by(telegram_user_id=telegram_user_id).first()
+        if user:
+            user.preferred_wallet_app = app
+            db.commit()
+            return True
+        return False
+    finally:
+        db.close()
+
+
 async def get_client_and_agent() -> tuple[AgentOSClient, str]:
     """Get or create the AgentOS client and discover agent ID."""
     global _client, _agent_id
@@ -197,11 +272,11 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             welcome_message = (
                 f"Welcome back {user.first_name}!\n\n"
                 f"Your wallet: `{user_profile.wallet_address}`\n\n"
-                "How can I help you today?\n\n"
                 "Commands:\n"
                 "/wallet - View your wallet\n"
                 "/clear - Reset conversation\n"
-                "/help - Show help"
+                "/help - Show help\n\n"
+                "don't trust me with your money? use /wallet to connect your own wallet — you sign everything yourself"
             )
         else:
             # New user or no wallet - create one via Privy
@@ -241,6 +316,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
                         "telegram_username": user.username or user.first_name,
                         "solana_network": "mainnet",  # Default for new users
                         "created_at": int(time.time()),
+                        "signing_mode": "internal",
+                        "external_wallet_address": None,
+                        "preferred_wallet_app": "phantom",
                     },
                 ):
                     pass  # Just need to trigger the state save
@@ -258,7 +336,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
                 "Commands:\n"
                 "/wallet - View your wallet\n"
                 "/clear - Reset conversation\n"
-                "/help - Show help"
+                "/help - Show help\n\n"
+                "don't trust me with your money? use /wallet to connect your own wallet — you sign everything yourself"
             )
             logger.info(f"Created wallet for user {user.id}: {wallet['address']}")
 
@@ -332,33 +411,71 @@ async def clear_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
 
 async def wallet_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle /wallet command - show user's wallet address."""
+    """Handle /wallet command - show wallet info, signing mode, and inline controls."""
     user = update.effective_user
 
     await update.message.chat.send_action(ChatAction.TYPING)
 
     try:
-        # Get user profile from database
         user_profile = get_user_profile(user.id)
 
-        if user_profile and user_profile.wallet_address:
-            response = (
-                f"Your Solana Wallet\n\n"
-                f"Address: `{user_profile.wallet_address}`\n\n"
-                "You can ask me to check your balance or recent transactions!"
+        if not user_profile or not user_profile.wallet_address:
+            await update.message.reply_text(
+                "no wallet found. use /start to get set up."
             )
+            return
+
+        signing_mode = user_profile.signing_mode or "internal"
+        external_addr = user_profile.external_wallet_address
+        wallet_app = user_profile.preferred_wallet_app or "phantom"
+
+        # Build wallet info text
+        lines = [
+            "your wallets\n",
+            f"internal (privy): `{user_profile.wallet_address}`",
+            f"external: {f'`{external_addr}`' if external_addr else 'not connected'}",
+            f"\nactive mode: **{signing_mode}** {'(raze signs for you)' if signing_mode == 'internal' else '(you sign in ' + wallet_app + ')'}",
+        ]
+        response = "\n".join(lines)
+
+        # Build inline keyboard
+        keyboard = []
+
+        # Mode toggle row
+        if signing_mode == "internal":
+            keyboard.append([
+                InlineKeyboardButton("switch to external", callback_data="wallet_mode_external"),
+            ])
         else:
-            response = (
-                "No wallet found.\n\n"
-                "Use /start to create your Solana wallet."
-            )
+            keyboard.append([
+                InlineKeyboardButton("switch to internal", callback_data="wallet_mode_internal"),
+            ])
+
+        # Connect external wallet button (if none connected)
+        if not external_addr:
+            keyboard.append([
+                InlineKeyboardButton("connect external wallet", callback_data="wallet_connect"),
+            ])
+
+        # Wallet app selector
+        keyboard.append([
+            InlineKeyboardButton(
+                f"wallet app: {wallet_app}",
+                callback_data=f"wallet_app_{wallet_app}",
+            ),
+        ])
+
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        parsed = parse_markdown_to_entities(response)
+        await update.message.reply_text(
+            parsed.text,
+            entities=parsed.entities if parsed.entities else None,
+            reply_markup=reply_markup,
+        )
 
     except Exception as e:
         logger.exception(f"Wallet command error: {e}")
-        response = "Unable to retrieve wallet. Please try again."
-
-    parsed = parse_markdown_to_entities(response)
-    await update.message.reply_text(parsed.text, entities=parsed.entities if parsed.entities else None)
+        await update.message.reply_text("couldn't load wallet info. try again.")
 
 
 async def alerts_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -799,11 +916,159 @@ async def network_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             pass
 
 
+def _validate_solana_address(address: str) -> bool:
+    """Validate a Solana address (base58, 32-44 chars)."""
+    if not 32 <= len(address) <= 44:
+        return False
+    base58_chars = set("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz")
+    return all(c in base58_chars for c in address)
+
+
+def _build_wallet_keyboard(user_profile) -> InlineKeyboardMarkup:
+    """Build the inline keyboard for /wallet display."""
+    signing_mode = user_profile.signing_mode or "internal"
+    external_addr = user_profile.external_wallet_address
+    wallet_app = user_profile.preferred_wallet_app or "phantom"
+
+    keyboard = []
+    if signing_mode == "internal":
+        keyboard.append([InlineKeyboardButton("switch to external", callback_data="wallet_mode_external")])
+    else:
+        keyboard.append([InlineKeyboardButton("switch to internal", callback_data="wallet_mode_internal")])
+
+    if not external_addr:
+        keyboard.append([InlineKeyboardButton("connect external wallet", callback_data="wallet_connect")])
+
+    keyboard.append([InlineKeyboardButton(f"wallet app: {wallet_app}", callback_data=f"wallet_app_{wallet_app}")])
+    return InlineKeyboardMarkup(keyboard)
+
+
+async def wallet_mode_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle signing mode toggle button clicks."""
+    query = update.callback_query
+    user = query.from_user
+    data = query.data  # wallet_mode_internal or wallet_mode_external
+
+    new_mode = data.replace("wallet_mode_", "")
+    if new_mode not in ("internal", "external"):
+        await query.answer("invalid mode")
+        return
+
+    # If switching to external, check that an external wallet is connected
+    if new_mode == "external":
+        user_profile = get_user_profile(user.id)
+        if not user_profile or not user_profile.external_wallet_address:
+            await query.answer("connect an external wallet first")
+            return
+
+    if update_signing_mode(user.id, new_mode):
+        user_profile = get_user_profile(user.id)
+        wallet_app = user_profile.preferred_wallet_app or "phantom"
+        external_addr = user_profile.external_wallet_address
+
+        lines = [
+            "your wallets\n",
+            f"internal (privy): `{user_profile.wallet_address}`",
+            f"external: {f'`{external_addr}`' if external_addr else 'not connected'}",
+            f"\nactive mode: **{new_mode}** {'(raze signs for you)' if new_mode == 'internal' else '(you sign in ' + wallet_app + ')'}",
+        ]
+        response = "\n".join(lines)
+        parsed = parse_markdown_to_entities(response)
+
+        await query.answer(f"switched to {new_mode}")
+        await query.edit_message_text(
+            parsed.text,
+            entities=parsed.entities if parsed.entities else None,
+            reply_markup=_build_wallet_keyboard(user_profile),
+        )
+        logger.info(f"User {user.id} switched signing mode to {new_mode}")
+    else:
+        await query.answer("failed to switch mode")
+
+
+async def wallet_connect_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle 'connect external wallet' button click."""
+    query = update.callback_query
+    user = query.from_user
+
+    context.user_data["awaiting_external_wallet"] = True
+    await query.answer()
+    await query.edit_message_text(
+        "paste your solana wallet address below.\n"
+        "this is the wallet you'll sign transactions with (phantom, backpack, solflare, etc)."
+    )
+    logger.info(f"User {user.id} initiated external wallet connection")
+
+
+async def wallet_app_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle wallet app cycle button click."""
+    query = update.callback_query
+    user = query.from_user
+    data = query.data  # wallet_app_phantom, wallet_app_backpack, wallet_app_solflare
+
+    current_app = data.replace("wallet_app_", "")
+    if current_app not in WALLET_APP_CYCLE:
+        current_app = "phantom"
+
+    # Cycle to next app
+    idx = WALLET_APP_CYCLE.index(current_app)
+    next_app = WALLET_APP_CYCLE[(idx + 1) % len(WALLET_APP_CYCLE)]
+
+    if update_wallet_app(user.id, next_app):
+        user_profile = get_user_profile(user.id)
+        signing_mode = user_profile.signing_mode or "internal"
+        external_addr = user_profile.external_wallet_address
+
+        lines = [
+            "your wallets\n",
+            f"internal (privy): `{user_profile.wallet_address}`",
+            f"external: {f'`{external_addr}`' if external_addr else 'not connected'}",
+            f"\nactive mode: **{signing_mode}** {'(raze signs for you)' if signing_mode == 'internal' else '(you sign in ' + next_app + ')'}",
+        ]
+        response = "\n".join(lines)
+        parsed = parse_markdown_to_entities(response)
+
+        await query.answer(f"wallet app: {next_app}")
+        await query.edit_message_text(
+            parsed.text,
+            entities=parsed.entities if parsed.entities else None,
+            reply_markup=_build_wallet_keyboard(user_profile),
+        )
+        logger.info(f"User {user.id} changed wallet app to {next_app}")
+    else:
+        await query.answer("failed to change wallet app")
+
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle incoming text messages."""
     message_text = update.message.text
     user_id = update.effective_user.id
     session_id = get_session_id(user_id, context)
+
+    # Check if user is connecting an external wallet
+    if context.user_data.get("awaiting_external_wallet"):
+        context.user_data["awaiting_external_wallet"] = False
+        address = message_text.strip()
+
+        if not _validate_solana_address(address):
+            await update.message.reply_text(
+                "that doesn't look like a valid solana address. "
+                "should be 32-44 base58 characters. try again via /wallet."
+            )
+            return
+
+        if update_external_wallet(user_id, address):
+            # Auto-switch to external mode
+            update_signing_mode(user_id, "external")
+            await update.message.reply_text(
+                f"external wallet connected: `{address}`\n\n"
+                "switched to external signing mode — you'll sign transactions yourself now. "
+                "use /wallet to change settings anytime."
+            )
+            logger.info(f"User {user_id} connected external wallet: {address}")
+        else:
+            await update.message.reply_text("failed to save wallet. try /wallet again.")
+        return
 
     logger.info(f"Message from user {user_id}: {message_text[:50]}...")
 
@@ -820,6 +1085,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             "telegram_username": user_profile.telegram_username,
             "telegram_user_id": user_id,
             "solana_network": user_profile.solana_network or "mainnet",
+            "signing_mode": user_profile.signing_mode or "internal",
+            "external_wallet_address": user_profile.external_wallet_address,
+            "preferred_wallet_app": user_profile.preferred_wallet_app or "phantom",
         }
 
     try:
@@ -983,7 +1251,37 @@ async def stream_response(
                     # Fallback to text
                     await safe_edit_message(bot_message, clean_text or "couldn't load chart")
             else:
-                await safe_edit_message(bot_message, accumulated_text)
+                # Check for unsigned transaction deep link marker
+                wallet_app = "phantom"
+                if session_state:
+                    wallet_app = session_state.get("preferred_wallet_app") or "phantom"
+                tx_clean_text, deep_link_url = extract_sign_tx(accumulated_text, wallet_app)
+
+                if deep_link_url:
+                    # Render with a tappable sign button
+                    keyboard = [[InlineKeyboardButton(
+                        f"\U0001f510 sign in {wallet_app}",
+                        url=deep_link_url,
+                    )]]
+                    reply_markup = InlineKeyboardMarkup(keyboard)
+                    try:
+                        parsed = parse_markdown_to_entities(truncate_message(tx_clean_text))
+                        if parsed.entities:
+                            await bot_message.edit_text(
+                                parsed.text,
+                                entities=parsed.entities,
+                                reply_markup=reply_markup,
+                            )
+                        else:
+                            await bot_message.edit_text(parsed.text, reply_markup=reply_markup)
+                    except BadRequest as e:
+                        logger.warning(f"Sign TX formatting failed: {e}")
+                        await bot_message.edit_text(
+                            truncate_message(tx_clean_text),
+                            reply_markup=reply_markup,
+                        )
+                else:
+                    await safe_edit_message(bot_message, accumulated_text)
         elif not error_occurred:
             await bot_message.edit_text("I couldn't generate a response. Please try again.")
 
@@ -1037,6 +1335,9 @@ def create_application() -> Application:
     app.add_handler(CommandHandler("togglemcp", togglemcp_command))
     # Callback handlers
     app.add_handler(CallbackQueryHandler(network_callback, pattern="^network_"))
+    app.add_handler(CallbackQueryHandler(wallet_mode_callback, pattern="^wallet_mode_"))
+    app.add_handler(CallbackQueryHandler(wallet_connect_callback, pattern="^wallet_connect$"))
+    app.add_handler(CallbackQueryHandler(wallet_app_callback, pattern="^wallet_app_"))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_error_handler(error_handler)
 

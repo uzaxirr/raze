@@ -100,7 +100,7 @@ async def lifespan(app: FastAPI):
 agent = Agent(
     name="Raze",
     model=Claude(
-        id="claude-sonnet-4-20250514",
+        id="claude-sonnet-4-6-20250514",
         cache_system_prompt=True,
         extended_cache_time=True,
     ),
@@ -128,6 +128,9 @@ agent = Agent(
         "telegram_username": None,
         "telegram_user_id": None,
         "created_at": None,
+        "signing_mode": "internal",
+        "external_wallet_address": None,
+        "preferred_wallet_app": "phantom",
     },
     instructions=RAZE_SYSTEM_PROMPT,
 )
