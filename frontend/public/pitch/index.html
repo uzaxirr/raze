@@ -846,12 +846,19 @@
      MOBILE RESPONSIVE
      ============================================= */
   @media (max-width: 1024px) {
+    html, body {
+      width: 100% !important;
+      height: auto !important;
+      overflow-x: hidden !important;
+      overflow-y: auto !important;
+    }
     .slide-wrap {
-      width: 100vw !important;
+      width: 100% !important;
       height: auto !important;
       transform: none !important;
     }
     .stage {
+      width: 100%;
       height: auto;
       min-height: 100vh;
       align-items: flex-start;
@@ -860,8 +867,9 @@
       position: relative !important;
       inset: auto !important;
       display: none !important;
-      padding: 60px 32px;
-      min-height: 100vh;
+      padding: 60px 24px 80px;
+      min-height: auto;
+      width: 100%;
     }
     .slide.active {
       display: flex !important;
