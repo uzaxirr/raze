@@ -252,8 +252,39 @@ export default function SignPage() {
                     </button>
                   ))}
                   {wallets.length === 0 && (
-                    <div style={{ fontSize: 14, color: "#6B6180", textAlign: "center", padding: 16 }}>
-                      no wallet detected. install phantom, backpack, or jupiter wallet.
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      <div style={{ fontSize: 14, color: "#6B6180", textAlign: "center", padding: 8 }}>
+                        open this page in your wallet app:
+                      </div>
+                      <a href={`https://phantom.app/ul/browse/${encodeURIComponent(window.location.href)}`}
+                        style={{
+                          width: "100%", padding: "14px 20px", borderRadius: 12,
+                          border: "1px solid #2A2540", background: "#12101A",
+                          color: "#F0ECF9", fontSize: 16, fontWeight: 600,
+                          textDecoration: "none", display: "flex", alignItems: "center", gap: 12,
+                          fontFamily: "inherit",
+                        }}>
+                        <span style={{ fontSize: 20 }}>👻</span> Open in Phantom
+                      </a>
+                      <a href={`https://backpack.app/ul/browse/${encodeURIComponent(window.location.href)}`}
+                        style={{
+                          width: "100%", padding: "14px 20px", borderRadius: 12,
+                          border: "1px solid #2A2540", background: "#12101A",
+                          color: "#F0ECF9", fontSize: 16, fontWeight: 600,
+                          textDecoration: "none", display: "flex", alignItems: "center", gap: 12,
+                          fontFamily: "inherit",
+                        }}>
+                        <span style={{ fontSize: 20 }}>🎒</span> Open in Backpack
+                      </a>
+                      <button onClick={() => { navigator.clipboard.writeText(window.location.href); }}
+                        style={{
+                          width: "100%", padding: "14px 20px", borderRadius: 12,
+                          border: "1px solid #2A2540", background: "#12101A",
+                          color: "#6B6180", fontSize: 14, fontWeight: 500,
+                          cursor: "pointer", fontFamily: "inherit",
+                        }}>
+                        or copy link to paste in any wallet browser
+                      </button>
                     </div>
                   )}
                 </div>
