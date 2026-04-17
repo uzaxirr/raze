@@ -841,6 +841,128 @@
   }
   .nav-zone.prev { left: 0; }
   .nav-zone.next { right: 0; }
+
+  /* =============================================
+     MOBILE RESPONSIVE
+     ============================================= */
+  @media (max-width: 1024px) {
+    .slide-wrap {
+      width: 100vw !important;
+      height: auto !important;
+      transform: none !important;
+    }
+    .stage {
+      height: auto;
+      min-height: 100vh;
+      align-items: flex-start;
+    }
+    .slide {
+      position: relative !important;
+      inset: auto !important;
+      display: none !important;
+      padding: 60px 32px;
+      min-height: 100vh;
+    }
+    .slide.active {
+      display: flex !important;
+      opacity: 1;
+      transform: none;
+    }
+    .slide.prev { display: none !important; }
+
+    /* Typography scaling */
+    .headline { font-size: 36px !important; line-height: 1.2 !important; }
+    .title-wordmark { font-size: 80px !important; }
+    .title-subtitle { font-size: 18px !important; }
+    .label { font-size: 12px !important; }
+    .body-muted { font-size: 16px !important; }
+
+    /* Slide 1 */
+    .slide-1 { gap: 20px; padding: 60px 32px !important; justify-content: center; min-height: 100vh; }
+    .ghost-logo { width: 100px !important; height: 100px !important; }
+    .title-links { flex-direction: column; gap: 8px; align-items: center; margin-top: 16px; }
+    .title-links .sep { display: none; }
+
+    /* Slide 2 */
+    .slide-2 { padding: 48px 24px !important; gap: 24px; }
+    .slide-2 .top { gap: 16px; }
+    .journey-trigger { font-size: 16px !important; }
+    .journey-grid {
+      grid-template-columns: 1fr 1fr !important;
+      gap: 10px;
+    }
+    .journey-step { padding: 16px 14px; }
+    .journey-step .step-tool { font-size: 15px !important; }
+    .journey-step .step-action { font-size: 11px !important; }
+    .journey-step .step-num { font-size: 10px !important; }
+    .journey-punchline {
+      grid-column: 1 / -1;
+      padding: 16px 20px;
+    }
+    .jp-text { font-size: 17px !important; }
+    .jp-sub { font-size: 12px !important; }
+    .jp-time { font-size: 22px !important; }
+    .journey-total { gap: 28px; padding-top: 16px; }
+    .journey-total .jt-time,
+    .journey-total .jt-raze { font-size: 48px !important; }
+    .journey-total .jt-vs { font-size: 22px !important; }
+
+    /* Slide 3 */
+    .slide-3 {
+      flex-direction: column !important;
+      gap: 32px !important;
+      padding: 48px 24px !important;
+    }
+    .slide-3 .left { gap: 16px; }
+    .slide-3 .headline { font-size: 36px !important; }
+    .slide-3 .description { font-size: 15px !important; max-width: 100% !important; }
+    .query-list { font-size: 13px !important; gap: 8px; }
+    .phone-wrap { width: 100%; display: flex; justify-content: center; }
+    .phone { width: 280px !important; height: 560px !important; border-radius: 40px !important; }
+    .phone-screen { border-radius: 34px !important; }
+    .phone-notch { width: 80px !important; height: 20px !important; border-radius: 10px !important; }
+
+    /* Slide 4 */
+    .slide-4 { padding: 48px 24px !important; }
+    .slide-4 .top { gap: 24px; }
+    .stat-cards { flex-direction: column !important; gap: 16px; margin-top: 24px; }
+    .stat-card { padding: 24px 20px; }
+    .stat-number { font-size: 48px !important; }
+    .stat-card h3 { font-size: 18px !important; }
+    .stat-card p { font-size: 13px !important; }
+
+    /* Slide 5 */
+    .slide-5 { padding: 48px 24px !important; }
+    .capability-pills { gap: 8px; margin-top: 24px; }
+    .pill { padding: 10px 14px; font-size: 13px !important; }
+    .callout { flex-direction: column; gap: 10px; padding: 16px 20px; margin-top: 24px; }
+    .callout p { font-size: 14px !important; }
+
+    /* Slide 6 */
+    .slide-6 { gap: 24px; padding: 60px 32px !important; }
+    .slide-6 h1 { font-size: 48px !important; }
+    .slide-6 .sub { font-size: 20px !important; }
+    .close-links { flex-direction: column; gap: 20px; margin-top: 16px; }
+    .close-link-sep { width: 36px; height: 1px; }
+
+    /* Chrome */
+    .hint { display: none; }
+    .counter { font-size: 11px; bottom: 16px; right: 20px; }
+    .nav-zone { width: 30%; }
+  }
+
+  /* Small phones */
+  @media (max-width: 480px) {
+    .slide { padding: 40px 20px; }
+    .headline { font-size: 28px !important; }
+    .title-wordmark { font-size: 56px !important; }
+    .journey-grid { grid-template-columns: 1fr !important; }
+    .journey-total .jt-time,
+    .journey-total .jt-raze { font-size: 36px !important; }
+    .stat-number { font-size: 36px !important; }
+    .slide-6 h1 { font-size: 36px !important; }
+    .phone { width: 240px !important; height: 480px !important; }
+  }
 </style>
 </head>
 <body>
@@ -1277,8 +1399,30 @@ score 8/8 — clean af</div></div>
   document.getElementById('navNext').addEventListener('click', next);
   document.getElementById('navPrev').addEventListener('click', prev);
 
+  // Touch swipe navigation for mobile
+  let touchStartX = 0;
+  let touchStartY = 0;
+  document.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
+  }, { passive: true });
+  document.addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].screenX - touchStartX;
+    const dy = e.changedTouches[0].screenY - touchStartY;
+    // Only trigger if horizontal swipe is dominant and > 50px
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+      if (dx < 0) next();
+      else prev();
+    }
+  }, { passive: true });
+
   // Scale wrap to fit viewport
   function fitToViewport() {
+    // Skip scaling on mobile — CSS handles responsive layout
+    if (window.innerWidth <= 1024) {
+      slideWrap.style.transform = 'none';
+      return;
+    }
     const DESIGN_W = 1920;
     const DESIGN_H = 1080;
     const scale = Math.min(
