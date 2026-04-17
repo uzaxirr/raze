@@ -17,6 +17,9 @@ class UserProfile(Base):
     wallet_address = Column(String(64), index=True)
     wallet_id = Column(String(64))
     solana_network = Column(String(20), default="mainnet")  # mainnet or devnet
+    signing_mode = Column(String(20), nullable=False, default="internal")  # internal or external
+    external_wallet_address = Column(String(64), nullable=True, default=None)  # self-custody wallet address
+    preferred_wallet_app = Column(String(20), nullable=False, default="phantom")  # phantom, backpack, solflare
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 

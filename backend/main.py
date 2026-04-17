@@ -100,7 +100,7 @@ async def lifespan(app: FastAPI):
 agent = Agent(
     name="Raze",
     model=Claude(
-        id="claude-sonnet-4-6-20250514",
+        id="claude-sonnet-4-20250514",
         cache_system_prompt=True,
         extended_cache_time=True,
     ),
@@ -111,8 +111,8 @@ agent = Agent(
     ],
     db=db,
     # debug_mode=True,
-    enable_user_memories=True,
-    add_memories_to_context=True,  # Include past memories in the agent context
+    enable_user_memories=False,  # Disabled — Claude Sonnet doesn't support structured outputs required by Agno memory
+    add_memories_to_context=False,
     add_history_to_context=True,
     add_session_summary_to_context=True,
     store_history_messages=True,

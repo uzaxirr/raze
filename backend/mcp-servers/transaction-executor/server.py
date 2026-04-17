@@ -67,6 +67,18 @@ def get_rpc_url(network: str = "mainnet") -> str:
     return "https://api.mainnet-beta.solana.com"
 
 
+async def get_recent_blockhash(network: str = "mainnet") -> str:
+    """Fetch the latest blockhash from Solana RPC (required for external signing mode)."""
+    rpc_url = get_rpc_url(network)
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(rpc_url, json={
+            "jsonrpc": "2.0", "id": 1,
+            "method": "getLatestBlockhash",
+            "params": [{"commitment": "finalized"}]
+        })
+        return resp.json()["result"]["value"]["blockhash"]
+
+
 async def get_sol_balance(wallet_address: str, network: str = "mainnet") -> int:
     """Get SOL balance in lamports."""
     rpc_url = get_rpc_url(network)
@@ -134,6 +146,7 @@ def build_sol_transfer_transaction(
     from_pubkey: Pubkey,
     to_pubkey: Pubkey,
     lamports: int,
+    blockhash: Optional[Hash] = None,
 ) -> Transaction:
     """Build a SOL transfer transaction."""
     transfer_ix = transfer(
@@ -147,7 +160,7 @@ def build_sol_transfer_transaction(
     message = Message.new_with_blockhash(
         [transfer_ix],
         from_pubkey,
-        DUMMY_BLOCKHASH,
+        blockhash if blockhash is not None else DUMMY_BLOCKHASH,
     )
 
     return Transaction.new_unsigned(message)
@@ -198,40 +211,49 @@ def build_spl_transfer_instruction(
 
 @mcp.tool()
 async def send_sol(
-    wallet_id: str,
     from_address: str,
     to_address: str,
     amount_sol: float,
+    wallet_id: Optional[str] = None,
     network: str = "mainnet",
+    signing_mode: str = "internal",
 ) -> Dict[str, Any]:
     """
     Send SOL to an address.
 
     Args:
-        wallet_id: Privy wallet ID for signing
         from_address: Sender's wallet address
         to_address: Recipient's wallet address
         amount_sol: Amount of SOL to send
+        wallet_id: Privy wallet ID for signing (required for internal mode, ignored for external)
         network: Solana network ("mainnet" or "devnet"). Defaults to "mainnet".
+        signing_mode: "internal" (Privy signs and broadcasts) or "external" (returns unsigned tx)
 
     Returns:
-        Transaction result with signature
+        Transaction result with signature (internal) or unsigned transaction (external)
     """
     try:
         # Convert to lamports
         lamports = amount_to_lamports(amount_sol, "SOL")
 
-        # Verify Privy wallet address matches our from_address
-        privy_signer = get_privy_signer(network)
-        privy_address = await privy_signer.get_wallet_address(wallet_id)
-        if privy_address != from_address:
-            logger.error(f"Wallet mismatch! Privy has {privy_address}, we have {from_address}")
-            return {
-                "status": "error",
-                "error": "wallet_mismatch",
-                "message": f"Wallet address mismatch. Please contact support.",
-                "details": {"privy": privy_address, "stored": from_address}
-            }
+        # Verify Privy wallet address matches our from_address (internal mode only)
+        if signing_mode == "internal":
+            if not wallet_id:
+                return {
+                    "status": "error",
+                    "error": "missing_wallet_id",
+                    "message": "wallet_id is required for internal signing mode.",
+                }
+            privy_signer = get_privy_signer(network)
+            privy_address = await privy_signer.get_wallet_address(wallet_id)
+            if privy_address != from_address:
+                logger.error(f"Wallet mismatch! Privy has {privy_address}, we have {from_address}")
+                return {
+                    "status": "error",
+                    "error": "wallet_mismatch",
+                    "message": f"Wallet address mismatch. Please contact support.",
+                    "details": {"privy": privy_address, "stored": from_address}
+                }
 
         # Check sender has enough SOL (include ~0.001 SOL for fees)
         balance = await get_sol_balance(from_address, network)
@@ -261,12 +283,31 @@ async def send_sol(
         from_pubkey = Pubkey.from_string(from_address)
         to_pubkey = Pubkey.from_string(to_address)
 
-        tx = build_sol_transfer_transaction(from_pubkey, to_pubkey, lamports)
+        if signing_mode == "external":
+            # Fetch a real recent blockhash — Privy won't replace it for external signers
+            blockhash_str = await get_recent_blockhash(network)
+            blockhash = Hash.from_string(blockhash_str)
+            tx = build_sol_transfer_transaction(from_pubkey, to_pubkey, lamports, blockhash)
+        else:
+            # Internal mode: use dummy blockhash, Privy replaces it before signing
+            tx = build_sol_transfer_transaction(from_pubkey, to_pubkey, lamports)
 
         # Serialize to base64
         tx_bytes = bytes(tx)
         tx_base64 = base64.b64encode(tx_bytes).decode()
         logger.info(f"Transaction size: {len(tx_bytes)} bytes")
+
+        if signing_mode == "external":
+            logger.info(f"Returning unsigned SOL transfer tx for external signing")
+            return {
+                "status": "pending_signature",
+                "type": "sol_transfer",
+                "unsigned_transaction": tx_base64,
+                "message": "Transaction ready for signing in your wallet app",
+                "amount": amount_sol,
+                "to": to_address,
+                "network": network,
+            }
 
         # Sign and send via Privy
         logger.info(f"Sending via Privy on {network}")
@@ -295,26 +336,28 @@ async def send_sol(
 
 @mcp.tool()
 async def send_token(
-    wallet_id: str,
     from_address: str,
     to_address: str,
     token: str,
     amount: float,
+    wallet_id: Optional[str] = None,
     network: str = "mainnet",
+    signing_mode: str = "internal",
 ) -> Dict[str, Any]:
     """
     Send SPL tokens to an address.
 
     Args:
-        wallet_id: Privy wallet ID for signing
         from_address: Sender's wallet address
         to_address: Recipient's wallet address
         token: Token symbol (e.g., "USDC") or mint address
         amount: Amount of tokens to send
+        wallet_id: Privy wallet ID for signing (required for internal mode, ignored for external)
         network: Solana network ("mainnet" or "devnet"). Defaults to "mainnet".
+        signing_mode: "internal" (Privy signs and broadcasts) or "external" (returns unsigned tx)
 
     Returns:
-        Transaction result with signature
+        Transaction result with signature (internal) or unsigned transaction (external)
     """
     try:
         # Resolve token
@@ -325,16 +368,23 @@ async def send_token(
         # Convert to smallest units
         token_amount = amount_to_lamports(amount, token)
 
-        # Verify Privy wallet address matches
-        privy_signer = get_privy_signer(network)
-        privy_address = await privy_signer.get_wallet_address(wallet_id)
-        if privy_address != from_address:
-            logger.error(f"Wallet mismatch! Privy has {privy_address}, we have {from_address}")
-            return {
-                "status": "error",
-                "error": "wallet_mismatch",
-                "message": f"Wallet address mismatch. Please contact support.",
-            }
+        # Verify Privy wallet address matches (internal mode only)
+        if signing_mode == "internal":
+            if not wallet_id:
+                return {
+                    "status": "error",
+                    "error": "missing_wallet_id",
+                    "message": "wallet_id is required for internal signing mode.",
+                }
+            privy_signer = get_privy_signer(network)
+            privy_address = await privy_signer.get_wallet_address(wallet_id)
+            if privy_address != from_address:
+                logger.error(f"Wallet mismatch! Privy has {privy_address}, we have {from_address}")
+                return {
+                    "status": "error",
+                    "error": "wallet_mismatch",
+                    "message": f"Wallet address mismatch. Please contact support.",
+                }
 
         # Check SOL balance for fees
         sol_balance = await get_sol_balance(from_address, network)
@@ -384,17 +434,38 @@ async def send_token(
         )
         instructions.append(transfer_ix)
 
+        # Choose blockhash: real for external (user signs), dummy for internal (Privy replaces it)
+        if signing_mode == "external":
+            blockhash_str = await get_recent_blockhash(network)
+            blockhash = Hash.from_string(blockhash_str)
+        else:
+            blockhash = DUMMY_BLOCKHASH
+
         # Build transaction
         message = Message.new_with_blockhash(
             instructions,
             from_pubkey,
-            DUMMY_BLOCKHASH,
+            blockhash,
         )
         tx = Transaction.new_unsigned(message)
 
         # Serialize to base64
         tx_bytes = bytes(tx)
         tx_base64 = base64.b64encode(tx_bytes).decode()
+
+        if signing_mode == "external":
+            logger.info(f"Returning unsigned token transfer tx for external signing")
+            return {
+                "status": "pending_signature",
+                "type": "token_transfer",
+                "unsigned_transaction": tx_base64,
+                "message": "Transaction ready for signing in your wallet app",
+                "token": token_symbol,
+                "mint": mint_address,
+                "amount": amount,
+                "to": to_address,
+                "network": network,
+            }
 
         # Sign and send via Privy
         result = await privy_signer.sign_and_send_transaction(
@@ -424,28 +495,30 @@ async def send_token(
 
 @mcp.tool()
 async def swap_tokens(
-    wallet_id: str,
     wallet_address: str,
     from_token: str,
     to_token: str,
     amount: float,
+    wallet_id: Optional[str] = None,
     slippage_bps: int = 50,
     network: str = "mainnet",
+    signing_mode: str = "internal",
 ) -> Dict[str, Any]:
     """
     Swap tokens using Jupiter aggregator.
 
     Args:
-        wallet_id: Privy wallet ID for signing
         wallet_address: User's wallet address
         from_token: Source token symbol (e.g., "SOL") or mint address
         to_token: Destination token symbol (e.g., "USDC") or mint address
         amount: Amount of source token to swap
+        wallet_id: Privy wallet ID for signing (required for internal mode, ignored for external)
         slippage_bps: Slippage tolerance in basis points (50 = 0.5%)
         network: Solana network ("mainnet" or "devnet"). Defaults to "mainnet".
+        signing_mode: "internal" (Privy signs and broadcasts) or "external" (returns unsigned tx)
 
     Returns:
-        Swap result with amounts and signature
+        Swap result with amounts and signature (internal) or unsigned transaction (external)
     """
     try:
         # Resolve tokens
@@ -458,16 +531,23 @@ async def swap_tokens(
         # Convert to smallest units
         input_amount = amount_to_lamports(amount, from_token)
 
-        # Verify Privy wallet address matches
-        privy_signer = get_privy_signer(network)
-        privy_address = await privy_signer.get_wallet_address(wallet_id)
-        if privy_address != wallet_address:
-            logger.error(f"Wallet mismatch! Privy has {privy_address}, we have {wallet_address}")
-            return {
-                "status": "error",
-                "error": "wallet_mismatch",
-                "message": f"Wallet address mismatch. Please contact support.",
-            }
+        # Verify Privy wallet address matches (internal mode only)
+        if signing_mode == "internal":
+            if not wallet_id:
+                return {
+                    "status": "error",
+                    "error": "missing_wallet_id",
+                    "message": "wallet_id is required for internal signing mode.",
+                }
+            privy_signer = get_privy_signer(network)
+            privy_address = await privy_signer.get_wallet_address(wallet_id)
+            if privy_address != wallet_address:
+                logger.error(f"Wallet mismatch! Privy has {privy_address}, we have {wallet_address}")
+                return {
+                    "status": "error",
+                    "error": "wallet_mismatch",
+                    "message": f"Wallet address mismatch. Please contact support.",
+                }
 
         # Check SOL balance for fees (and for SOL swaps, the full amount)
         sol_balance = await get_sol_balance(wallet_address, network)
@@ -503,6 +583,8 @@ async def swap_tokens(
         logger.info(f"Getting Jupiter quote: {amount} {from_symbol} -> {to_symbol} on {network}")
 
         # Get quote and swap transaction from Jupiter
+        # Jupiter already includes a real recent blockhash in the transaction it returns,
+        # so no separate blockhash fetch is needed for either mode.
         swap_result = await get_jupiter_client().get_swap_quote_and_transaction(
             input_mint=input_mint,
             output_mint=output_mint,
@@ -514,6 +596,24 @@ async def swap_tokens(
         # Jupiter returns a ready-to-sign base64 transaction
         swap_transaction = swap_result["swap_transaction"]
 
+        # Calculate output amount
+        output_amount = lamports_to_amount(swap_result["output_amount"], to_token)
+
+        if signing_mode == "external":
+            logger.info(f"Returning unsigned swap tx for external signing")
+            return {
+                "status": "pending_signature",
+                "type": "swap",
+                "unsigned_transaction": swap_transaction,
+                "message": "Transaction ready for signing in your wallet app",
+                "from_token": from_symbol,
+                "to_token": to_symbol,
+                "input_amount": amount,
+                "output_amount": output_amount,
+                "network": network,
+                "price_impact": swap_result.get("price_impact_pct"),
+            }
+
         logger.info(f"Signing swap transaction via Privy on {network}")
 
         # Sign and send via Privy
@@ -521,9 +621,6 @@ async def swap_tokens(
             wallet_id=wallet_id,
             transaction_base64=swap_transaction,
         )
-
-        # Calculate output amount
-        output_amount = lamports_to_amount(swap_result["output_amount"], to_token)
 
         return {
             "status": "success",

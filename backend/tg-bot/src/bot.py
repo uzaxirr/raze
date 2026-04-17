@@ -49,9 +49,10 @@ WALLET_DEEP_LINKS = {
     "phantom": "https://phantom.app/ul/v1/signAndSendTransaction?transaction={}",
     "backpack": "https://backpack.app/ul/v1/signAndSendTransaction?transaction={}",
     "solflare": "https://solflare.com/ul/v1/signAndSendTransaction?transaction={}",
+    "jupiter": "https://jup.ag/ul/v1/signAndSendTransaction?transaction={}",
 }
 
-WALLET_APP_CYCLE = ["phantom", "backpack", "solflare"]
+WALLET_APP_CYCLE = ["phantom", "backpack", "solflare", "jupiter"]
 
 
 def extract_chart_image(text: str) -> tuple[str, str | None]:
@@ -69,17 +70,48 @@ def extract_chart_image(text: str) -> tuple[str, str | None]:
     return text, None
 
 
-def extract_sign_tx(text: str, wallet_app: str = "phantom") -> tuple[str, str | None]:
+async def extract_sign_tx(text: str, wallet_app: str = "phantom") -> tuple[str, str | None]:
     """
-    Extract unsigned transaction from response text and build a deep link URL.
+    Extract unsigned transaction from response text, store it via the signing API,
+    and return the signing page URL.
 
     Returns:
-        (clean_text, deep_link_url or None)
+        (clean_text, signing_page_url or None)
     """
     match = SIGN_TX_PATTERN.search(text)
     if match:
         tx_base64 = match.group(1).strip()
         clean_text = SIGN_TX_PATTERN.sub('', text).strip()
+
+        # Store the unsigned tx via the frontend signing API
+        frontend_url = os.getenv("RAZE_FRONTEND_URL", "https://raze.fun")
+        sign_secret = os.getenv("RAZE_SIGN_SECRET", "raze-dev-secret")
+
+        try:
+            import httpx
+            logger.info(f"Storing tx at {frontend_url}/api/sign (secret={sign_secret[:8]}...)")
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.post(
+                    f"{frontend_url}/api/sign",
+                    json={
+                        "transaction": tx_base64,
+                        "type": "transaction",
+                        "network": "mainnet",
+                    },
+                    headers={"x-sign-secret": sign_secret},
+                )
+                logger.info(f"Sign API response: {resp.status_code} {resp.text[:200]}")
+                if resp.status_code == 200:
+                    tx_id = resp.json().get("id")
+                    signing_url = f"{frontend_url}/sign/{tx_id}"
+                    logger.info(f"Signing URL: {signing_url}")
+                    return clean_text, signing_url
+                else:
+                    logger.error(f"Sign API failed: {resp.status_code} {resp.text[:200]}")
+        except Exception as e:
+            logger.error(f"Failed to store tx for signing: {e}", exc_info=True)
+
+        # Fallback to deep link if API fails
         encoded_tx = urllib.parse.quote(tx_base64, safe='')
         url_template = WALLET_DEEP_LINKS.get(wallet_app, WALLET_DEEP_LINKS["phantom"])
         deep_link_url = url_template.format(encoded_tx)
@@ -270,13 +302,10 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         if user_profile and user_profile.wallet_address:
             # User already has a wallet - welcome them back
             welcome_message = (
-                f"Welcome back {user.first_name}!\n\n"
-                f"Your wallet: `{user_profile.wallet_address}`\n\n"
-                "Commands:\n"
-                "/wallet - View your wallet\n"
-                "/clear - Reset conversation\n"
-                "/help - Show help\n\n"
-                "don't trust me with your money? use /wallet to connect your own wallet — you sign everything yourself"
+                f"welcome back {user.first_name}.\n\n"
+                f"wallet: `{user_profile.wallet_address}`\n\n"
+                "use /wallet to connect your own wallet if you wanna sign transactions yourself\n\n"
+                "what do you need?"
             )
         else:
             # New user or no wallet - create one via Privy
@@ -295,11 +324,11 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
                     wallet_id=wallet["id"],
                 )
 
-            # Also update session state for agent context
-            # [FIRST_TIME_USER] tag triggers proactive engagement in agent prompt
+            # Let the agent handle onboarding with its personality
+            # [FIRST_TIME_USER] tag triggers the guided experience in agent_prompt.py
             profile_message = f"[FIRST_TIME_USER] {user.username or user.first_name} just joined! Wallet: {wallet['address']}"
 
-            # Log the wallet creation API call
+            agent_response = ""
             with APICallTracker("wallet_registration", str(user.id)) as tracker:
                 tracker.set_request(
                     message=profile_message,
@@ -314,30 +343,22 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
                         "wallet_address": wallet["address"],
                         "wallet_id": wallet["id"],
                         "telegram_username": user.username or user.first_name,
-                        "solana_network": "mainnet",  # Default for new users
+                        "solana_network": "mainnet",
                         "created_at": int(time.time()),
                         "signing_mode": "internal",
                         "external_wallet_address": None,
                         "preferred_wallet_app": "phantom",
                     },
                 ):
-                    pass  # Just need to trigger the state save
+                    if isinstance(event, RunContentEvent):
+                        agent_response += event.content
                 tracker.set_response({"wallet_registered": True})
 
-            welcome_message = (
-                f"Welcome {user.first_name}!\n\n"
-                f"Your Solana wallet has been created:\n"
-                f"`{wallet['address']}`\n\n"
-                "I can help you with:\n"
-                "- Checking wallet balances\n"
-                "- Viewing transaction history\n"
-                "- Token information\n"
-                "- Trading (coming soon)\n\n"
-                "Commands:\n"
-                "/wallet - View your wallet\n"
-                "/clear - Reset conversation\n"
-                "/help - Show help\n\n"
-                "don't trust me with your money? use /wallet to connect your own wallet — you sign everything yourself"
+            # Use agent's response as the welcome message — Raze handles the personality
+            welcome_message = agent_response.strip() if agent_response.strip() else (
+                f"yo. made you a wallet: `{wallet['address']}`\n\n"
+                "you cool with me handling transactions, or wanna sign yourself in phantom/backpack/jupiter?\n\n"
+                "anyway — memecoins or defi, what's your poison?"
             )
             logger.info(f"Created wallet for user {user.id}: {wallet['address']}")
 
@@ -995,7 +1016,7 @@ async def wallet_connect_callback(update: Update, context: ContextTypes.DEFAULT_
     await query.answer()
     await query.edit_message_text(
         "paste your solana wallet address below.\n"
-        "this is the wallet you'll sign transactions with (phantom, backpack, solflare, etc)."
+        "this is the wallet you'll sign transactions with (phantom, backpack, jupiter, solflare, etc)."
     )
     logger.info(f"User {user.id} initiated external wallet connection")
 
@@ -1255,7 +1276,7 @@ async def stream_response(
                 wallet_app = "phantom"
                 if session_state:
                     wallet_app = session_state.get("preferred_wallet_app") or "phantom"
-                tx_clean_text, deep_link_url = extract_sign_tx(accumulated_text, wallet_app)
+                tx_clean_text, deep_link_url = await extract_sign_tx(accumulated_text, wallet_app)
 
                 if deep_link_url:
                     # Render with a tappable sign button
