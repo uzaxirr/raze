@@ -384,30 +384,31 @@ export function TokenSnipingScreen() {
   );
 }
 
-// THINK/ANALYZE: combines odds + sentiment research to give an actual take
-export function PredictionMarketsScreen() {
+// REAL-TIME INTEL: news + sentiment + social in one take
+export function MarketIntelScreen() {
   return (
     <div className="flex flex-col gap-[4px]">
-      <div className="text-[9px] font-mono text-[#9945FF] leading-[12px] opacity-60">checked odds + news + social sentiment...</div>
-      <div className="text-[11px] font-sans text-[#1A1A1A] leading-[15px]">
-        SOL $200 by june? market says 62% yes but sentiment is very bullish (4.2/5). might be undervalued tbh
+      <div className="text-[9px] font-mono text-[#9945FF] leading-[12px] opacity-60">pulled news + social + sentiment...</div>
+      <div className="text-[11px] font-sans text-[#1A1A1A] leading-[15px] font-medium">
+        solana news tldr:
+      </div>
+      <div className="text-[10px] font-sans text-[#1A1A1A] leading-[14px]">
+        <span className="font-bold">big stuff:</span><br/>
+        – <span className="font-bold">drift got rekt</span> – $148M rescue fund after exploit<br/>
+        – <span className="font-bold">doublezero</span> launched edge beta – 28ms faster block views
       </div>
       <div className="bg-[#F5F5F5] rounded-[3px] p-[3px] flex flex-col gap-[2px]">
-        <span className="text-[9px] font-sans font-medium text-[#1A1A1A] leading-[12px]">SOL $200 by June?</span>
-        <div className="flex gap-[4px]">
-          <div className="flex-1 bg-[#EAFFF5] rounded-[2px] flex items-center justify-center py-[2px]">
-            <span className="text-[8px] font-mono font-bold text-[#14A86C] leading-[10px]">Yes 62%</span>
-          </div>
-          <div className="flex-1 bg-[#FFF5F5] rounded-[2px] flex items-center justify-center py-[2px]">
-            <span className="text-[8px] font-mono font-bold text-[#CC0000] leading-[10px]">No 38%</span>
-          </div>
-        </div>
-        <span className="text-[7px] font-sans text-[#AAA] leading-[9px]">vol: $4.2M · sentiment: bullish</span>
+        <Row label="social vibes" value="3.14/5" small />
+        <Row label="volume" value="22M interactions" small />
+        <Row label="direction" value="neutral af" small valueColor="#E65100" />
       </div>
-      <div className="text-[9px] text-[#888] leading-[12px]">you were asking about SOL last week too. want alerts when odds shift? might actually make money for once</div>
+      <div className="text-[9px] text-[#888] leading-[12px]">basically another week of solana being solana. drift exploit is the only real news. want me to dive deeper?</div>
     </div>
   );
 }
+
+// Keep old export name for backwards compat
+export const PredictionMarketsScreen = MarketIntelScreen;
 
 export function SendCryptoScreen() {
   return (

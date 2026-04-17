@@ -14,6 +14,7 @@ import PhoneMockup, {
   SmartAlertsScreen,
   TokenSnipingScreen,
   PredictionMarketsScreen,
+  MarketIntelScreen,
   SendCryptoScreen,
 } from "./PhoneMockup";
 import ImpMascot from "./ImpMascot";
@@ -161,6 +162,18 @@ const slides: SlideData[] = [
     screen: <PredictionMarketsScreen />,
     userMessage: "what's trending on Polymarket?",
     agentCallout: "Combined market odds with news sentiment to give you a real take — not just numbers.",
+  },
+  {
+    headline: "Real-time\nintel",
+    query: '"catch me up on Solana news"',
+    queryColor: "#E85ABF",
+    description: "News, sentiment, social buzz — distilled into one message with an actual take. Skip the timeline doomscroll.",
+    bgColor: "#FFE8F5",
+    ghostPosition: "right",
+    ghost: <ImpMascot expression="smug" className="w-[200px] h-[200px]" />,
+    screen: <MarketIntelScreen />,
+    userMessage: "catch me up on Solana news",
+    agentCallout: "Combined news, sentiment, and social data to give you a take — not just headlines.",
   },
   {
     headline: "Send\ncrypto",
