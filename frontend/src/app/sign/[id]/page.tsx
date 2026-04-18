@@ -143,12 +143,15 @@ export default function SignPage() {
       let sig: string;
       const provider = connectedWallet.provider;
 
-      // Try versioned tx first, fall back to legacy
-      try {
+      // Detect transaction type from first byte
+      // Versioned transactions start with a version prefix byte (0x80 for v0)
+      const isVersioned = txBytes[0] & 0x80;
+
+      if (isVersioned) {
         const vtx = VersionedTransaction.deserialize(txBytes);
         const signed = await provider.signTransaction(vtx);
         sig = await connection.sendRawTransaction(signed.serialize());
-      } catch {
+      } else {
         const ltx = Transaction.from(txBytes);
         const signed = await provider.signTransaction(ltx);
         sig = await connection.sendRawTransaction(signed.serialize());
