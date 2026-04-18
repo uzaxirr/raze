@@ -1,0 +1,1584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raze — Pitch Deck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #000000;
+    --text: #EDEDED;
+    --text-muted: #5A5A6A;
+    --text-soft: #6B6B6B;
+    --accent: #9945FF;
+    --accent-glow: rgba(153, 69, 255, 0.25);
+    --green: #14F195;
+    --yellow: #F5A623;
+    --card-bg: #0A0A0A;
+    --card-border: #1A1A1A;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ===== Stage ===== */
+  .stage {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    perspective: 1500px;
+  }
+
+  /* Scale wrapper — keeps slides at a fixed 1920x1080 design size and scales them */
+  .slide-wrap {
+    width: 1920px;
+    height: 1080px;
+    position: relative;
+    transform-origin: center;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 140px 120px;
+    opacity: 0;
+    transform: translateX(40px) scale(0.99);
+    transition: opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+                transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    pointer-events: none;
+  }
+  .slide.active {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    pointer-events: auto;
+  }
+  .slide.prev {
+    opacity: 0;
+    transform: translateX(-40px) scale(0.99);
+  }
+
+  /* ===== Element animations ===== */
+  .slide.active .reveal {
+    animation: reveal 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .slide.active .reveal:nth-child(2) { animation-delay: 0.04s; }
+  .slide.active .reveal:nth-child(3) { animation-delay: 0.08s; }
+  .slide.active .reveal:nth-child(4) { animation-delay: 0.12s; }
+  .slide.active .reveal:nth-child(5) { animation-delay: 0.16s; }
+  .slide.active .reveal:nth-child(6) { animation-delay: 0.2s; }
+  .slide.active .delay-1 { animation-delay: 0.06s; }
+  .slide.active .delay-2 { animation-delay: 0.12s; }
+  .slide.active .delay-3 { animation-delay: 0.18s; }
+  .slide.active .delay-4 { animation-delay: 0.24s; }
+  .slide.active .delay-5 { animation-delay: 0.3s; }
+
+  @keyframes reveal {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes floatY {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { filter: drop-shadow(0 0 30px var(--accent-glow)); }
+    50% { filter: drop-shadow(0 0 60px var(--accent)); }
+  }
+
+  @keyframes blink {
+    0%, 90%, 100% { transform: scaleY(1); }
+    95% { transform: scaleY(0.1); }
+  }
+
+  @keyframes wave {
+    0%, 100% { transform: rotate(-8deg); }
+    50% { transform: rotate(8deg); }
+  }
+
+  /* ===== Shared ===== */
+  .label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+  .headline {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 72px;
+    font-weight: 700;
+    color: #FFFFFF;
+    line-height: 1.14;
+    letter-spacing: -0.025em;
+  }
+  .body-muted {
+    font-family: 'Inter', sans-serif;
+    font-size: 20px;
+    font-weight: 400;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  /* =============================================
+     SLIDE 1 — TITLE
+     ============================================= */
+  .slide-1 {
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+    padding: 0;
+  }
+  .ghost-logo {
+    width: 120px;
+    height: 120px;
+    animation: floatY 3.5s ease-in-out infinite,
+               pulse-glow 4s ease-in-out infinite;
+  }
+  .ghost-logo .eye {
+    transform-origin: center;
+    animation: blink 5s infinite;
+  }
+  .title-wordmark {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 180px;
+    font-weight: 700;
+    color: #FFFFFF;
+    letter-spacing: -0.045em;
+    line-height: 1;
+  }
+  .title-subtitle {
+    font-family: 'Inter', sans-serif;
+    font-size: 26px;
+    font-weight: 400;
+    color: #888888;
+    letter-spacing: -0.01em;
+  }
+  .title-links {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    color: var(--accent);
+    margin-top: 24px;
+  }
+  .title-links .sep { color: #3A2A5A; }
+
+  /* =============================================
+     SLIDE 2 — PROBLEM
+     ============================================= */
+  .slide-2 { justify-content: space-between; padding: 100px 120px 80px; }
+  .slide-2 .top { display: flex; flex-direction: column; gap: 20px; }
+  .slide-2 .headline { font-size: 58px; }
+  .slide-2 .label-row { margin-bottom: 0; }
+
+  .journey-trigger {
+    font-family: 'Inter', sans-serif;
+    font-size: 20px;
+    color: #888888;
+    line-height: 1.5;
+    max-width: 900px;
+  }
+  .journey-trigger strong { color: var(--green); font-weight: 600; }
+
+  /* 4x2 grid with descriptions */
+  .journey-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-top: 12px;
+  }
+  .journey-step {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 22px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+  .journey-step:hover {
+    border-color: rgba(153, 69, 255, 0.4);
+    transform: translateY(-3px);
+  }
+  .journey-step::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; width: 4px; height: 100%;
+    border-radius: 14px 0 0 14px;
+  }
+  .journey-step .step-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: #3A3550;
+    letter-spacing: 0.05em;
+  }
+  .journey-step .step-tool {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 19px;
+    font-weight: 700;
+  }
+  .journey-step .step-action {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--text-soft);
+    line-height: 1.55;
+  }
+  /* Tool names + left bar in brand colors */
+  .js-dex::before { background: #14F195; }
+  .js-dex .step-tool { color: #14F195; }
+  .js-bird::before { background: #FF6A00; }
+  .js-bird .step-tool { color: #FF6A00; }
+  .js-rug::before { background: #FFD166; }
+  .js-rug .step-tool { color: #FFD166; }
+  .js-sol::before { background: #00D4AA; }
+  .js-sol .step-tool { color: #00D4AA; }
+  .js-bub::before { background: #E85ABF; }
+  .js-bub .step-tool { color: #E85ABF; }
+  .js-twt::before { background: #EDEDED; }
+  .js-twt .step-tool { color: #EDEDED; }
+  .js-jup::before { background: #C4F82A; }
+  .js-jup .step-tool { color: #C4F82A; }
+
+  /* Punchline — full width, red warning feel */
+  .journey-punchline {
+    grid-column: 1 / -1;
+    background: linear-gradient(90deg, #140808, #0A0A0A);
+    border: 1px solid #CC000030;
+    border-radius: 14px;
+    padding: 22px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+  }
+  .journey-punchline::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; width: 4px; height: 100%;
+    background: #CC0000;
+    border-radius: 14px 0 0 14px;
+  }
+  .jp-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: #FF6B6B;
+  }
+  .jp-sub {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    color: #6B4444;
+    margin-top: 3px;
+  }
+  .jp-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    font-weight: 800;
+    color: #CC0000;
+    letter-spacing: -0.02em;
+  }
+
+  /* Big centered comparison */
+  .journey-total {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 56px;
+    margin-top: 20px;
+    padding: 24px 0 0;
+    border-top: 1px solid #1A1A1A;
+  }
+  .jt-block { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .journey-total .jt-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 72px;
+    font-weight: 800;
+    color: #CC0000;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+  .journey-total .jt-vs {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 32px;
+    color: #3A3A4A;
+    align-self: center;
+  }
+  .journey-total .jt-raze {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 72px;
+    font-weight: 800;
+    color: var(--green);
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+  .journey-total .jt-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    color: #6B6B6B;
+  }
+
+  .slide-2 .body-muted { max-width: 900px; }
+
+  /* =============================================
+     SLIDE 3 — SOLUTION
+     ============================================= */
+  .slide-3 {
+    flex-direction: row;
+    align-items: center;
+    gap: 80px;
+  }
+  .slide-3 .left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  .slide-3 .headline { font-size: 64px; }
+  .slide-3 .description {
+    font-family: 'Inter', sans-serif;
+    font-size: 18px;
+    font-weight: 400;
+    color: #777777;
+    line-height: 1.55;
+    max-width: 560px;
+  }
+  .query-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    color: var(--green);
+  }
+  .query-list > div {
+    opacity: 0;
+  }
+  .slide-3.active .query-list > div {
+    animation: reveal 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .slide-3.active .query-list > div:nth-child(1) { animation-delay: 0.15s; }
+  .slide-3.active .query-list > div:nth-child(2) { animation-delay: 0.22s; }
+  .slide-3.active .query-list > div:nth-child(3) { animation-delay: 0.29s; }
+  .slide-3.active .query-list > div:nth-child(4) { animation-delay: 0.36s; }
+  .slide-3.active .query-list > div:nth-child(5) { animation-delay: 0.43s; }
+
+  .phone-wrap { flex-shrink: 0; }
+  .phone {
+    width: 360px;
+    height: 740px;
+    background: #0D0D0D;
+    border-radius: 56px;
+    border: 3px solid #222222;
+    padding: 10px;
+    position: relative;
+    box-shadow: 0 0 100px rgba(153, 69, 255, 0.35);
+  }
+  .phone-screen {
+    width: 100%;
+    height: 100%;
+    border-radius: 46px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    background: #000;
+  }
+  .phone-notch {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 26px;
+    background: #000;
+    border-radius: 14px;
+    z-index: 10;
+  }
+
+  /* ----- Telegram iOS theme ----- */
+  .tg-statusbar {
+    background: #517DA2;
+    padding: 14px 20px 6px 22px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    height: 52px;
+  }
+  .tg-time {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: #FFFFFF;
+  }
+  .tg-signal {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .tg-header {
+    background: #517DA2;
+    padding: 4px 12px 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .tg-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 15px;
+    background: #F0EDFF;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .tg-name-col { display: flex; flex-direction: column; }
+  .tg-name {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: #FFFFFF;
+    line-height: 1.15;
+  }
+  .tg-status {
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.65);
+    line-height: 1.15;
+  }
+  .tg-chat {
+    flex: 1;
+    background: #C8D9E6;
+    padding: 10px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+  }
+  .tg-chat::-webkit-scrollbar { display: none; }
+
+  .tg-msg {
+    display: flex;
+    animation: tg-pop 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .tg-msg.user { justify-content: flex-end; }
+  .tg-msg.bot { justify-content: flex-start; }
+  .tg-bubble-user {
+    background: #EEFFDE;
+    border-radius: 11px 3px 11px 11px;
+    padding: 7px 11px;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    line-height: 1.45;
+    color: #1A1A1A;
+    max-width: 210px;
+  }
+  .tg-bubble-bot {
+    background: #FFFFFF;
+    border-radius: 3px 11px 11px 11px;
+    padding: 7px 11px;
+    font-family: 'Inter', sans-serif;
+    font-size: 10.5px;
+    line-height: 1.5;
+    color: #1A1A1A;
+    max-width: 220px;
+    white-space: pre-line;
+  }
+
+  @keyframes tg-pop {
+    from { opacity: 0; transform: translateY(6px) scale(0.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .tg-input-bar {
+    background: #EFEFE4;
+    padding: 7px 9px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .tg-input {
+    flex: 1;
+    background: #FFFFFF;
+    border-radius: 14px;
+    padding: 6px 11px;
+    min-height: 28px;
+    display: flex;
+    align-items: center;
+    font-family: 'Inter', sans-serif;
+    font-size: 10.5px;
+    color: #1A1A1A;
+    line-height: 1.3;
+  }
+  .tg-input-placeholder { color: #9B9B9B; }
+  .tg-cursor {
+    display: inline-block;
+    width: 1.5px;
+    height: 12px;
+    background: #9945FF;
+    margin-left: 1px;
+    vertical-align: middle;
+    animation: cursor-blink 1s step-end infinite;
+  }
+  @keyframes cursor-blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+  }
+  .tg-send {
+    width: 26px;
+    height: 26px;
+    border-radius: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: rgba(81, 125, 162, 0.3);
+    transition: background 0.2s, transform 0.2s;
+  }
+  .tg-send.active {
+    background: #517DA2;
+    transform: scale(1.08);
+  }
+  .tg-home-indicator {
+    background: #EFEFE4;
+    display: flex;
+    justify-content: center;
+    padding: 6px 0 8px 0;
+  }
+  .tg-home-bar {
+    width: 52px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(0, 0, 0, 0.25);
+  }
+
+  /* =============================================
+     SLIDE 4 — INTELLIGENCE
+     ============================================= */
+  .slide-4 { justify-content: space-between; }
+  .slide-4 .top { display: flex; flex-direction: column; gap: 48px; }
+  .slide-4 .label-row { margin-bottom: 8px; }
+  .stat-cards {
+    display: flex;
+    gap: 24px;
+    margin-top: 40px;
+  }
+  .stat-card {
+    flex: 1;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 40px 36px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+  .stat-card:hover {
+    border-color: rgba(153, 69, 255, 0.4);
+    transform: translateY(-4px);
+  }
+  .stat-number {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 72px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .stat-p { color: var(--accent); }
+  .stat-g { color: var(--green); }
+  .stat-y { color: var(--yellow); }
+  .stat-card h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: #FFFFFF;
+    margin-top: 12px;
+  }
+  .stat-card p {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--text-soft);
+    line-height: 1.6;
+  }
+  .slide-4 .body-muted { max-width: 800px; }
+
+  /* =============================================
+     SLIDE 5 — BREADTH
+     ============================================= */
+  .slide-5 { justify-content: space-between; }
+  .slide-5 .top { display: flex; flex-direction: column; gap: 48px; }
+  .slide-5 .label-row { margin-bottom: 8px; }
+  .capability-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    max-width: 1400px;
+    margin-top: 40px;
+  }
+  .pill {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 14px 22px;
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: #DADADA;
+    transition: all 0.3s;
+    opacity: 0;
+  }
+  .slide-5.active .pill {
+    animation: pill-in 0.25s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+  .slide-5.active .pill:nth-child(1)  { animation-delay: 0.12s; }
+  .slide-5.active .pill:nth-child(2)  { animation-delay: 0.14s; }
+  .slide-5.active .pill:nth-child(3)  { animation-delay: 0.16s; }
+  .slide-5.active .pill:nth-child(4)  { animation-delay: 0.18s; }
+  .slide-5.active .pill:nth-child(5)  { animation-delay: 0.20s; }
+  .slide-5.active .pill:nth-child(6)  { animation-delay: 0.22s; }
+  .slide-5.active .pill:nth-child(7)  { animation-delay: 0.24s; }
+  .slide-5.active .pill:nth-child(8)  { animation-delay: 0.26s; }
+  .slide-5.active .pill:nth-child(9)  { animation-delay: 0.28s; }
+  .slide-5.active .pill:nth-child(10) { animation-delay: 0.30s; }
+  .slide-5.active .pill:nth-child(11) { animation-delay: 0.32s; }
+  .slide-5.active .pill:nth-child(12) { animation-delay: 0.34s; }
+  .slide-5.active .pill:nth-child(13) { animation-delay: 0.36s; }
+  .slide-5.active .pill:nth-child(14) { animation-delay: 0.38s; }
+  .slide-5.active .pill:nth-child(15) { animation-delay: 0.40s; }
+  .slide-5.active .pill:nth-child(16) { animation-delay: 0.42s; }
+
+  @keyframes pill-in {
+    from { opacity: 0; transform: translateY(12px) scale(0.92); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .pill:hover {
+    border-color: var(--accent);
+    color: #FFFFFF;
+    transform: translateY(-2px);
+  }
+
+  .callout {
+    background: rgba(153, 69, 255, 0.08);
+    border: 1px solid rgba(153, 69, 255, 0.25);
+    border-radius: 12px;
+    padding: 24px 30px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    max-width: 1100px;
+    margin-top: 48px;
+  }
+  .callout-arrow {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent);
+    font-size: 24px;
+  }
+  .callout p {
+    font-family: 'Inter', sans-serif;
+    font-size: 18px;
+    color: #C0C0D0;
+    line-height: 1.55;
+  }
+
+  /* =============================================
+     SLIDE 4 — WHY NOW (reuses stat-card styles)
+     ============================================= */
+  .slide-why-now { justify-content: space-between; }
+  .slide-why-now .top { display: flex; flex-direction: column; gap: 48px; }
+
+  /* =============================================
+     SLIDE 7 — BUSINESS MODEL (reuses stat-card styles)
+     ============================================= */
+  .slide-biz { justify-content: space-between; }
+  .slide-biz .top { display: flex; flex-direction: column; gap: 48px; }
+
+  /* =============================================
+     SLIDE 8 — VISION
+     ============================================= */
+  .slide-vision { justify-content: flex-start; }
+  .slide-vision .top { display: flex; flex-direction: column; gap: 20px; }
+
+  /* =============================================
+     SLIDE 9 — CLOSE
+     ============================================= */
+  .slide-6 {
+    align-items: center;
+    justify-content: center;
+    gap: 36px;
+    padding: 0;
+  }
+  .slide-6 .ghost-wave {
+    width: 140px;
+    height: 140px;
+    filter: drop-shadow(0 0 40px var(--accent-glow));
+  }
+  .slide-6 .ghost-wave .arm {
+    transform-origin: 70px 35px;
+    animation: wave 1.5s ease-in-out infinite;
+  }
+  .slide-6 .ghost-wave .arm-right {
+    transform-origin: 50px 35px;
+    animation: wave 1.5s ease-in-out infinite reverse;
+  }
+  .slide-6 h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 120px;
+    font-weight: 700;
+    color: #FFFFFF;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+  .slide-6 .sub {
+    font-family: 'Inter', sans-serif;
+    font-size: 24px;
+    color: #888888;
+  }
+  .close-links {
+    display: flex;
+    gap: 48px;
+    align-items: center;
+    margin-top: 24px;
+  }
+  .close-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .close-link .val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: var(--accent);
+  }
+  .close-link .lbl {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    color: #555555;
+  }
+  .close-link-sep {
+    width: 1px;
+    height: 36px;
+    background: #2A2A2A;
+    margin-top: 2px;
+  }
+  .credit {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: #3A3A4A;
+    margin-top: 40px;
+  }
+
+  /* =============================================
+     UI CHROME (progress, counter, hint)
+     ============================================= */
+  .progress {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), #C870FF);
+    transition: width 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    z-index: 100;
+    box-shadow: 0 0 12px rgba(153, 69, 255, 0.5);
+  }
+  .counter {
+    position: fixed;
+    bottom: 24px;
+    right: 32px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: #555555;
+    z-index: 100;
+    letter-spacing: 0.05em;
+  }
+  .counter .current { color: var(--accent); }
+  .hint {
+    position: fixed;
+    bottom: 24px;
+    left: 32px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #333333;
+    z-index: 100;
+    display: flex;
+    gap: 16px;
+    letter-spacing: 0.05em;
+    transition: opacity 0.3s;
+  }
+  .hint kbd {
+    background: #1A1A1A;
+    border: 1px solid #2A2A2A;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-family: inherit;
+    font-size: 10px;
+    color: #888;
+  }
+  .hint.fade { opacity: 0; }
+
+  /* Nav arrows (click zones) */
+  .nav-zone {
+    position: fixed;
+    top: 0;
+    width: 20%;
+    height: 100%;
+    z-index: 50;
+    cursor: pointer;
+  }
+  .nav-zone.prev { left: 0; }
+  .nav-zone.next { right: 0; }
+
+  /* =============================================
+     MOBILE RESPONSIVE
+     ============================================= */
+  @media (max-width: 1024px) {
+    html, body {
+      width: 100% !important;
+      height: auto !important;
+      overflow-x: hidden !important;
+      overflow-y: auto !important;
+    }
+    .slide-wrap {
+      width: 100% !important;
+      height: auto !important;
+      transform: none !important;
+    }
+    .stage {
+      width: 100%;
+      height: auto;
+      min-height: 100vh;
+      align-items: flex-start;
+    }
+    .slide {
+      position: relative !important;
+      inset: auto !important;
+      display: none !important;
+      padding: 60px 24px 80px;
+      min-height: auto;
+      width: 100%;
+    }
+    .slide.active {
+      display: flex !important;
+      opacity: 1;
+      transform: none;
+    }
+    .slide.prev { display: none !important; }
+
+    /* Typography scaling */
+    .headline { font-size: 36px !important; line-height: 1.2 !important; }
+    .title-wordmark { font-size: 80px !important; }
+    .title-subtitle { font-size: 18px !important; }
+    .label { font-size: 12px !important; }
+    .body-muted { font-size: 16px !important; }
+
+    /* Slide 1 */
+    .slide-1 { gap: 20px; padding: 60px 32px !important; justify-content: center; min-height: 100vh; }
+    .ghost-logo { width: 100px !important; height: 100px !important; }
+    .title-links { flex-direction: column; gap: 8px; align-items: center; margin-top: 16px; }
+    .title-links .sep { display: none; }
+
+    /* Slide 2 */
+    .slide-2 { padding: 48px 24px !important; gap: 24px; }
+    .slide-2 .top { gap: 16px; }
+    .journey-trigger { font-size: 16px !important; }
+    .journey-grid {
+      grid-template-columns: 1fr 1fr !important;
+      gap: 10px;
+    }
+    .journey-step { padding: 16px 14px; }
+    .journey-step .step-tool { font-size: 15px !important; }
+    .journey-step .step-action { font-size: 11px !important; }
+    .journey-step .step-num { font-size: 10px !important; }
+    .journey-punchline {
+      grid-column: 1 / -1;
+      padding: 16px 20px;
+    }
+    .jp-text { font-size: 17px !important; }
+    .jp-sub { font-size: 12px !important; }
+    .jp-time { font-size: 22px !important; }
+    .journey-total { gap: 28px; padding-top: 16px; }
+    .journey-total .jt-time,
+    .journey-total .jt-raze { font-size: 48px !important; }
+    .journey-total .jt-vs { font-size: 22px !important; }
+
+    /* Slide 3 */
+    .slide-3 {
+      flex-direction: column !important;
+      gap: 32px !important;
+      padding: 48px 24px !important;
+    }
+    .slide-3 .left { gap: 16px; }
+    .slide-3 .headline { font-size: 36px !important; }
+    .slide-3 .description { font-size: 15px !important; max-width: 100% !important; }
+    .query-list { font-size: 13px !important; gap: 8px; }
+    .phone-wrap { width: 100%; display: flex; justify-content: center; }
+    .phone { width: 280px !important; height: 560px !important; border-radius: 40px !important; }
+    .phone-screen { border-radius: 34px !important; }
+    .phone-notch { width: 80px !important; height: 20px !important; border-radius: 10px !important; }
+
+    /* Slide 4 */
+    .slide-4 { padding: 48px 24px !important; }
+    .slide-4 .top { gap: 24px; }
+    .stat-cards { flex-direction: column !important; gap: 16px; margin-top: 24px; }
+    .stat-card { padding: 24px 20px; }
+    .stat-number { font-size: 48px !important; }
+    .stat-card h3 { font-size: 18px !important; }
+    .stat-card p { font-size: 13px !important; }
+
+    /* Slide 5 */
+    .slide-5 { padding: 48px 24px !important; }
+    .capability-pills { gap: 8px; margin-top: 24px; }
+    .pill { padding: 10px 14px; font-size: 13px !important; }
+    .callout { flex-direction: column; gap: 10px; padding: 16px 20px; margin-top: 24px; }
+    .callout p { font-size: 14px !important; }
+
+    /* Why Now */
+    .slide-why-now { padding: 48px 24px !important; }
+    .slide-why-now .top { gap: 24px; }
+
+    /* Business Model */
+    .slide-biz { padding: 48px 24px !important; }
+    .slide-biz .top { gap: 24px; }
+
+    /* Vision */
+    .slide-vision { padding: 48px 24px !important; }
+    .slide-vision .top { gap: 16px; }
+    .slide-vision .stat-card { flex-direction: column !important; gap: 12px !important; padding: 20px !important; }
+    .slide-vision .stat-card > div:first-child { min-width: auto !important; }
+
+    /* Slide 9 — Close */
+    .slide-6 { gap: 24px; padding: 60px 32px !important; }
+    .slide-6 h1 { font-size: 48px !important; }
+    .slide-6 .sub { font-size: 20px !important; }
+    .close-links { flex-direction: column; gap: 20px; margin-top: 16px; }
+    .close-link-sep { width: 36px; height: 1px; }
+
+    /* Chrome */
+    .hint { display: none; }
+    .counter { font-size: 11px; bottom: 16px; right: 20px; }
+    .nav-zone { width: 30%; }
+  }
+
+  /* Small phones */
+  @media (max-width: 480px) {
+    .slide { padding: 40px 20px; }
+    .headline { font-size: 28px !important; }
+    .title-wordmark { font-size: 56px !important; }
+    .journey-grid { grid-template-columns: 1fr !important; }
+    .journey-total .jt-time,
+    .journey-total .jt-raze { font-size: 36px !important; }
+    .stat-number { font-size: 36px !important; }
+    .slide-6 h1 { font-size: 36px !important; }
+    .phone { width: 240px !important; height: 480px !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+  <div class="slide-wrap" id="slideWrap">
+
+    <!-- ============ SLIDE 1 — TITLE ============ -->
+    <div class="slide slide-1 active" data-index="0">
+      <img class="ghost-logo reveal" src="/pitch/imp-waving.png" alt="Raze" style="width:160px;height:160px;object-fit:contain;animation:floatY 3.5s ease-in-out infinite, pulse-glow 4s ease-in-out infinite;">
+      <div class="title-wordmark reveal">raze</div>
+      <div class="title-subtitle reveal">Everything Solana in one chat</div>
+      <div class="title-links reveal">
+        <span>raze.fun</span>
+        <span class="sep">•</span>
+        <span>@razeaii_bot</span>
+      </div>
+    </div>
+
+    <!-- ============ SLIDE 2 — PROBLEM ============ -->
+    <div class="slide slide-2" data-index="1">
+      <div class="top">
+        <div class="label-row reveal"><div class="label">The Problem</div></div>
+        <div class="headline reveal">Someone shills you a token.<br>Here's what happens next.</div>
+        <div class="journey-trigger reveal">A friend drops <strong>"$WIF is about to explode 🚀"</strong> in a group chat. To figure out if it's safe, you open...</div>
+
+        <div class="journey-grid">
+          <div class="journey-step js-dex reveal delay-1">
+            <div class="step-num">STEP 01</div>
+            <div class="step-tool">DexScreener</div>
+            <div class="step-action">Find the contract address. Check price, volume, market cap. See if anyone's actually trading it.</div>
+          </div>
+          <div class="journey-step js-bird reveal delay-2">
+            <div class="step-num">STEP 02</div>
+            <div class="step-tool">Birdeye</div>
+            <div class="step-action">Cross-check the liquidity depth, FDV, and 24h transaction count. Compare with DexScreener data.</div>
+          </div>
+          <div class="journey-step js-rug reveal delay-3">
+            <div class="step-num">STEP 03</div>
+            <div class="step-tool">RugCheck</div>
+            <div class="step-action">Paste the contract. Is mint authority revoked? LP locked? What % do insiders hold?</div>
+          </div>
+          <div class="journey-step js-sol reveal delay-4">
+            <div class="step-num">STEP 04</div>
+            <div class="step-tool">Solscan</div>
+            <div class="step-action">Check top holders distribution. How many transfers? Who created it?</div>
+          </div>
+          <div class="journey-step js-bub reveal delay-1">
+            <div class="step-num">STEP 05</div>
+            <div class="step-tool">BubbleMaps</div>
+            <div class="step-action">Look for wallet clusters. Are coordinated wallets buying in the same block? Bundle detection.</div>
+          </div>
+          <div class="journey-step js-twt reveal delay-2">
+            <div class="step-num">STEP 06</div>
+            <div class="step-tool">Twitter / X</div>
+            <div class="step-action">Search the ticker. Is this real hype or a bot farm? Any credible KOLs talking about it?</div>
+          </div>
+          <div class="journey-step js-jup reveal delay-3">
+            <div class="step-num">STEP 07</div>
+            <div class="step-tool">Jupiter</div>
+            <div class="step-action">Finally ready to swap... but after all that, you're still not 100% sure it's safe.</div>
+          </div>
+          <div class="journey-punchline reveal delay-4">
+            <div>
+              <div class="jp-text">Still not sure.</div>
+              <div class="jp-sub">7 tools. None of them talked to each other. You're the integration layer.</div>
+            </div>
+            <div class="jp-time">~10 min</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="journey-total reveal">
+        <div class="jt-block"><div class="jt-time">10:00</div><div class="jt-label">manually</div></div>
+        <div class="jt-vs">vs</div>
+        <div class="jt-block"><div class="jt-raze">0:04</div><div class="jt-label">with Raze</div></div>
+      </div>
+    </div>
+
+    <!-- ============ SLIDE 3 — SOLUTION ============ -->
+    <div class="slide slide-3" data-index="2">
+      <div class="left">
+        <div class="label reveal">The Solution</div>
+        <div class="headline reveal">You ask for it,<br>Raze does it</div>
+        <div class="description reveal">Raze is an AI agent that lives inside Telegram. Ask it anything about Solana — it researches, trades, and watches wallets for you. No app, no dashboard, no learning curve. One chat replaces 7 tabs.</div>
+        <div class="query-list">
+          <div>"decode this transaction"</div>
+          <div>"who holds the most BONK?"</div>
+          <div>"why is this token dumping?"</div>
+          <div>"watch this wallet and ping me when it moves"</div>
+          <div>"what's the sentiment on JUP?"</div>
+        </div>
+      </div>
+      <div class="phone-wrap reveal">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="phone-notch"></div>
+
+            <!-- Telegram status + header (iOS blue bar) -->
+            <div class="tg-statusbar">
+              <span class="tg-time">9:41</span>
+              <div class="tg-signal">
+                <svg width="14" height="10" viewBox="0 0 14 10" fill="none"><rect x="0" y="7" width="2.5" height="3" rx="0.5" fill="#FFF"/><rect x="3.5" y="5" width="2.5" height="5" rx="0.5" fill="#FFF"/><rect x="7" y="2.5" width="2.5" height="7.5" rx="0.5" fill="#FFF"/><rect x="10.5" y="0" width="2.5" height="10" rx="0.5" fill="#FFF"/></svg>
+                <svg width="22" height="10" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="20" height="11" rx="2.5" stroke="rgba(255,255,255,0.5)" stroke-width="1"/><rect x="2" y="2" width="14" height="8" rx="1.5" fill="#FFF"/></svg>
+              </div>
+            </div>
+            <div class="tg-header">
+              <div class="tg-avatar"><img src="/pitch/imp-waving.png" alt="Raze" style="width:100%;height:100%;object-fit:contain;"></div>
+              <div class="tg-name-col">
+                <div class="tg-name">Raze</div>
+                <div class="tg-status">online</div>
+              </div>
+            </div>
+
+            <!-- Chat area — static messages for PDF, replaced by JS animation in live mode -->
+            <div class="tg-chat" id="tgChat">
+              <div class="tg-msg user"><div class="tg-bubble-user">is $WIF safe?</div></div>
+              <div class="tg-msg bot"><div class="tg-bubble-bot">mint revoked ✅ LP burned ✅
+no bundles ✅ top 10 hold 6%
+
+price $0.2100 · mcap $209M
+sentiment: very bullish
+
+score 8/8 — clean af</div></div>
+              <div class="tg-msg user"><div class="tg-bubble-user">ape 5 sol</div></div>
+              <div class="tg-msg bot"><div class="tg-bubble-bot">done. mass bag acquired 🫡</div></div>
+            </div>
+
+            <!-- Input bar (input text injected by JS) -->
+            <div class="tg-input-bar">
+              <div class="tg-input" id="tgInput"><span class="tg-input-placeholder">Message</span></div>
+              <div class="tg-send" id="tgSend">
+                <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M1 6 L10 1 L7 6 L10 11Z" fill="#FFF"/></svg>
+              </div>
+            </div>
+            <div class="tg-home-indicator"><div class="tg-home-bar"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ SLIDE 4 — WHY NOW ============ -->
+    <div class="slide slide-why-now" data-index="3">
+      <div class="top">
+        <div class="label-row reveal"><div class="label">Why Now</div></div>
+        <div class="headline reveal">The timing is everything</div>
+      </div>
+      <div class="stat-cards" style="margin-top:40px;">
+        <div class="stat-card reveal">
+          <div class="stat-number stat-p" style="font-size:48px;">🧠</div>
+          <h3>AI can finally reason about crypto</h3>
+          <p>Models can now chain 5-7 tool calls, cross-reference security data, and form opinions. Two years ago they couldn't reliably call one tool.</p>
+        </div>
+        <div class="stat-card reveal">
+          <div class="stat-number stat-g" style="font-size:48px;">📊</div>
+          <h3>Solana is mature. The UX isn't.</h3>
+          <p>2M+ daily wallets. $2B+ daily DEX volume. But you still need 7 tabs to make one informed trade. Infrastructure is ready — the interface layer is missing.</p>
+        </div>
+        <div class="stat-card reveal">
+          <div class="stat-number stat-y" style="font-size:48px;">🔐</div>
+          <h3>Controlled agents solve trust</h3>
+          <p>People don't trust bots with their money — and they shouldn't. Raze offers policy-bounded agents: spending limits, manual signing, transaction approval. The agent is powerful, but the user holds the leash.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ SLIDE 5 — INTELLIGENCE ============ -->
+    <div class="slide slide-4" data-index="4">
+      <div class="top">
+        <div class="label-row reveal"><div class="label">Not a bot. An agent.</div></div>
+        <div class="headline reveal">Raze thinks before it speaks</div>
+        <div class="stat-cards">
+          <div class="stat-card reveal">
+            <div class="stat-number stat-p">7→1</div>
+            <h3>Tools collapsed into one chat</h3>
+            <p>Token research, security scanning, swap execution, sentiment analysis, wallet tracking, domain resolution, and on-chain alerts — all through a single Telegram message.</p>
+          </div>
+          <div class="stat-card reveal">
+            <div class="stat-number stat-g">∞</div>
+            <h3>Persistent memory</h3>
+            <p>Remembers your trades, risk appetite, favorite tokens, past mistakes. Uses context naturally — never asks the same thing twice.</p>
+          </div>
+          <div class="stat-card reveal">
+            <div class="stat-number stat-y">24/7</div>
+            <h3>Always watching</h3>
+            <p>Price alerts, wallet watchers, authority change detection. Set it once — Raze pings you at 3 AM when something moves.</p>
+          </div>
+        </div>
+      </div>
+      <div class="body-muted reveal">Cross-references security, momentum, holder distribution, and social sentiment before giving you<br>an opinion. Not just data — an actual take.</div>
+    </div>
+
+    <!-- ============ SLIDE 6 — BREADTH ============ -->
+    <div class="slide slide-5" data-index="5">
+      <div class="top">
+        <div class="label-row reveal"><div class="label">What Raze does today</div></div>
+        <div class="headline reveal">Everything Solana in one chat</div>
+        <div class="capability-pills">
+          <div class="pill">Token Swaps</div>
+          <div class="pill">Token Research</div>
+          <div class="pill">Security Scanning</div>
+          <div class="pill">Wallet Analytics</div>
+          <div class="pill">Tx Decoding</div>
+          <div class="pill">Whale Tracking</div>
+          <div class="pill">Price Alerts</div>
+          <div class="pill">Self-Custody Signing</div>
+          <div class="pill">Token Sniping</div>
+          <div class="pill">Sentiment Analysis</div>
+          <div class="pill">Bundle Detection</div>
+          <div class="pill">Copy Trading</div>
+          <div class="pill">PnL Tracking</div>
+          <div class="pill">Send Crypto</div>
+          <div class="pill">.sol Domains</div>
+          <div class="pill">BYOMCP (Custom Tools)</div>
+        </div>
+      </div>
+      <div class="callout reveal">
+        <div class="callout-arrow">↑</div>
+        <p>Any time someone builds a new protocol on Solana, Raze can talk to it. The interface never needs to change.</p>
+      </div>
+    </div>
+
+    <!-- ============ SLIDE 7 — BUSINESS MODEL ============ -->
+    <div class="slide slide-biz" data-index="6">
+      <div class="top">
+        <div class="label-row reveal"><div class="label">Business Model</div></div>
+        <div class="headline reveal">How Raze makes money</div>
+      </div>
+      <div class="stat-cards" style="margin-top:40px;">
+        <div class="stat-card reveal">
+          <div class="stat-number stat-g">0.5–1%</div>
+          <h3>Swap Fees</h3>
+          <p>Every Jupiter swap through Raze takes a small fee. The proven model — Bonkbot, Trojan, Maestro all do this. Zero friction, users barely notice.</p>
+        </div>
+        <div class="stat-card reveal">
+          <div class="stat-number stat-p">Pro</div>
+          <h3>Premium Tier</h3>
+          <p>$15–20/mo in SOL or USDC. Unlimited swaps, auto priority fees, advanced sniper, more alerts, more watchlist slots, faster execution.</p>
+        </div>
+        <div class="stat-card reveal">
+          <div class="stat-number stat-y">🤖</div>
+          <h3>Controlled Agents</h3>
+          <p>Premium feature: define spending policies, auto-buy rules, risk limits. The agent executes within your bounds. Automation you can trust — and pay for.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ SLIDE 8 — VISION ============ -->
+    <div class="slide slide-vision" data-index="7">
+      <div class="top">
+        <div class="label-row reveal"><div class="label">Vision</div></div>
+        <div class="headline reveal">Where this goes</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:20px;margin-top:40px;max-width:1400px;">
+        <div class="stat-card reveal" style="flex-direction:row;align-items:center;gap:32px;padding:28px 36px;">
+          <div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:var(--accent);white-space:nowrap;min-width:120px;">Phase 1</div>
+          <div>
+            <h3 style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;color:#FFF;margin-bottom:4px;">Solana's smartest agent</h3>
+            <p style="font-family:'Inter',sans-serif;font-size:15px;color:var(--text-soft);line-height:1.5;">Research, trade, alert — all in one Telegram chat. Where we are today.</p>
+          </div>
+        </div>
+        <div class="stat-card reveal" style="flex-direction:row;align-items:center;gap:32px;padding:28px 36px;">
+          <div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:var(--green);white-space:nowrap;min-width:120px;">Phase 2</div>
+          <div>
+            <h3 style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;color:#FFF;margin-bottom:4px;">Multi-chain</h3>
+            <p style="font-family:'Inter',sans-serif;font-size:15px;color:var(--text-soft);line-height:1.5;">EVM, Base, Sui — same chat, any chain. One agent across all of crypto.</p>
+          </div>
+        </div>
+        <div class="stat-card reveal" style="flex-direction:row;align-items:center;gap:32px;padding:28px 36px;">
+          <div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:var(--yellow);white-space:nowrap;min-width:120px;">Phase 3</div>
+          <div>
+            <h3 style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;color:#FFF;margin-bottom:4px;">Autonomous portfolio management</h3>
+            <p style="font-family:'Inter',sans-serif;font-size:15px;color:var(--text-soft);line-height:1.5;">Raze manages your portfolio with user-set rules. Executes without asking, within your policy bounds.</p>
+          </div>
+        </div>
+        <div class="stat-card reveal" style="flex-direction:row;align-items:center;gap:32px;padding:28px 36px;">
+          <div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:#E85ABF;white-space:nowrap;min-width:120px;">Phase 4</div>
+          <div>
+            <h3 style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;color:#FFF;margin-bottom:4px;">External integrations + Gamification</h3>
+            <p style="font-family:'Inter',sans-serif;font-size:15px;color:var(--text-soft);line-height:1.5;">Connect any third-party app via MCP. Personal assistant that gamifies trading — rewards for good decisions, penalties for bad ones. Your crypto desk in one conversation.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ SLIDE 9 — CLOSE ============ -->
+    <div class="slide slide-6" data-index="8">
+      <img class="reveal" src="/pitch/imp-celebrating.png" alt="Raze" style="width:180px;height:180px;object-fit:contain;filter:drop-shadow(0 0 40px rgba(153,69,255,0.4));">
+      <h1 class="reveal">Try it right now</h1>
+      <div class="sub reveal">raze.fun</div>
+      <div class="close-links reveal">
+        <div class="close-link">
+          <div class="val">raze.fun</div>
+          <div class="lbl">Website</div>
+        </div>
+        <div class="close-link-sep"></div>
+        <div class="close-link">
+          <div class="val">@razeaii_bot</div>
+          <div class="lbl">Telegram Bot</div>
+        </div>
+        <div class="close-link-sep"></div>
+        <div class="close-link">
+          <div class="val">@uzaxirr</div>
+          <div class="lbl">Twitter / X</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Nav zones (click left/right to navigate) -->
+<div class="nav-zone prev" id="navPrev"></div>
+<div class="nav-zone next" id="navNext"></div>
+
+<!-- UI Chrome -->
+<div class="progress" id="progress"></div>
+<div class="counter" id="counter"><span class="current">01</span> / 09</div>
+<div class="hint" id="hint">
+  <span><kbd>←</kbd> <kbd>→</kbd> navigate</span>
+  <span><kbd>F</kbd> fullscreen</span>
+  <span><kbd>ESC</kbd> exit</span>
+</div>
+
+<script>
+  // =============================================
+  // Interactive phone — cycles through demo prompts
+  // =============================================
+  const demos = [
+    { user: "am i winning or losing", bot: "📈 you're UP $847 this month\n\nbest: BONK +$420\nworst: WIF -$89\n\nnot bad ser 🫡" },
+    { user: "where should i park my sol", bot: "best yields rn:\n\n🥇 Jito — 8.2% APY\n🥈 Marinade — 7.8%\n\nwant in?" },
+    { user: "buy sol if it dips to 170", bot: "📝 limit order set\n\n~2.94 SOL @ $170\nusing 500 USDC\n\ni'll snipe that dip 🎯" },
+    { user: "who's printing today", bot: "🏆 top dawgs (24h):\n\n1. 7xK2...mP9q +$42K\n2. 3mN8...kL2w +$28K\n\nwant the alpha?" },
+    { user: "what's toly.sol holding", bot: "587 tokens 💀\n\nBONK: 397.5M\nWEN: 802k\nUSDC: $559\n\nco-founder vibes" },
+    { user: "what should i ape into", bot: "based on your history...\n\n👀 PENGU down 15%\nAI16Z pumping like WIF did\n\nwant alpha on either?" },
+    { user: "when did i buy WIF", bot: "jan 8, 2024 @ $0.15\nnow worth $3,120\n\nthat's a 17x 🎯\nalmost sold at 2x lmao" },
+    { user: "how much in fees total", bot: "this month: ~$4.30\nall time: ~$166\n\npretty efficient ser" },
+    { user: "what's ct saying about JUP", bot: "📣 Bullish 🟢\nmentions +340% (24h)\ntop voices accumulating\n\nperps launch hype" },
+    { user: "stake 5 sol on jito", bot: "✅ staked!\n\n5 SOL → 4.89 JitoSOL\n~0.41 SOL/year\n\npassive income 💰" },
+    { user: "what was $TRUMP ATH", bot: "$46.12 (jan 19)\nnow $5.45 — down 88% 💀\n\nclassic celeb pump & dump" },
+    { user: "show trending tokens", bot: "🔥 1. $BONK +127%\n2. $WIF +84%\n3. $POPCAT +56%\n\nwant me to analyze any?" },
+  ];
+
+  const tgChat = document.getElementById('tgChat');
+  const tgInput = document.getElementById('tgInput');
+  const tgSend = document.getElementById('tgSend');
+  let convoIdx = 0;
+  let msgList = []; // [{type: 'user'|'bot', text}]
+  let phonePhase = 'idle'; // 'typing' | 'sending' | 'botReply' | 'pause'
+  let typingProgress = 0;
+  let phoneTimer = null;
+  let phoneActive = false;
+
+  function renderChat() {
+    tgChat.innerHTML = msgList.map(m =>
+      m.type === 'user'
+        ? `<div class="tg-msg user"><div class="tg-bubble-user">${escapeHtml(m.text)}</div></div>`
+        : `<div class="tg-msg bot"><div class="tg-bubble-bot">${escapeHtml(m.text)}</div></div>`
+    ).join('');
+    tgChat.scrollTop = tgChat.scrollHeight;
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function renderInput(text) {
+    if (text.length === 0) {
+      tgInput.innerHTML = '<span class="tg-input-placeholder">Message</span>';
+      tgSend.classList.remove('active');
+    } else {
+      tgInput.innerHTML = `${escapeHtml(text)}<span class="tg-cursor"></span>`;
+      tgSend.classList.add('active');
+    }
+  }
+
+  function clearPhoneTimer() {
+    if (phoneTimer) { clearTimeout(phoneTimer); phoneTimer = null; }
+  }
+
+  function phoneTick() {
+    if (!phoneActive) return;
+    const convo = demos[convoIdx];
+
+    if (phonePhase === 'typing') {
+      if (typingProgress < convo.user.length) {
+        typingProgress++;
+        renderInput(convo.user.slice(0, typingProgress));
+        phoneTimer = setTimeout(phoneTick, 12 + Math.random() * 10);
+      } else {
+        phonePhase = 'sending';
+        phoneTimer = setTimeout(phoneTick, 120);
+      }
+      return;
+    }
+
+    if (phonePhase === 'sending') {
+      msgList.push({ type: 'user', text: convo.user });
+      renderInput('');
+      renderChat();
+      phonePhase = 'botReply';
+      phoneTimer = setTimeout(phoneTick, 250);
+      return;
+    }
+
+    if (phonePhase === 'botReply') {
+      msgList.push({ type: 'bot', text: convo.bot });
+      renderChat();
+      phonePhase = 'pause';
+      phoneTimer = setTimeout(phoneTick, 1200);
+      return;
+    }
+
+    if (phonePhase === 'pause') {
+      convoIdx = (convoIdx + 1) % demos.length;
+      // Keep last 4 messages so chat doesn't get huge
+      if (msgList.length > 4) msgList = msgList.slice(-4);
+      renderChat();
+      typingProgress = 0;
+      phonePhase = 'typing';
+      phoneTimer = setTimeout(phoneTick, 150);
+      return;
+    }
+  }
+
+  function startPhone() {
+    if (phoneActive) return;
+    phoneActive = true;
+    // Preload chat with first 2 conversations so it never looks empty
+    msgList = [
+      { type: 'user', text: demos[0].user },
+      { type: 'bot',  text: demos[0].bot },
+      { type: 'user', text: demos[1].user },
+      { type: 'bot',  text: demos[1].bot },
+    ];
+    convoIdx = 2; // Start typing the 3rd prompt
+    typingProgress = 0;
+    phonePhase = 'typing';
+    renderChat();
+    renderInput('');
+    phoneTimer = setTimeout(phoneTick, 250);
+  }
+
+  function stopPhone() {
+    phoneActive = false;
+    clearPhoneTimer();
+  }
+
+  // =============================================
+  // Slide navigation
+  // =============================================
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  const counter = document.getElementById('counter');
+  const progress = document.getElementById('progress');
+  const hint = document.getElementById('hint');
+  const slideWrap = document.getElementById('slideWrap');
+  let currentIdx = 0;
+  let hintTimer = null;
+
+  function updateProgress() {
+    progress.style.width = ((currentIdx + 1) / total) * 100 + '%';
+    counter.innerHTML = `<span class="current">${String(currentIdx + 1).padStart(2, '0')}</span> / ${String(total).padStart(2, '0')}`;
+  }
+
+  function goToSlide(newIdx) {
+    if (newIdx < 0 || newIdx >= total || newIdx === currentIdx) return;
+    const direction = newIdx > currentIdx ? 1 : -1;
+
+    slides[currentIdx].classList.remove('active');
+    if (direction < 0) slides[currentIdx].classList.add('prev');
+
+    // Force reflow to restart CSS animations
+    void slides[newIdx].offsetWidth;
+    slides[newIdx].classList.remove('prev');
+    slides[newIdx].classList.add('active');
+
+    currentIdx = newIdx;
+    updateProgress();
+
+    // Start/stop phone demo for slide 3 (index 2)
+    if (newIdx === 2) {
+      // Small delay so the slide's entrance animation plays first
+      setTimeout(() => startPhone(), 350);
+    } else {
+      stopPhone();
+    }
+  }
+
+  function next() { goToSlide(currentIdx + 1); }
+  function prev() { goToSlide(currentIdx - 1); }
+
+  // Keyboard nav
+  document.addEventListener('keydown', (e) => {
+    switch (e.key) {
+      case 'ArrowRight':
+      case ' ':
+      case 'PageDown':
+        e.preventDefault();
+        next();
+        break;
+      case 'ArrowLeft':
+      case 'PageUp':
+        e.preventDefault();
+        prev();
+        break;
+      case 'Home':
+        goToSlide(0);
+        break;
+      case 'End':
+        goToSlide(total - 1);
+        break;
+      case 'f':
+      case 'F':
+        if (document.fullscreenElement) document.exitFullscreen();
+        else document.documentElement.requestFullscreen();
+        break;
+    }
+  });
+
+  // Click zones
+  document.getElementById('navNext').addEventListener('click', next);
+  document.getElementById('navPrev').addEventListener('click', prev);
+
+  // Touch swipe navigation for mobile
+  let touchStartX = 0;
+  let touchStartY = 0;
+  document.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
+  }, { passive: true });
+  document.addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].screenX - touchStartX;
+    const dy = e.changedTouches[0].screenY - touchStartY;
+    // Only trigger if horizontal swipe is dominant and > 50px
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+      if (dx < 0) next();
+      else prev();
+    }
+  }, { passive: true });
+
+  // Scale wrap to fit viewport
+  function fitToViewport() {
+    // Skip scaling on mobile — CSS handles responsive layout
+    if (window.innerWidth <= 1024) {
+      slideWrap.style.transform = 'none';
+      return;
+    }
+    const DESIGN_W = 1920;
+    const DESIGN_H = 1080;
+    const scale = Math.min(
+      window.innerWidth / DESIGN_W,
+      window.innerHeight / DESIGN_H
+    );
+    slideWrap.style.transform = `scale(${scale})`;
+  }
+  fitToViewport();
+  window.addEventListener('resize', fitToViewport);
+
+  // Hide hint after 4 seconds
+  hintTimer = setTimeout(() => {
+    hint.classList.add('fade');
+  }, 4000);
+
+  // Show hint on mouse move
+  document.addEventListener('mousemove', () => {
+    hint.classList.remove('fade');
+    clearTimeout(hintTimer);
+    hintTimer = setTimeout(() => hint.classList.add('fade'), 2500);
+  });
+
+  updateProgress();
+
+  // If we happen to start on the solution slide, kick off the phone
+  if (currentIdx === 2) {
+    setTimeout(() => startPhone(), 350);
+  }
+</script>
+
+</body>
+</html>

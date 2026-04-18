@@ -40,18 +40,10 @@ logger = logging.getLogger(__name__)
 
 # Pattern for embedded chart images: [CHART_IMAGE]base64data[/CHART_IMAGE]
 import re
-import urllib.parse
 CHART_IMAGE_PATTERN = re.compile(r'\[CHART_IMAGE\](.*?)\[/CHART_IMAGE\]', re.DOTALL)
 SIGN_TX_PATTERN = re.compile(r'\[SIGN_TX\](.*?)\[/SIGN_TX\]', re.DOTALL)
 
-# Wallet app deep link URL templates
-WALLET_DEEP_LINKS = {
-    "phantom": "https://phantom.app/ul/v1/signAndSendTransaction?transaction={}",
-    "backpack": "https://backpack.app/ul/v1/signAndSendTransaction?transaction={}",
-    "solflare": "https://solflare.com/ul/v1/signAndSendTransaction?transaction={}",
-    "jupiter": "https://jup.ag/ul/v1/signAndSendTransaction?transaction={}",
-}
-
+# Supported wallet apps for user preference
 WALLET_APP_CYCLE = ["phantom", "backpack", "solflare", "jupiter"]
 
 
@@ -70,53 +62,9 @@ def extract_chart_image(text: str) -> tuple[str, str | None]:
     return text, None
 
 
-async def extract_sign_tx(text: str, wallet_app: str = "phantom") -> tuple[str, str | None]:
-    """
-    Extract unsigned transaction from response text, store it via the signing API,
-    and return the signing page URL.
-
-    Returns:
-        (clean_text, signing_page_url or None)
-    """
-    match = SIGN_TX_PATTERN.search(text)
-    if match:
-        tx_base64 = match.group(1).strip()
-        clean_text = SIGN_TX_PATTERN.sub('', text).strip()
-
-        # Store the unsigned tx via the frontend signing API
-        frontend_url = os.getenv("RAZE_FRONTEND_URL", "https://raze.fun")
-        sign_secret = os.getenv("RAZE_SIGN_SECRET", "raze-dev-secret")
-
-        try:
-            import httpx
-            logger.info(f"Storing tx at {frontend_url}/api/sign (secret={sign_secret[:8]}...)")
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                resp = await client.post(
-                    f"{frontend_url}/api/sign",
-                    json={
-                        "transaction": tx_base64,
-                        "type": "transaction",
-                        "network": "mainnet",
-                    },
-                    headers={"x-sign-secret": sign_secret},
-                )
-                logger.info(f"Sign API response: {resp.status_code} {resp.text[:200]}")
-                if resp.status_code == 200:
-                    tx_id = resp.json().get("id")
-                    signing_url = f"{frontend_url}/sign/{tx_id}"
-                    logger.info(f"Signing URL: {signing_url}")
-                    return clean_text, signing_url
-                else:
-                    logger.error(f"Sign API failed: {resp.status_code} {resp.text[:200]}")
-        except Exception as e:
-            logger.error(f"Failed to store tx for signing: {e}", exc_info=True)
-
-        # Fallback to deep link if API fails
-        encoded_tx = urllib.parse.quote(tx_base64, safe='')
-        url_template = WALLET_DEEP_LINKS.get(wallet_app, WALLET_DEEP_LINKS["phantom"])
-        deep_link_url = url_template.format(encoded_tx)
-        return clean_text, deep_link_url
-    return text, None
+def strip_sign_tx_tags(text: str) -> str:
+    """Strip any [SIGN_TX] tags from agent response — signing is handled by TMA now."""
+    return SIGN_TX_PATTERN.sub('', text).strip()
 
 # Beta notice banner
 BETA_NOTICE = "⚠️ *BETA*: This bot is in active development. Some features may be unstable.\n\n"
@@ -1369,37 +1317,9 @@ async def stream_response(
                     # Fallback to text
                     await safe_edit_message(bot_message, clean_text or "couldn't load chart")
             else:
-                # Check for unsigned transaction deep link marker
-                wallet_app = "phantom"
-                if session_state:
-                    wallet_app = session_state.get("preferred_wallet_app") or "phantom"
-                tx_clean_text, deep_link_url = await extract_sign_tx(accumulated_text, wallet_app)
-
-                if deep_link_url:
-                    # Render with a tappable sign button
-                    keyboard = [[InlineKeyboardButton(
-                        f"\U0001f510 sign in {wallet_app}",
-                        url=deep_link_url,
-                    )]]
-                    reply_markup = InlineKeyboardMarkup(keyboard)
-                    try:
-                        parsed = parse_markdown_to_entities(truncate_message(tx_clean_text))
-                        if parsed.entities:
-                            await bot_message.edit_text(
-                                parsed.text,
-                                entities=parsed.entities,
-                                reply_markup=reply_markup,
-                            )
-                        else:
-                            await bot_message.edit_text(parsed.text, reply_markup=reply_markup)
-                    except BadRequest as e:
-                        logger.warning(f"Sign TX formatting failed: {e}")
-                        await bot_message.edit_text(
-                            truncate_message(tx_clean_text),
-                            reply_markup=reply_markup,
-                        )
-                else:
-                    await safe_edit_message(bot_message, accumulated_text)
+                # Strip any [SIGN_TX] tags — external signing will be handled by TMA (coming soon)
+                clean_text = strip_sign_tx_tags(accumulated_text)
+                await safe_edit_message(bot_message, clean_text)
         elif not error_occurred:
             await bot_message.edit_text("I couldn't generate a response. Please try again.")
 
