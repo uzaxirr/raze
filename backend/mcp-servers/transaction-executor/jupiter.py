@@ -16,7 +16,7 @@ load_dotenv(_root / '.env')
 logger = logging.getLogger(__name__)
 
 # Jupiter API endpoints
-JUPITER_API_URL = os.getenv("JUPITER_API_URL", "https://quote-api.jup.ag/v6")
+JUPITER_API_URL = os.getenv("JUPITER_API_URL", "https://api.jup.ag/swap/v1")
 
 # Raze referral account for swap fees
 RAZE_REFERRAL_ACCOUNT = os.getenv("RAZE_REFERRAL_ACCOUNT", "2sZdpSqnggDWj1xMfrytd4Pum34wBjVW7KtyuknRgkGZ")
