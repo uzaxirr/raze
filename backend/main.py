@@ -131,6 +131,7 @@ agent = Agent(
         "signing_mode": "internal",
         "external_wallet_address": None,
         "preferred_wallet_app": "phantom",
+        "message_sent_at": None,
     },
     instructions=RAZE_SYSTEM_PROMPT,
 )

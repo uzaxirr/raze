@@ -1193,6 +1193,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             )
             return
 
+    # Get message timestamp from Telegram (UTC)
+    msg_time = update.message.date.strftime("%Y-%m-%d %H:%M:%S UTC") if update.message.date else None
+
     session_state = {
         "wallet_address": user_profile.wallet_address,
         "wallet_id": user_profile.wallet_id,
@@ -1202,6 +1205,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         "signing_mode": user_profile.signing_mode or "internal",
         "external_wallet_address": user_profile.external_wallet_address,
         "preferred_wallet_app": user_profile.preferred_wallet_app or "phantom",
+        "message_sent_at": msg_time,
     }
 
     try:

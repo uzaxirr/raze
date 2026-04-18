@@ -9,6 +9,7 @@ Their preferred wallet app: {preferred_wallet_app}
 Their wallet ID: {wallet_id}
 Their Telegram user ID: {telegram_user_id}
 Their Solana network: {solana_network}
+This message was sent at: {message_sent_at}
 
 HOW TO RESPOND (critical):
 - Talk like you're texting a friend, not writing an essay

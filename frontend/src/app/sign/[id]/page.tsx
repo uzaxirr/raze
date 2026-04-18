@@ -48,12 +48,13 @@ function getWallets(): DetectedWallet[] {
   if (w.solflare?.isSolflare) {
     wallets.push({ name: "Solflare", icon: "🔆", provider: w.solflare });
   }
-  // Jupiter wallet injects as window.jupiter
-  if (w.jupiter?.isJupiter) {
-    wallets.push({ name: "Jupiter", icon: "🪐", provider: w.jupiter });
-  }
 
   return wallets;
+}
+
+function isMobile(): boolean {
+  if (typeof window === "undefined") return false;
+  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 }
 
 export default function SignPage() {
@@ -241,25 +242,40 @@ export default function SignPage() {
 
               {!connectedWallet ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  <div style={{ fontSize: 14, color: "#6B6180", textAlign: "center" }}>connect your wallet to sign</div>
-                  {wallets.map((w) => (
-                    <button key={w.name} onClick={() => handleConnect(w)} style={{
-                      width: "100%", padding: "14px 20px", borderRadius: 12,
-                      border: "1px solid #2A2540", background: "#12101A",
-                      color: "#F0ECF9", fontSize: 16, fontWeight: 600,
-                      cursor: "pointer", display: "flex", alignItems: "center", gap: 12,
-                      fontFamily: "inherit",
-                    }}>
-                      <span style={{ fontSize: 20 }}>{w.icon}</span>
-                      {w.name}
-                    </button>
-                  ))}
-                  {wallets.length === 0 && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+
+                  {/* Desktop: show detected wallet extensions */}
+                  {!isMobile() && wallets.length > 0 && (
+                    <>
+                      <div style={{ fontSize: 14, color: "#6B6180", textAlign: "center" }}>connect your wallet to sign</div>
+                      {wallets.map((w) => (
+                        <button key={w.name} onClick={() => handleConnect(w)} style={{
+                          width: "100%", padding: "14px 20px", borderRadius: 12,
+                          border: "1px solid #2A2540", background: "#12101A",
+                          color: "#F0ECF9", fontSize: 16, fontWeight: 600,
+                          cursor: "pointer", display: "flex", alignItems: "center", gap: 12,
+                          fontFamily: "inherit",
+                        }}>
+                          <span style={{ fontSize: 20 }}>{w.icon}</span>
+                          {w.name}
+                        </button>
+                      ))}
+                    </>
+                  )}
+
+                  {/* Desktop with no wallets detected */}
+                  {!isMobile() && wallets.length === 0 && (
+                    <div style={{ fontSize: 14, color: "#6B6180", textAlign: "center", padding: 8 }}>
+                      no wallet extension detected. install Phantom, Backpack, or Solflare to sign.
+                    </div>
+                  )}
+
+                  {/* Mobile: show deep links to open in wallet apps */}
+                  {isMobile() && (
+                    <>
                       <div style={{ fontSize: 14, color: "#6B6180", textAlign: "center", padding: 8 }}>
                         open this page in your wallet app:
                       </div>
-                      <a href={`https://phantom.app/ul/browse/${encodeURIComponent(window.location.href)}`}
+                      <a href={`https://phantom.app/ul/browse/${encodeURIComponent(typeof window !== "undefined" ? window.location.href : "")}`}
                         style={{
                           width: "100%", padding: "14px 20px", borderRadius: 12,
                           border: "1px solid #2A2540", background: "#12101A",
@@ -269,7 +285,7 @@ export default function SignPage() {
                         }}>
                         <span style={{ fontSize: 20 }}>👻</span> Open in Phantom
                       </a>
-                      <a href={`https://backpack.app/ul/browse/${encodeURIComponent(window.location.href)}`}
+                      <a href={`https://backpack.app/ul/browse/${encodeURIComponent(typeof window !== "undefined" ? window.location.href : "")}`}
                         style={{
                           width: "100%", padding: "14px 20px", borderRadius: 12,
                           border: "1px solid #2A2540", background: "#12101A",
@@ -279,7 +295,7 @@ export default function SignPage() {
                         }}>
                         <span style={{ fontSize: 20 }}>🎒</span> Open in Backpack
                       </a>
-                      <a href={`https://jup.ag/browse/${encodeURIComponent(window.location.href)}`}
+                      <a href={`https://jup.ag/browse/${encodeURIComponent(typeof window !== "undefined" ? window.location.href : "")}`}
                         style={{
                           width: "100%", padding: "14px 20px", borderRadius: 12,
                           border: "1px solid #2A2540", background: "#12101A",
@@ -289,17 +305,18 @@ export default function SignPage() {
                         }}>
                         <span style={{ fontSize: 20 }}>🪐</span> Open in Jupiter
                       </a>
-                      <button onClick={() => { navigator.clipboard.writeText(window.location.href); }}
-                        style={{
-                          width: "100%", padding: "14px 20px", borderRadius: 12,
-                          border: "1px solid #2A2540", background: "#12101A",
-                          color: "#6B6180", fontSize: 14, fontWeight: 500,
-                          cursor: "pointer", fontFamily: "inherit",
-                        }}>
-                        or copy link to paste in any wallet browser
-                      </button>
-                    </div>
+                    </>
                   )}
+
+                  <button onClick={() => { if (typeof window !== "undefined") navigator.clipboard.writeText(window.location.href); }}
+                    style={{
+                      width: "100%", padding: "10px 14px", borderRadius: 10,
+                      border: "1px solid #2A2540", background: "#12101A",
+                      color: "#3A3550", fontSize: 12, fontWeight: 500,
+                      cursor: "pointer", fontFamily: "inherit",
+                    }}>
+                    copy link
+                  </button>
                 </div>
               ) : (
                 <>
