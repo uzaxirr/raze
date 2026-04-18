@@ -1081,12 +1081,42 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         if update_external_wallet(user_id, address):
             # Auto-switch to external mode
             update_signing_mode(user_id, "external")
-            await update.message.reply_text(
-                f"external wallet connected: `{address}`\n\n"
-                "switched to external signing mode — you'll sign transactions yourself now. "
-                "use /wallet to change settings anytime."
-            )
             logger.info(f"User {user_id} connected external wallet: {address}")
+
+            # Route through agent for the portfolio wow moment
+            await update.message.chat.send_action(ChatAction.TYPING)
+            bot_message = await update.message.reply_text("pulling your portfolio...")
+
+            user_profile = get_user_profile(user_id)
+            session_state = {
+                "wallet_address": user_profile.wallet_address,
+                "wallet_id": user_profile.wallet_id,
+                "telegram_username": user_profile.telegram_username,
+                "telegram_user_id": user_id,
+                "solana_network": user_profile.solana_network or "mainnet",
+                "signing_mode": "external",
+                "external_wallet_address": address,
+                "preferred_wallet_app": user_profile.preferred_wallet_app or "phantom",
+            }
+
+            try:
+                client, agent_id = await get_client_and_agent()
+                await stream_response(
+                    update=update,
+                    bot_message=bot_message,
+                    client=client,
+                    agent_id=agent_id,
+                    message=f"[EXTERNAL_WALLET_CONNECTED] address: {address}",
+                    user_id=str(user_id),
+                    session_id=session_id,
+                    session_state=session_state,
+                )
+            except Exception as e:
+                logger.exception(f"Agent error on external wallet connect: {e}")
+                await bot_message.edit_text(
+                    f"external wallet connected: `{address}`\n\n"
+                    "switched to external signing mode. use /wallet to change settings."
+                )
         else:
             await update.message.reply_text("failed to save wallet. try /wallet again.")
         return
@@ -1098,18 +1128,81 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     # Get user profile from database for session state
     user_profile = get_user_profile(user_id)
-    session_state = None
-    if user_profile:
-        session_state = {
-            "wallet_address": user_profile.wallet_address,
-            "wallet_id": user_profile.wallet_id,
-            "telegram_username": user_profile.telegram_username,
-            "telegram_user_id": user_id,
-            "solana_network": user_profile.solana_network or "mainnet",
-            "signing_mode": user_profile.signing_mode or "internal",
-            "external_wallet_address": user_profile.external_wallet_address,
-            "preferred_wallet_app": user_profile.preferred_wallet_app or "phantom",
-        }
+
+    # Auto-onboard new users — create wallet and trigger first-time experience
+    if not user_profile or not user_profile.wallet_address:
+        try:
+            privy = PrivyClient()
+            wallet = await privy.create_solana_wallet(idempotency_key=f"tg_{user_id}")
+
+            if user_profile:
+                update_user_wallet(user_id, wallet["address"], wallet["id"])
+            else:
+                user = update.effective_user
+                create_user_profile(
+                    telegram_user_id=user_id,
+                    telegram_username=user.username or user.first_name,
+                    wallet_address=wallet["address"],
+                    wallet_id=wallet["id"],
+                )
+
+            logger.info(f"Auto-onboarded user {user_id}: {wallet['address']}")
+
+            # Send first-time message with their original query appended
+            user = update.effective_user
+            onboard_message = (
+                f"[FIRST_TIME_USER] {user.username or user.first_name} just joined! "
+                f"Wallet: {wallet['address']}\n\n"
+                f"Their first message: {message_text}"
+            )
+
+            session_state = {
+                "wallet_address": wallet["address"],
+                "wallet_id": wallet["id"],
+                "telegram_username": user.username or user.first_name,
+                "telegram_user_id": user_id,
+                "solana_network": "mainnet",
+                "signing_mode": "internal",
+                "external_wallet_address": None,
+                "preferred_wallet_app": "phantom",
+            }
+
+            try:
+                client, agent_id = await get_client_and_agent()
+                await stream_response(
+                    update=update,
+                    bot_message=bot_message,
+                    client=client,
+                    agent_id=agent_id,
+                    message=onboard_message,
+                    user_id=str(user_id),
+                    session_id=session_id,
+                    session_state=session_state,
+                )
+            except Exception as e:
+                logger.exception(f"Agent error during auto-onboard: {e}")
+                await bot_message.edit_text(
+                    f"yo. made you a wallet: `{wallet['address']}`\n\n"
+                    "something went wrong talking to the agent tho. try again?"
+                )
+            return
+        except Exception as e:
+            logger.exception(f"Auto-onboard failed for {user_id}: {e}")
+            await bot_message.edit_text(
+                "couldn't set you up automatically. tap /start to get going."
+            )
+            return
+
+    session_state = {
+        "wallet_address": user_profile.wallet_address,
+        "wallet_id": user_profile.wallet_id,
+        "telegram_username": user_profile.telegram_username,
+        "telegram_user_id": user_id,
+        "solana_network": user_profile.solana_network or "mainnet",
+        "signing_mode": user_profile.signing_mode or "internal",
+        "external_wallet_address": user_profile.external_wallet_address,
+        "preferred_wallet_app": user_profile.preferred_wallet_app or "phantom",
+    }
 
     try:
         client, agent_id = await get_client_and_agent()

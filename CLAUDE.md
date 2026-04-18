@@ -118,9 +118,21 @@ Add handler in `tg-bot/src/bot.py`
 
 ## Environment Variables
 
-**Root .env**: DATABASE_URL, BIRDEYE_API_KEY, JUPITER_API_KEY, XAI_API_KEY, HELIUS_API_KEY, PRIVY_APP_ID, PRIVY_APP_SECRET, LUNARCRUSH_API_KEY, DOME_API_KEY
+**Root .env**: DATABASE_URL, BIRDEYE_API_KEY, JUPITER_API_KEY, XAI_API_KEY, HELIUS_API_KEY, PRIVY_APP_ID, PRIVY_APP_SECRET, LUNARCRUSH_API_KEY, RAZE_REFERRAL_ACCOUNT, RAZE_REFERRAL_FEE_BPS
 
 **tg-bot/.env**: TELEGRAM_BOT_TOKEN, AGENTOS_BASE_URL, PRIVY_APP_ID, PRIVY_APP_SECRET
+
+## Revenue — Swap Fees
+
+Raze earns revenue via Jupiter's referral fee program on every swap.
+
+- **Referral Account**: `2sZdpSqnggDWj1xMfrytd4Pum34wBjVW7KtyuknRgkGZ` (managed at [referral.jup.ag](https://referral.jup.ag/))
+- **Fee**: 2% (200 bps) on every Jupiter swap. Jupiter takes 20%, Raze keeps 80% (1.6% effective)
+- **Implementation**: `mcp-servers/transaction-executor/jupiter.py` — `platformFeeBps` in quote request + `feeAccount` in swap request
+- **Token accounts created for**: SOL, USDC, USDT, jlUSDC, USD1, JLP
+- **Works with both signing modes**: Fee is baked into the transaction at quote time, before signing
+- **Env vars**: `RAZE_REFERRAL_ACCOUNT`, `RAZE_REFERRAL_FEE_BPS` (defaults hardcoded, overridable via env)
+- **Tradeoff**: Adding `referralAccount` disables RFQ routing (Metis-only quotes). Slightly worse pricing but enables revenue.
 
 ## Testing the API
 

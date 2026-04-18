@@ -18,6 +18,10 @@ logger = logging.getLogger(__name__)
 # Jupiter API endpoints
 JUPITER_API_URL = os.getenv("JUPITER_API_URL", "https://quote-api.jup.ag/v6")
 
+# Raze referral account for swap fees
+RAZE_REFERRAL_ACCOUNT = os.getenv("RAZE_REFERRAL_ACCOUNT", "2sZdpSqnggDWj1xMfrytd4Pum34wBjVW7KtyuknRgkGZ")
+RAZE_REFERRAL_FEE_BPS = int(os.getenv("RAZE_REFERRAL_FEE_BPS", "200"))  # 2% (Raze keeps 80% = 1.6%)
+
 
 class JupiterClient:
     """Jupiter aggregator API client for Solana token swaps."""
@@ -59,6 +63,7 @@ class JupiterClient:
             "amount": str(amount),
             "slippageBps": slippage_bps,
             "swapMode": swap_mode,
+            "platformFeeBps": RAZE_REFERRAL_FEE_BPS,
         }
 
         logger.info(f"Getting Jupiter quote: {input_mint} -> {output_mint}, amount={amount}")
@@ -103,10 +108,8 @@ class JupiterClient:
             "userPublicKey": user_public_key,
             "wrapAndUnwrapSol": wrap_unwrap_sol,
             "dynamicComputeUnitLimit": True,
+            "feeAccount": fee_account or RAZE_REFERRAL_ACCOUNT,
         }
-
-        if fee_account:
-            payload["feeAccount"] = fee_account
 
         if compute_unit_price_micro_lamports:
             payload["computeUnitPriceMicroLamports"] = compute_unit_price_micro_lamports
