@@ -279,6 +279,16 @@ export default function SignPage() {
                         }}>
                         <span style={{ fontSize: 20 }}>🎒</span> Open in Backpack
                       </a>
+                      <a href={`https://jup.ag/browse/${encodeURIComponent(window.location.href)}`}
+                        style={{
+                          width: "100%", padding: "14px 20px", borderRadius: 12,
+                          border: "1px solid #2A2540", background: "#12101A",
+                          color: "#F0ECF9", fontSize: 16, fontWeight: 600,
+                          textDecoration: "none", display: "flex", alignItems: "center", gap: 12,
+                          fontFamily: "inherit",
+                        }}>
+                        <span style={{ fontSize: 20 }}>🪐</span> Open in Jupiter
+                      </a>
                       <button onClick={() => { navigator.clipboard.writeText(window.location.href); }}
                         style={{
                           width: "100%", padding: "14px 20px", borderRadius: 12,
