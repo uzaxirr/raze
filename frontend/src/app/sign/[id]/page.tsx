@@ -295,7 +295,7 @@ export default function SignPage() {
                         }}>
                         <span style={{ fontSize: 20 }}>🎒</span> Open in Backpack
                       </a>
-                      <a href={`https://jup.ag/browse/${encodeURIComponent(typeof window !== "undefined" ? window.location.href : "")}`}
+                      <a href={`https://solflare.com/ul/v1/browse/${encodeURIComponent(typeof window !== "undefined" ? window.location.href : "")}?ref=${encodeURIComponent(typeof window !== "undefined" ? window.location.origin : "")}`}
                         style={{
                           width: "100%", padding: "14px 20px", borderRadius: 12,
                           border: "1px solid #2A2540", background: "#12101A",
@@ -303,7 +303,7 @@ export default function SignPage() {
                           textDecoration: "none", display: "flex", alignItems: "center", gap: 12,
                           fontFamily: "inherit",
                         }}>
-                        <span style={{ fontSize: 20 }}>🪐</span> Open in Jupiter
+                        <span style={{ fontSize: 20 }}>🔆</span> Open in Solflare
                       </a>
                     </>
                   )}
