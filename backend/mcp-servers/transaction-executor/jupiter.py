@@ -6,6 +6,7 @@ from typing import Dict, Any, Optional
 
 import httpx
 from dotenv import load_dotenv
+from solders.pubkey import Pubkey
 
 # Load from project root
 _root = Path(__file__).resolve().parent
@@ -21,6 +22,21 @@ JUPITER_API_URL = os.getenv("JUPITER_API_URL", "https://api.jup.ag/swap/v1")
 # Raze referral account for swap fees
 RAZE_REFERRAL_ACCOUNT = os.getenv("RAZE_REFERRAL_ACCOUNT", "2sZdpSqnggDWj1xMfrytd4Pum34wBjVW7KtyuknRgkGZ")
 RAZE_REFERRAL_FEE_BPS = int(os.getenv("RAZE_REFERRAL_FEE_BPS", "200"))  # 2% (Raze keeps 80% = 1.6%)
+
+
+# Jupiter Referral Program ID
+REFERRAL_PROGRAM_ID = Pubkey.from_string("REFER4ZgmyYx9c6He5XfaTMiGfdLwRnkV4RPp9t9iF3")
+
+
+def derive_referral_fee_account(referral_account: str, fee_mint: str) -> str:
+    """Derive the referral fee token account PDA for a given mint."""
+    referral_pubkey = Pubkey.from_string(referral_account)
+    mint_pubkey = Pubkey.from_string(fee_mint)
+    pda, _ = Pubkey.find_program_address(
+        [b"referral_ata", bytes(referral_pubkey), bytes(mint_pubkey)],
+        REFERRAL_PROGRAM_ID,
+    )
+    return str(pda)
 
 
 class JupiterClient:
@@ -103,13 +119,23 @@ class JupiterClient:
         """
         url = f"{self.api_url}/swap"
 
+        # Derive the referral fee token account PDA from the quote's fee mint
+        if not fee_account and RAZE_REFERRAL_ACCOUNT:
+            # For ExactIn, fee is taken from output mint
+            fee_mint = quote.get("outputMint")
+            if fee_mint:
+                fee_account = derive_referral_fee_account(RAZE_REFERRAL_ACCOUNT, fee_mint)
+                logger.info(f"Derived referral fee account: {fee_account} for mint {fee_mint}")
+
         payload = {
             "quoteResponse": quote,
             "userPublicKey": user_public_key,
             "wrapAndUnwrapSol": wrap_unwrap_sol,
             "dynamicComputeUnitLimit": True,
-            "feeAccount": fee_account or RAZE_REFERRAL_ACCOUNT,
         }
+
+        if fee_account:
+            payload["feeAccount"] = fee_account
 
         if compute_unit_price_micro_lamports:
             payload["computeUnitPriceMicroLamports"] = compute_unit_price_micro_lamports
