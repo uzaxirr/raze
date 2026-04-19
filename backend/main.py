@@ -145,7 +145,7 @@ bouncer_agent = Agent(
         cache_system_prompt=True,
     ),
     tools=[
-        read_mcp, sns_resolver, token_data, market_research,
+        read_mcp, sns_resolver, token_data, transaction_executor, market_research,
     ],
     db=db,
     enable_user_memories=False,

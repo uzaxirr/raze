@@ -1180,7 +1180,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             increment_message_count(user_id)
 
             # Check if they're trying a blocked action
-            blocked_keywords = ["swap", "send", "transfer", "alert", "watch", "snipe"]
+            blocked_keywords = ["alert", "watch", "snipe"]
             if any(kw in message_text.lower() for kw in blocked_keywords):
                 entry = access.get("entry")
                 code = entry.referral_code if entry else "???"
