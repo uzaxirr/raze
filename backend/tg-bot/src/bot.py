@@ -1237,8 +1237,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     elif isinstance(event, RunCompletedEvent):
                         break
 
-                # Extract bouncer remarks
+                # Strip hidden thought blocks
                 import re as _re
+                accumulated_text = _re.sub(r'\[THINK\].*?\[/THINK\]', '', accumulated_text, flags=_re.DOTALL).strip()
+
+                # Extract bouncer remarks
                 remarks_match = _re.search(r'\[BOUNCER_REMARKS\](.*?)\[/BOUNCER_REMARKS\]', accumulated_text, _re.DOTALL)
                 if remarks_match:
                     accumulated_text = _re.sub(r'\[BOUNCER_REMARKS\].*?\[/BOUNCER_REMARKS\]', '', accumulated_text, flags=_re.DOTALL).strip()
