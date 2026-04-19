@@ -1593,6 +1593,40 @@ async def email_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     await update.message.reply_text("drop your email 👇")
 
 
+async def card_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /card - generate and send waitlist card image."""
+    from .waitlist import get_waitlist_entry, get_waitlist_count
+    from .waitlist_card import generate_waitlist_card
+    import io
+
+    user_id = update.effective_user.id
+    entry = get_waitlist_entry(user_id)
+
+    if not entry:
+        await update.message.reply_text("join the waitlist first — send any message.")
+        return
+
+    if entry.status in ("approved", "active"):
+        await update.message.reply_text("you're already in. no waitlist card needed 💀")
+        return
+
+    await update.message.chat.send_action(ChatAction.TYPING)
+
+    total = get_waitlist_count()
+    png_bytes = generate_waitlist_card(
+        username=entry.telegram_username or update.effective_user.first_name or "anon",
+        position=entry.position,
+        referral_count=entry.referral_count,
+        total_waitlist=total,
+        referral_code=entry.referral_code,
+    )
+
+    await update.message.reply_photo(
+        photo=io.BytesIO(png_bytes),
+        caption=f"share this to flex your spot 🫡\n\nraze.fun/ref/{entry.referral_code}",
+    )
+
+
 def create_application() -> Application:
     """Create and configure the Telegram bot application."""
     app = Application.builder().token(config.TELEGRAM_BOT_TOKEN).build()
@@ -1603,6 +1637,7 @@ def create_application() -> Application:
     app.add_handler(CommandHandler("waitlist", waitlist_command))
     app.add_handler(CommandHandler("refer", refer_command))
     app.add_handler(CommandHandler("email", email_command))
+    app.add_handler(CommandHandler("card", card_command))
     app.add_handler(CommandHandler("alerts", alerts_command))
     app.add_handler(CommandHandler("clear", clear_command))
     app.add_handler(CommandHandler("apistats", apistats_command))

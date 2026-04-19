@@ -43,3 +43,4 @@ typing_extensions>=4.0.0
 opentelemetry-api>=1.20.0
 opentelemetry-sdk>=1.20.0
 openinference-instrumentation-agno>=0.1.0
+cairosvg==2.9.0
