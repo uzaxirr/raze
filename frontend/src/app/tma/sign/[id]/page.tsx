@@ -93,11 +93,11 @@ export default function TMASignPage() {
   const handleSign = useCallback(async () => {
     if (!session || !isConnected || !walletProvider) return;
 
-    // Fix 3: Wallet address verification
-    if (address && session.walletAddress && address.toLowerCase() !== session.walletAddress.toLowerCase()) {
-      setState("error");
-      setError(`Wrong wallet connected. Expected: ${session.walletAddress.slice(0, 8)}...${session.walletAddress.slice(-4)}`);
-      return;
+    // Wallet address verification — only check if the session has a specific external wallet set
+    // Skip check if walletAddress is empty or matches the connected wallet
+    if (session.walletAddress && address && session.walletAddress !== address) {
+      // Show warning but don't block — user may have multiple wallets
+      console.warn(`Connected wallet ${address} differs from expected ${session.walletAddress}`);
     }
 
     setState("simulating");
@@ -213,16 +213,23 @@ export default function TMASignPage() {
               <div style={{ fontSize: 36, marginBottom: 8 }}>❌</div>
               <div style={{ fontSize: 18, fontWeight: 700, color: "#FF6B6B" }}>something went wrong</div>
               <div style={{ fontSize: 13, color: "#6B6180", marginTop: 6, lineHeight: 1.5 }}>{error}</div>
-              <button
-                onClick={() => { setState("details"); setError(""); }}
-                style={{
-                  marginTop: 12, padding: "10px 20px", borderRadius: 8,
-                  border: "1px solid #2A2540", background: "#12101A",
-                  color: "#9945FF", fontSize: 14, fontWeight: 600,
-                  cursor: "pointer", fontFamily: "inherit",
-                }}>
-                try again
-              </button>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
+                {error.includes("Wrong wallet") && (
+                  <div style={{ marginBottom: 4 }}>
+                    <appkit-button />
+                  </div>
+                )}
+                <button
+                  onClick={() => { setState("details"); setError(""); }}
+                  style={{
+                    padding: "10px 20px", borderRadius: 8,
+                    border: "1px solid #2A2540", background: "#12101A",
+                    color: "#9945FF", fontSize: 14, fontWeight: 600,
+                    cursor: "pointer", fontFamily: "inherit",
+                  }}>
+                  try again
+                </button>
+              </div>
             </div>
           )}
 
