@@ -136,17 +136,20 @@ export default function TMASignPage() {
         throw new Error("No unsigned transaction in session — it may have expired");
       }
 
-      const txBytes = Buffer.from(session.unsignedTransaction, "base64");
+      const txBytes = Uint8Array.from(Buffer.from(session.unsignedTransaction, "base64"));
 
-      // Detect versioned vs legacy from first byte
-      const isVersioned = txBytes[0] & 0x80;
-      if (isVersioned) {
+      // Try versioned first, fall back to legacy
+      // Version detection via first-byte check is unreliable because
+      // unsigned transactions have signature placeholders that shift the version byte
+      let signed: any;
+      try {
         const vtx = VersionedTransaction.deserialize(txBytes);
-        sig = await walletProvider.sendTransaction(vtx, conn as any);
-      } else {
+        signed = await walletProvider.signTransaction(vtx);
+      } catch {
         const ltx = Transaction.from(txBytes);
-        sig = await walletProvider.sendTransaction(ltx, conn as any);
+        signed = await walletProvider.signTransaction(ltx);
       }
+      sig = await conn.sendRawTransaction(signed.serialize());
 
       setSignature(sig);
       setState("success");
