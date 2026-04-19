@@ -163,7 +163,7 @@ bouncer_agent = Agent(
         "position": None,
         "referral_count": None,
         "referral_code": None,
-        "bouncer_step": 0,
+        "step_instruction": "",
         "message_sent_at": None,
     },
     instructions=BOUNCER_SYSTEM_PROMPT,
