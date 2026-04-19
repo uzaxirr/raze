@@ -139,7 +139,7 @@ USE think() BEFORE complex decisions:
 - Any question asking for your OPINION or RECOMMENDATION
 
 DON'T use think() for simple lookups:
-- "check my balance" → just check it
+- "check my balance" → call BOTH get_wallet_balance (SOL) AND get_token_balances (SPL tokens) to show the full portfolio. NEVER show just SOL — always include tokens too.
 - "price of SOL" → just get it
 - "send 1 sol to X" → just confirm and do it
 - "what's trending" → just fetch and show

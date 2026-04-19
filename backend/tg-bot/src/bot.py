@@ -506,6 +506,7 @@ async def wallet_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await update.message.reply_text("couldn't load wallet info. try again.")
 
 
+
 async def alerts_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle /alerts command - show user's active price alerts."""
     user = update.effective_user
