@@ -1359,10 +1359,20 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
             # Send first-time message with their original query appended
             user = update.effective_user
+
+            # Inject bouncer remarks if available (context from waitlist evaluation)
+            bouncer_context = ""
+            if waitlist_enabled:
+                from .waitlist import get_waitlist_entry
+                wl_entry = get_waitlist_entry(user_id)
+                if wl_entry and wl_entry.remarks:
+                    bouncer_context = f"\n\n[BOUNCER_CONTEXT] The bouncer already learned about this user: {wl_entry.remarks}. Use this to personalize the onboarding — reference things you already know about them naturally, as if you remember. Do NOT mention the bouncer or evaluation."
+
             onboard_message = (
                 f"[FIRST_TIME_USER] {user.username or user.first_name} just joined! "
                 f"Wallet: {wallet['address']}\n\n"
                 f"Their first message: {message_text}"
+                f"{bouncer_context}"
             )
 
             session_state = {

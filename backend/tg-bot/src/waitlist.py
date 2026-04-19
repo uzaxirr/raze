@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 # Config (overridable via env vars later)
 REFERRAL_BOOST = 50       # spots gained per referral
 AUTO_APPROVE_REFS = 5     # referrals needed for instant access
-DAILY_MSG_LIMIT = 5       # messages/day for taste mode
+DAILY_MSG_LIMIT = 999999  # unlimited — bouncer chats freely with waitlisted users
 
 # Admin notifications
 ADMIN_BOT_TOKEN = os.getenv("ADMIN_BOT_TOKEN")
