@@ -1158,7 +1158,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             await update.message.reply_text(
                 "oh btw drop your email so i can ping you when you're off the waitlist. telegram notifs are mid"
             )
-            context.user_data["awaiting_email"] = True
+
+            await _aio.sleep(1.5)
+            await update.message.chat.send_action(ChatAction.TYPING)
+            await _aio.sleep(1.5)
+
+            await update.message.reply_text(
+                "also drop your wallet address and watch the magic. or don't. your call 👀"
+            )
+            context.user_data["awaiting_email_or_wallet"] = True
             return
 
         if access["access"] == "banned":
@@ -1276,36 +1284,27 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
         # access["access"] == "full" — fall through to normal flow
 
-    # ── Email collection ──
-    if context.user_data.get("awaiting_email"):
+    # ── Email or wallet collection after onboarding bubbles ──
+    if context.user_data.get("awaiting_email_or_wallet") or context.user_data.get("awaiting_email"):
         context.user_data["awaiting_email"] = False
+        context.user_data["awaiting_email_or_wallet"] = False
         import re
-        import asyncio as _aio
-        email = message_text.strip()
-        if re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+        text = message_text.strip()
+
+        # Check if it's an email
+        if re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', text):
             from .waitlist import set_email
-            set_email(user_id, email)
-            await update.message.reply_text("saved 🫡")
+            set_email(user_id, text)
+            await update.message.reply_text("saved 🫡 now drop your wallet address")
+            return
 
-            await _aio.sleep(1)
-            await update.message.chat.send_action(ChatAction.TYPING)
-            await _aio.sleep(1.5)
-
-            await update.message.reply_text(
-                "now drop your wallet address and watch the magic. or don't. your call."
-            )
+        # Check if it's a wallet address (32-44 base58 chars)
+        if re.match(r'^[1-9A-HJ-NP-Za-km-z]{32,44}$', text):
+            # It's a wallet — route to bouncer which will analyze it
+            pass  # Fall through to bouncer handling below
         else:
-            # Not an email — treat as a regular message, route to bouncer
-            await update.message.reply_text(
-                "that's not an email but whatever. /email later if you change your mind."
-            )
-            await _aio.sleep(1)
-            await update.message.chat.send_action(ChatAction.TYPING)
-            await _aio.sleep(1.5)
-            await update.message.reply_text(
-                "drop your wallet address tho. wanna see if you're worth my time."
-            )
-        return
+            # Neither email nor wallet — route to bouncer
+            pass  # Fall through to bouncer handling below
 
     # Check if user is connecting an external wallet
     if context.user_data.get("awaiting_external_wallet"):
