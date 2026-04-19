@@ -1230,6 +1230,39 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     user_profile = get_user_profile(user_id)
 
     # Auto-onboard new users — create wallet and trigger first-time experience
+    # Skip for waitlisted users in taste mode (no wallet until approved)
+    if waitlist_enabled and check_access(user_id).get("access") == "taste":
+        # Taste mode — route to agent without wallet, read-only
+        await update.message.chat.send_action(ChatAction.TYPING)
+        bot_message = await update.message.reply_text("Thinking...")
+
+        try:
+            client, agent_id = await get_client_and_agent()
+            await stream_response(
+                update=update,
+                bot_message=bot_message,
+                client=client,
+                agent_id=agent_id,
+                message=message_text,
+                user_id=str(user_id),
+                session_id=session_id,
+                session_state={
+                    "wallet_address": None,
+                    "wallet_id": None,
+                    "telegram_username": update.effective_user.username,
+                    "telegram_user_id": user_id,
+                    "solana_network": "mainnet",
+                    "signing_mode": "internal",
+                    "external_wallet_address": None,
+                    "preferred_wallet_app": "phantom",
+                    "message_sent_at": update.message.date.strftime("%Y-%m-%d %H:%M:%S UTC") if update.message.date else None,
+                },
+            )
+        except Exception as e:
+            logger.exception(f"Taste mode agent error: {e}")
+            await bot_message.edit_text("something went wrong. try again.")
+        return
+
     if not user_profile or not user_profile.wallet_address:
         try:
             privy = PrivyClient()
