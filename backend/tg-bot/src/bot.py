@@ -1146,9 +1146,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 f"share your link to move up:\n"
                 f"raze.fun/ref/{entry.referral_code}\n\n"
                 f"5 referrals = instant access. every referral = +50 spots.\n\n"
-                f"drop your email so i can ping you when you're in 👇"
+                f"you can chat with me while you wait — ask me anything about solana 🫡"
             )
-            context.user_data["awaiting_email"] = True
             return
 
         if access["access"] == "banned":
@@ -1180,6 +1179,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     f"raze.fun/ref/{code}"
                 )
                 return
+
+            # Check if the message is an email — save it silently
+            import re as _email_re
+            if _email_re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', message_text.strip()):
+                from .waitlist import set_email
+                set_email(user_id, message_text.strip())
+                # Don't return — let it go through to bouncer so it can acknowledge
 
             # Route to bouncer agent (Raze personality, secretly evaluating)
             from .waitlist import get_waitlist_entry, set_bouncer_remarks
