@@ -294,6 +294,20 @@ def set_email(telegram_user_id: int, email: str) -> bool:
         db.close()
 
 
+def set_bouncer_remarks(telegram_user_id: int, remarks: str, score: int):
+    """Set bouncer remarks and score for a waitlisted user."""
+    db = SessionLocal()
+    try:
+        entry = db.query(Waitlist).filter_by(telegram_user_id=telegram_user_id).first()
+        if entry:
+            entry.remarks = remarks
+            entry.bouncer_score = score
+            db.commit()
+            logger.info(f"Bouncer remarks set for {telegram_user_id}: score={score}")
+    finally:
+        db.close()
+
+
 def set_wallet_shared(telegram_user_id: int, wallet_address: str):
     """Record that a user shared their wallet address."""
     db = SessionLocal()

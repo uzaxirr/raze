@@ -1268,36 +1268,74 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     user_profile = get_user_profile(user_id)
 
     # Auto-onboard new users — create wallet and trigger first-time experience
-    # Skip for waitlisted users in taste mode (no wallet until approved)
+    # Skip for waitlisted users in taste mode — route to bouncer agent
     if waitlist_enabled and check_access(user_id).get("access") == "taste":
-        # Taste mode — route to agent without wallet, read-only
+        from .waitlist import get_waitlist_entry, set_bouncer_remarks
+        entry = get_waitlist_entry(user_id)
+
         await update.message.chat.send_action(ChatAction.TYPING)
         bot_message = await update.message.reply_text("Thinking...")
 
         try:
-            client, agent_id = await get_client_and_agent()
-            await stream_response(
-                update=update,
-                bot_message=bot_message,
-                client=client,
-                agent_id=agent_id,
+            client, _ = await get_client_and_agent()
+            # Route to bouncer agent, not raze
+            bouncer_session_id = f"bouncer_{user_id}"
+            msg_time = update.message.date.strftime("%Y-%m-%d %H:%M:%S UTC") if update.message.date else None
+
+            accumulated_text = ""
+            import time as _time
+            last_update_time = _time.time()
+
+            async for event in client.run_agent_stream(
+                agent_id="bouncer",
                 message=message_text,
                 user_id=str(user_id),
-                session_id=session_id,
+                session_id=bouncer_session_id,
                 session_state={
-                    "wallet_address": None,
-                    "wallet_id": None,
-                    "telegram_username": update.effective_user.username,
+                    "telegram_username": update.effective_user.username or update.effective_user.first_name,
                     "telegram_user_id": user_id,
-                    "solana_network": "mainnet",
-                    "signing_mode": "internal",
-                    "external_wallet_address": None,
-                    "preferred_wallet_app": "phantom",
-                    "message_sent_at": update.message.date.strftime("%Y-%m-%d %H:%M:%S UTC") if update.message.date else None,
+                    "position": entry.position if entry else 0,
+                    "referral_count": entry.referral_count if entry else 0,
+                    "referral_code": entry.referral_code if entry else "",
+                    "message_sent_at": msg_time,
                 },
-            )
+            ):
+                if isinstance(event, RunContentEvent) and event.content:
+                    accumulated_text += event.content
+                    current_time = _time.time()
+                    if current_time - last_update_time >= config.MESSAGE_UPDATE_INTERVAL:
+                        await safe_edit_message(bot_message, accumulated_text + " ...")
+                        last_update_time = current_time
+                elif isinstance(event, RunCompletedEvent):
+                    break
+
+            # Extract bouncer remarks
+            import re as _re
+            remarks_match = _re.search(r'\[BOUNCER_REMARKS\](.*?)\[/BOUNCER_REMARKS\]', accumulated_text, _re.DOTALL)
+            if remarks_match:
+                accumulated_text = _re.sub(r'\[BOUNCER_REMARKS\].*?\[/BOUNCER_REMARKS\]', '', accumulated_text, flags=_re.DOTALL).strip()
+                try:
+                    import json
+                    remarks_data = json.loads(remarks_match.group(1).strip())
+                    score = remarks_data.get("score", 0)
+                    set_bouncer_remarks(user_id, json.dumps(remarks_data), score)
+                    logger.info(f"Bouncer scored user {user_id}: {score}/10")
+
+                    # Auto-approve if score >= 7
+                    if score >= 7 and entry and entry.status == "waiting":
+                        from .waitlist import approve_user
+                        approve_user(user_id)
+                        logger.info(f"Bouncer auto-approved user {user_id} with score {score}")
+                except (json.JSONDecodeError, Exception) as e:
+                    logger.warning(f"Failed to parse bouncer remarks: {e}")
+
+            if accumulated_text:
+                await safe_edit_message(bot_message, accumulated_text)
+            else:
+                await bot_message.edit_text("hmm. try again.")
+
         except Exception as e:
-            logger.exception(f"Taste mode agent error: {e}")
+            logger.exception(f"Bouncer agent error: {e}")
             await bot_message.edit_text("something went wrong. try again.")
         return
 

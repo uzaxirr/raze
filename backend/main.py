@@ -12,6 +12,7 @@ from fastapi import FastAPI
 
 from workflows.token_sniper import token_sniper_workflow
 from agent_prompt import RAZE_SYSTEM_PROMPT
+from bouncer_prompt import BOUNCER_SYSTEM_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -136,8 +137,39 @@ agent = Agent(
     instructions=RAZE_SYSTEM_PROMPT,
 )
 
+# Bouncer agent — gatekeeper for waitlist, read-only tools
+bouncer_agent = Agent(
+    name="Bouncer",
+    model=Claude(
+        id="claude-sonnet-4-20250514",
+        cache_system_prompt=True,
+    ),
+    tools=[
+        read_mcp, sns_resolver, token_data, market_research,
+    ],
+    db=db,
+    enable_user_memories=False,
+    add_memories_to_context=False,
+    add_history_to_context=True,
+    add_session_summary_to_context=True,
+    store_history_messages=True,
+    add_session_state_to_context=True,
+    add_datetime_to_context=True,
+    timezone_identifier="UTC",
+    markdown=True,
+    session_state={
+        "telegram_username": None,
+        "telegram_user_id": None,
+        "position": None,
+        "referral_count": None,
+        "referral_code": None,
+        "message_sent_at": None,
+    },
+    instructions=BOUNCER_SYSTEM_PROMPT,
+)
+
 agent_os = AgentOS(
-    agents=[agent],
+    agents=[agent, bouncer_agent],
     workflows=[token_sniper_workflow],
     lifespan=lifespan,
     db=db,

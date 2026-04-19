@@ -215,6 +215,8 @@ class Waitlist(Base):
     messages_reset_at = Column(DateTime, server_default=func.now())
     daily_alpha_enabled = Column(Boolean, default=True)
     wallet_address_shared = Column(String(64))
+    bouncer_score = Column(Integer)  # 1-10, set by bouncer agent
+    remarks = Column(Text)  # JSON string — bouncer agent's notes on the user
     joined_via = Column(String(20), default="direct")  # direct | referral | website
     approved_at = Column(DateTime)
     activated_at = Column(DateTime)
