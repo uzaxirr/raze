@@ -67,16 +67,28 @@ def strip_sign_tx_tags(text: str) -> str:
     return SIGN_TX_PATTERN.sub('', text).strip()
 
 
-async def create_tma_signing_session(accumulated_text: str, session_state: dict | None) -> str | None:
-    """
-    If the agent response contains pending_signature swap data,
-    store swap params via the TMA signing API and return the Mini App URL.
-    """
-    # Check if the accumulated text mentions pending_signature (agent should mention it)
-    if "pending_signature" not in accumulated_text.lower() and "[sign_tx]" not in accumulated_text.lower():
-        return None
+PENDING_SWAP_PATTERN = re.compile(r'\[PENDING_SWAP\](.*?)\[/PENDING_SWAP\]', re.DOTALL)
 
-    if not session_state:
+
+def extract_pending_swap(text: str) -> tuple[str, dict | None]:
+    """Extract pending swap data from agent response. Returns (clean_text, swap_params or None)."""
+    match = PENDING_SWAP_PATTERN.search(text)
+    if match:
+        clean_text = PENDING_SWAP_PATTERN.sub('', text).strip()
+        try:
+            import json
+            params = json.loads(match.group(1).strip())
+            return clean_text, params
+        except Exception:
+            return clean_text, None
+    return text, None
+
+
+async def create_tma_signing_session(swap_params: dict, session_state: dict | None) -> str | None:
+    """
+    Store swap params via the TMA signing API and return the Mini App URL.
+    """
+    if not session_state or not swap_params:
         return None
 
     # Extract swap details from the agent's tool call results
@@ -94,18 +106,21 @@ async def create_tma_signing_session(accumulated_text: str, session_state: dict 
                     "walletAddress": session_state.get("external_wallet_address") or session_state.get("wallet_address"),
                     "signingMode": session_state.get("signing_mode", "external"),
                     "network": session_state.get("solana_network", "mainnet"),
-                    "type": "swap",
-                    # Params will be passed through from agent context
-                    "inputMint": "",
-                    "outputMint": "",
-                    "amount": 0,
-                    "slippageBps": 50,
+                    "type": swap_params.get("type", "swap"),
+                    "inputMint": swap_params.get("inputMint", ""),
+                    "outputMint": swap_params.get("outputMint", ""),
+                    "amount": swap_params.get("amount", 0),
+                    "slippageBps": swap_params.get("slippageBps", 50),
+                    "fromSymbol": swap_params.get("fromSymbol", ""),
+                    "toSymbol": swap_params.get("toSymbol", ""),
+                    "outputAmount": swap_params.get("outputAmount", 0),
+                    "priceImpact": swap_params.get("priceImpact", ""),
+                    "toAddress": swap_params.get("toAddress", ""),
                 },
                 headers={"x-sign-secret": sign_secret},
             )
             if resp.status_code == 200:
                 session_id = resp.json().get("id")
-                # Return the TMA URL for the inline button
                 return f"https://t.me/{bot_username}/sign?startapp={session_id}"
     except Exception as e:
         logger.error(f"Failed to create TMA signing session: {e}")
@@ -1363,9 +1378,10 @@ async def stream_response(
                     # Fallback to text
                     await safe_edit_message(bot_message, clean_text or "couldn't load chart")
             else:
-                # Check if response needs external signing (TMA flow)
+                # Check for pending swap (TMA signing flow)
                 clean_text = strip_sign_tx_tags(accumulated_text)
-                tma_url = await create_tma_signing_session(accumulated_text, session_state)
+                clean_text, swap_params = extract_pending_swap(clean_text)
+                tma_url = await create_tma_signing_session(swap_params, session_state) if swap_params else None
 
                 if tma_url:
                     keyboard = [[InlineKeyboardButton(
