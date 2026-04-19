@@ -210,12 +210,47 @@ When deploying changes to Railway:
 3. **Force rebuild**: If caching issues, clear build cache in Railway dashboard or use `railway up --force`
 4. **Check logs**: `railway logs --service raze-agent`
 
+### Railway Deployment Rules (CRITICAL — follow these every time)
+
+**Frontend deployment:**
+1. ALWAYS deploy from the `frontend/` directory: `cd frontend && railway up --service frontend`
+2. NEVER deploy frontend from repo root — Railpack/Nixpacks analyzes the upload directory and won't find the Node app
+3. After `npm install` of new packages, ALWAYS `rm -f package-lock.json && npm install` to regenerate a clean lock file before deploying — `npm ci` on Railway requires lock file to be perfectly in sync
+4. Next.js with `output: "standalone"` requires start command `node .next/standalone/server.js`, NOT `npm start` / `next start`
+5. "Failed to find Server Action" errors after deploy are transient (stale cached requests) — not a real failure
+6. **Node version: controlled via `frontend/nixpacks.toml`** — this is the ONLY reliable way to set the Node version. `.nvmrc`, `engines` in package.json, `NIXPACKS_NODE_VERSION`, `NODE_VERSION`, `RAILWAY_NODE_VERSION` env vars are ALL unreliable or get cached. Current setting: `nodejs_22` + `npm-10_x`
+7. Do NOT set `buildCommand` in `railway.json` — it overrides Nixpacks' native install step and causes cache mount conflicts (`EBUSY`). Let Nixpacks handle `npm ci` + `npm run build` automatically
+8. If Railway keeps using a cached old Node version, the only fix is `nixpacks.toml` — env vars and `.nvmrc` get ignored when the Docker layer is cached
+
+**Backend deployment:**
+1. Deploy from repo root: `railway up --service backend`
+2. Backend uses `backend/Dockerfile` — set `RAILWAY_DOCKERFILE_PATH=backend/Dockerfile` if Railpack can't find it
+3. New Python deps go in `requirements-all.txt` (NOT `requirements.txt`)
+4. New MCP servers must be added to `supervisord.conf`
+
+**Telegram bot deployment:**
+1. Deploy from repo root: `railway up --service telegram-bot`
+2. Uses `backend/Dockerfile.bot`
+
+**General Railway rules:**
+- `railway up` from a subdirectory uploads ONLY that directory's contents
+- `railway up` from repo root uploads the entire repo — services that need a specific Dockerfile must have `RAILWAY_DOCKERFILE_PATH` set
+- Railway CLI `railway logs` streams forever — use `&` + `sleep` + `kill` to capture output
+- Railway CLI has no `service delete` command — delete services from the dashboard
+- `railway run` executes commands locally with Railway env vars, NOT on the Railway container — internal hostnames like `*.railway.internal` won't resolve
+- To run migrations on prod DB, use the public DATABASE_URL (from `railway variables --service Postgres --kv | grep PUBLIC`)
+
 ### Common Railway Errors
 | Error | Cause | Fix |
 |-------|-------|-----|
+| `npm ci` lock file out of sync | Installed new npm packages without committing lock file | Run `npm install` locally, then deploy |
+| `Railpack could not determine how to build` | Deployed from wrong directory or missing Dockerfile path | Deploy from correct directory or set `RAILWAY_DOCKERFILE_PATH` |
+| `"next start" does not work with standalone` | Start command is `npm start` but Next.js uses standalone output | Change start command to `node .next/standalone/server.js` |
+| `Failed to find Server Action "x"` | Stale cached requests from old deployment | Transient — ignore, or redeploy |
 | `ImportError: OpenTelemetry packages required` | Missing deps in requirements-all.txt | Add opentelemetry-api, opentelemetry-sdk, openinference-instrumentation-agno |
 | `Failed to connect to <MCPTools>` | MCP server not in supervisord.conf | Add [program:mcp-{name}] section to supervisord.conf |
 | MCP timeout errors | External API too slow | Reduce API timeout to <10s (MCP client has 10s hard limit) |
+| `Dockerfile does not exist` | Path relative to wrong root | Use path relative to repo root, deploy from repo root |
 
 ## Known Limitations
 
