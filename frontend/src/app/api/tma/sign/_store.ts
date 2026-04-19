@@ -1,14 +1,10 @@
 export interface SignSession {
   id: string;
-  inputMint: string;
-  outputMint: string;
-  amount: number;
-  slippageBps: number;
+  type: "swap" | "sol_transfer" | "token_transfer";
+  unsignedTransaction?: string;
   walletAddress: string;
   signingMode: string;
-  type: "swap" | "sol_transfer" | "token_transfer";
   toAddress?: string;
-  tokenMint?: string;
   status: "pending" | "connected" | "signing" | "completed" | "expired" | "failed";
   txHash?: string;
   network: string;
@@ -16,6 +12,7 @@ export interface SignSession {
   expiresAt: number;
   fromSymbol?: string;
   toSymbol?: string;
+  inputAmount?: number;
   outputAmount?: number;
   priceImpact?: string;
 }

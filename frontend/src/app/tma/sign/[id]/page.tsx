@@ -41,16 +41,14 @@ createAppKit({
 interface SessionData {
   id: string;
   type: "swap" | "sol_transfer" | "token_transfer";
-  amount: number;
-  inputMint: string;
-  outputMint: string;
+  unsignedTransaction?: string;
   walletAddress: string;
-  slippageBps: number;
   network: string;
   status: string;
   expiresAt: number;
   fromSymbol?: string;
   toSymbol?: string;
+  inputAmount?: number;
   outputAmount?: number;
   priceImpact?: string;
   toAddress?: string;
@@ -134,40 +132,20 @@ export default function TMASignPage() {
 
       let sig: string;
 
-      if (session.type === "swap") {
-        // Get fresh quote from Jupiter
-        const quoteRes = await fetch(
-          `https://api.jup.ag/swap/v1/quote?inputMint=${session.inputMint}&outputMint=${session.outputMint}&amount=${session.amount}&slippageBps=${session.slippageBps}&platformFeeBps=200`
-        );
-        const quote = await quoteRes.json();
+      if (!session.unsignedTransaction) {
+        throw new Error("No unsigned transaction in session — it may have expired");
+      }
 
-        // Get swap transaction
-        const swapRes = await fetch("https://api.jup.ag/swap/v1/swap", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            quoteResponse: quote,
-            userPublicKey: address,
-            wrapAndUnwrapSol: true,
-            dynamicComputeUnitLimit: true,
-          }),
-        });
-        const swapData = await swapRes.json();
-        const txBytes = Buffer.from(swapData.swapTransaction, "base64");
+      const txBytes = Buffer.from(session.unsignedTransaction, "base64");
 
-        // Detect versioned vs legacy
-        const isVersioned = txBytes[0] & 0x80;
-        if (isVersioned) {
-          const vtx = VersionedTransaction.deserialize(txBytes);
-          sig = await walletProvider.sendTransaction(vtx, conn as any);
-        } else {
-          const ltx = Transaction.from(txBytes);
-          sig = await walletProvider.sendTransaction(ltx, conn as any);
-        }
+      // Detect versioned vs legacy from first byte
+      const isVersioned = txBytes[0] & 0x80;
+      if (isVersioned) {
+        const vtx = VersionedTransaction.deserialize(txBytes);
+        sig = await walletProvider.sendTransaction(vtx, conn as any);
       } else {
-        // SOL/token transfers — fetch pre-built tx from backend
-        // For now, transfers still use the old flow via internal mode
-        throw new Error("Transfer signing via TMA coming soon");
+        const ltx = Transaction.from(txBytes);
+        sig = await walletProvider.sendTransaction(ltx, conn as any);
       }
 
       setSignature(sig);
@@ -197,10 +175,10 @@ export default function TMASignPage() {
 
   const txLabel = session
     ? session.type === "swap"
-      ? `Swap ${session.amount || ""} ${session.fromSymbol || ""} → ${session.toSymbol || ""}`
+      ? `Swap ${session.inputAmount || ""} ${session.fromSymbol || ""} → ${session.toSymbol || ""}`
       : session.type === "sol_transfer"
-        ? `Send ${session.amount || ""} SOL`
-        : `Send ${session.amount || ""} ${session.fromSymbol || "tokens"}`
+        ? `Send ${session.inputAmount || ""} SOL`
+        : `Send ${session.inputAmount || ""} ${session.fromSymbol || "tokens"}`
     : "";
 
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
