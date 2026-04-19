@@ -20,6 +20,10 @@ if (!initialized && projectId) {
       description: "Everything Solana in one chat",
       url: "https://raze.fun",
       icons: ["https://raze.fun/assets/imp-expressions/waving.png"],
+      redirect: {
+        native: "tg://resolve?domain=razeaii_bot",
+        universal: "https://t.me/razeaii_bot",
+      },
     },
     features: {
       analytics: false,
