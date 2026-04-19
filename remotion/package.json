@@ -1,21 +1,21 @@
 {
-  "name": "solana-agent-promo",
+  "name": "raze-video",
   "version": "1.0.0",
-  "description": "Social media promo video for Solana MCP Agent",
+  "description": "Raze.fun promo video — Remotion source",
   "scripts": {
-    "dev": "remotion studio",
-    "build": "remotion render SolanaPromo out/promo.mp4",
-    "build:gif": "remotion render SolanaPromo out/promo.gif"
+    "start": "remotion studio",
+    "build": "remotion render RazeVideo out/raze.mp4",
+    "build:webm": "remotion render RazeVideo out/raze.webm --codec=vp9",
+    "upgrade": "remotion upgrade"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.0",
-    "@remotion/transitions": "^4.0.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "remotion": "^4.0.0"
   },
   "devDependencies": {
-    "@types/react": "^18.2.0",
-    "typescript": "^5.0.0"
+    "@types/react": "^18.3.1",
+    "typescript": "^5.4.0"
   }
 }
