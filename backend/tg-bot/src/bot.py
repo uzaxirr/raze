@@ -1232,7 +1232,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                         accumulated_text += event.content
                         current_time = _time.time()
                         if current_time - last_update_time >= config.MESSAGE_UPDATE_INTERVAL:
-                            await safe_edit_message(bot_message, accumulated_text + " ...")
+                            # Strip [THINK] blocks during streaming so user never sees them
+                            display_text = _re.sub(r'\[THINK\].*?\[/THINK\]', '', accumulated_text, flags=_re.DOTALL).strip()
+                            display_text = _re.sub(r'\[THINK\].*$', '', display_text, flags=_re.DOTALL).strip()
+                            if display_text:
+                                await safe_edit_message(bot_message, display_text + " ...")
                             last_update_time = current_time
                     elif isinstance(event, RunCompletedEvent):
                         break
