@@ -297,6 +297,13 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     user_id = str(user.id)
     session_id = f"tg_user_{user.id}"
 
+    # Extract referral code from /start ref_XXXX or /start waitlist
+    start_param = ""
+    if context.args and len(context.args) > 0:
+        start_param = context.args[0]
+    if start_param.startswith("ref_"):
+        context.user_data["referral_code"] = start_param[4:]  # strip "ref_" prefix
+
     # Show typing indicator while we set things up
     await update.message.chat.send_action(ChatAction.TYPING)
 
@@ -1074,6 +1081,91 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     user_id = update.effective_user.id
     session_id = get_session_id(user_id, context)
 
+    # ── Waitlist gate ──
+    from .waitlist import check_access, join_waitlist, increment_message_count, get_waitlist_count, get_approved_count
+    import os
+    waitlist_enabled = os.getenv("WAITLIST_ENABLED", "false").lower() == "true"
+
+    if waitlist_enabled:
+        access = check_access(user_id)
+
+        if access["access"] == "new":
+            # Auto-join waitlist
+            user = update.effective_user
+            ref_code = context.user_data.get("referral_code")  # set by /start handler
+            entry = join_waitlist(
+                telegram_user_id=user_id,
+                telegram_username=user.username,
+                first_name=user.first_name,
+                referred_by_code=ref_code,
+                joined_via="referral" if ref_code else "direct",
+            )
+            total = get_waitlist_count()
+            approved = get_approved_count()
+            await update.message.reply_text(
+                f"yo. raze here — your future crypto assistant. brutally honest, actually useful.\n\n"
+                f"you're on the waitlist — #{entry.position} of {total}\n\n"
+                f"share your link to move up:\n"
+                f"raze.fun/ref/{entry.referral_code}\n\n"
+                f"5 referrals = instant access. every referral = +50 spots.\n\n"
+                f"drop your email so i can ping you when you're in 👇"
+            )
+            context.user_data["awaiting_email"] = True
+            return
+
+        if access["access"] == "banned":
+            return  # silently ignore
+
+        if access["access"] == "limited":
+            entry = access.get("entry")
+            code = entry.referral_code if entry else "???"
+            await update.message.reply_text(
+                f"you've hit your daily limit — 5 free msgs/day while on the waitlist.\n\n"
+                f"share your link for instant access:\n"
+                f"raze.fun/ref/{code}\n\n"
+                f"or wait til tomorrow. your call 💀"
+            )
+            return
+
+        if access["access"] == "taste":
+            # Let them through but increment counter and block write operations
+            increment_message_count(user_id)
+
+            # Check if they're trying a blocked action
+            blocked_keywords = ["swap", "send", "transfer", "alert", "watch", "snipe"]
+            if any(kw in message_text.lower() for kw in blocked_keywords):
+                entry = access.get("entry")
+                code = entry.referral_code if entry else "???"
+                remaining = access.get("remaining", 0) - 1
+                await update.message.reply_text(
+                    f"that's a pro move. you're still on the waitlist tho.\n\n"
+                    f"share your link to skip the line:\n"
+                    f"raze.fun/ref/{code}\n\n"
+                    f"{remaining} msgs left today"
+                )
+                return
+            # Otherwise fall through to normal message handling (taste mode)
+
+        # access["access"] == "full" — fall through to normal flow
+
+    # ── Email collection ──
+    if context.user_data.get("awaiting_email"):
+        context.user_data["awaiting_email"] = False
+        import re
+        email = message_text.strip()
+        if re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+            from .waitlist import set_email
+            set_email(user_id, email)
+            await update.message.reply_text(
+                "saved. now go share that link before someone else takes your spot 🫡"
+            )
+        else:
+            await update.message.reply_text(
+                "that doesn't look like an email. whatever, you can set it later with /email\n\n"
+                "more importantly — share your link to move up the waitlist"
+            )
+        return
+
     # Check if user is connecting an external wallet
     if context.user_data.get("awaiting_external_wallet"):
         context.user_data["awaiting_external_wallet"] = False
@@ -1449,6 +1541,58 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         )
 
 
+async def waitlist_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /waitlist - show position and referral link."""
+    from .waitlist import get_waitlist_entry, get_waitlist_count, get_approved_count
+    user_id = update.effective_user.id
+    entry = get_waitlist_entry(user_id)
+
+    if not entry:
+        await update.message.reply_text("you're not on the waitlist. send any message to join.")
+        return
+
+    if entry.status in ("approved", "active"):
+        await update.message.reply_text("you're already in. stop flexing 💀")
+        return
+
+    total = get_waitlist_count()
+    approved = get_approved_count()
+    refs_left = max(0, 5 - entry.referral_count)
+
+    await update.message.reply_text(
+        f"📊 your waitlist stats:\n\n"
+        f"position: #{entry.position} of {total}\n"
+        f"referrals: {entry.referral_count}\n"
+        f"status: {entry.status}\n\n"
+        f"share your link to move up:\n"
+        f"raze.fun/ref/{entry.referral_code}\n\n"
+        f"{'instant access in ' + str(refs_left) + ' more referral(s)' if refs_left > 0 else 'you qualify for instant access!'}"
+    )
+
+
+async def refer_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /refer - show referral link and stats."""
+    from .waitlist import get_waitlist_entry
+    entry = get_waitlist_entry(update.effective_user.id)
+    if not entry:
+        await update.message.reply_text("join the waitlist first — send any message.")
+        return
+
+    await update.message.reply_text(
+        f"your referral link:\n\n"
+        f"raze.fun/ref/{entry.referral_code}\n\n"
+        f"referrals so far: {entry.referral_count}\n"
+        f"every referral = +50 spots. 5 = instant access.\n\n"
+        f"share it everywhere 🚀"
+    )
+
+
+async def email_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /email - set or update email."""
+    context.user_data["awaiting_email"] = True
+    await update.message.reply_text("drop your email 👇")
+
+
 def create_application() -> Application:
     """Create and configure the Telegram bot application."""
     app = Application.builder().token(config.TELEGRAM_BOT_TOKEN).build()
@@ -1456,6 +1600,9 @@ def create_application() -> Application:
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("wallet", wallet_command))
+    app.add_handler(CommandHandler("waitlist", waitlist_command))
+    app.add_handler(CommandHandler("refer", refer_command))
+    app.add_handler(CommandHandler("email", email_command))
     app.add_handler(CommandHandler("alerts", alerts_command))
     app.add_handler(CommandHandler("clear", clear_command))
     app.add_handler(CommandHandler("apistats", apistats_command))

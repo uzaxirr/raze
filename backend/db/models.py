@@ -194,3 +194,33 @@ class MCPOAuthPending(Base):
 
     def __repr__(self):
         return f"<MCPOAuthPending(user={self.user_id}, server={self.mcp_server_name}, state={self.state[:8]}...)>"
+
+
+class Waitlist(Base):
+    """Waitlist table for gated beta access with referral system."""
+    __tablename__ = "waitlist"
+
+    id = Column(Integer, primary_key=True)
+    telegram_user_id = Column(BigInteger, unique=True, nullable=False, index=True)
+    telegram_username = Column(String(64))
+    first_name = Column(String(128))
+    email = Column(String(256))
+    referral_code = Column(String(8), unique=True, nullable=False, index=True)
+    referred_by_code = Column(String(8))
+    referred_by_user_id = Column(BigInteger)
+    position = Column(Integer, nullable=False)
+    referral_count = Column(Integer, default=0)
+    status = Column(String(20), default="waiting", index=True)  # waiting | approved | active | banned
+    messages_today = Column(Integer, default=0)
+    messages_reset_at = Column(DateTime, server_default=func.now())
+    daily_alpha_enabled = Column(Boolean, default=True)
+    wallet_address_shared = Column(String(64))
+    joined_via = Column(String(20), default="direct")  # direct | referral | website
+    approved_at = Column(DateTime)
+    activated_at = Column(DateTime)
+    last_seen_at = Column(DateTime)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    def __repr__(self):
+        return f"<Waitlist(user={self.telegram_user_id}, pos={self.position}, status={self.status})>"
