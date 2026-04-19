@@ -1224,30 +1224,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 last_update_time = _time.time()
 
                 # Track bouncer conversation step
-                import random as _random
-                from bouncer_prompt import STEP_INSTRUCTIONS, RANDOM_INJECTIONS
-
                 bouncer_step = context.user_data.get("bouncer_step", 0)
                 has_wallet = context.user_data.get("bouncer_has_wallet", False)
 
                 # Detect if user just shared a wallet address (32-44 base58 chars)
                 if _re.match(r'^[1-9A-HJ-NP-Za-km-z]{32,44}$', message_text.strip()) and not has_wallet:
                     context.user_data["bouncer_has_wallet"] = True
-                    context.user_data["bouncer_step"] = 1
+                    context.user_data["bouncer_step"] = 1  # wallet just shared, start sequence
                     bouncer_step = 1
                 elif has_wallet and bouncer_step > 0:
                     bouncer_step = context.user_data.get("bouncer_step", 1)
-
-                # Build step instruction for this turn
-                step_key = min(bouncer_step, 4)
-                step_instruction = STEP_INSTRUCTIONS.get(step_key, "")
-
-                # Add random injection every other turn
-                if bouncer_step >= 2 and _random.random() < 0.5:
-                    injection = _random.choice(RANDOM_INJECTIONS)
-                    if entry and entry.referral_code:
-                        injection = injection.replace("CODE", entry.referral_code)
-                    step_instruction += f"\nAlso: {injection}"
 
                 async for event in client.run_agent_stream(
                     agent_id="bouncer",
@@ -1257,7 +1243,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     session_state={
                         "telegram_username": update.effective_user.username or update.effective_user.first_name,
                         "telegram_user_id": user_id,
-                        "step_instruction": step_instruction,
+                        "bouncer_step": bouncer_step,
                         "position": entry.position if entry else 0,
                         "referral_count": entry.referral_count if entry else 0,
                         "referral_code": entry.referral_code if entry else "",
