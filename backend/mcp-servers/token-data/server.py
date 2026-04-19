@@ -460,7 +460,7 @@ async def get_price_at_date(
 async def get_wallet_pnl(
     wallet: str,
     token_addresses: Optional[List[str]] = None,
-    sort_by: str = "value",
+    sort_by: str = "last_trade",
     sort_type: str = "desc",
     limit: int = 10,
     offset: int = 0
