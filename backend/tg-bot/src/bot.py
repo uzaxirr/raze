@@ -12,7 +12,7 @@ from agno.client import AgentOSClient
 from db.database import SessionLocal
 from db.models import UserProfile, PriceAlert, UserMCPServer
 from agno.exceptions import RemoteServerUnavailableError
-from agno.run.agent import RunContentEvent, RunCompletedEvent
+from agno.run.agent import RunContentEvent, RunCompletedEvent, ToolCallCompletedEvent
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ChatAction
 from telegram.error import BadRequest
@@ -107,15 +107,15 @@ async def create_tma_signing_session(swap_params: dict, session_state: dict | No
                     "signingMode": session_state.get("signing_mode", "external"),
                     "network": session_state.get("solana_network", "mainnet"),
                     "type": swap_params.get("type", "swap"),
-                    "inputMint": swap_params.get("inputMint", ""),
-                    "outputMint": swap_params.get("outputMint", ""),
-                    "amount": swap_params.get("amount", 0),
-                    "slippageBps": swap_params.get("slippageBps", 50),
-                    "fromSymbol": swap_params.get("fromSymbol", ""),
-                    "toSymbol": swap_params.get("toSymbol", ""),
-                    "outputAmount": swap_params.get("outputAmount", 0),
-                    "priceImpact": swap_params.get("priceImpact", ""),
-                    "toAddress": swap_params.get("toAddress", ""),
+                    "inputMint": swap_params.get("input_mint", swap_params.get("inputMint", "")),
+                    "outputMint": swap_params.get("output_mint", swap_params.get("outputMint", "")),
+                    "amount": swap_params.get("input_amount", swap_params.get("amount", 0)),
+                    "slippageBps": swap_params.get("slippage_bps", swap_params.get("slippageBps", 50)),
+                    "fromSymbol": swap_params.get("from_token", swap_params.get("fromSymbol", "")),
+                    "toSymbol": swap_params.get("to_token", swap_params.get("toSymbol", "")),
+                    "outputAmount": swap_params.get("output_amount", swap_params.get("outputAmount", 0)),
+                    "priceImpact": swap_params.get("price_impact", swap_params.get("priceImpact", "")),
+                    "toAddress": swap_params.get("to", swap_params.get("toAddress", "")),
                 },
                 headers={"x-sign-secret": sign_secret},
             )
@@ -1252,6 +1252,7 @@ async def stream_response(
 ) -> None:
     """Stream agent response with periodic message updates."""
     accumulated_text = ""
+    pending_swap_data = None  # Captured from ToolCallCompletedEvent
     last_update_time = time.time()
     update_interval = config.MESSAGE_UPDATE_INTERVAL
 
@@ -1293,6 +1294,20 @@ async def stream_response(
                     await safe_edit_message(bot_message, accumulated_text + " ...")
                     last_update_time = current_time
                     await update.message.chat.send_action(ChatAction.TYPING)
+
+            elif isinstance(event, ToolCallCompletedEvent) and event.tool:
+                # Intercept tool results to detect pending_signature for TMA signing
+                tool_result = event.tool.result or ""
+                tool_name = event.tool.tool_name or ""
+                if "pending_signature" in tool_result and tool_name in ("swap_tokens", "send_sol", "send_token"):
+                    try:
+                        import json
+                        result_data = json.loads(tool_result)
+                        if result_data.get("status") == "pending_signature":
+                            pending_swap_data = result_data
+                            logger.info(f"Captured pending_signature from {tool_name}")
+                    except (json.JSONDecodeError, Exception) as e:
+                        logger.warning(f"Failed to parse tool result: {e}")
 
             elif isinstance(event, RunCompletedEvent):
                 break
@@ -1378,10 +1393,10 @@ async def stream_response(
                     # Fallback to text
                     await safe_edit_message(bot_message, clean_text or "couldn't load chart")
             else:
-                # Check for pending swap (TMA signing flow)
+                # Check for pending swap from tool results (TMA signing flow)
                 clean_text = strip_sign_tx_tags(accumulated_text)
-                clean_text, swap_params = extract_pending_swap(clean_text)
-                tma_url = await create_tma_signing_session(swap_params, session_state) if swap_params else None
+                clean_text, _ = extract_pending_swap(clean_text)  # Strip any PENDING_SWAP tags too
+                tma_url = await create_tma_signing_session(pending_swap_data, session_state) if pending_swap_data else None
 
                 if tma_url:
                     keyboard = [[InlineKeyboardButton(
