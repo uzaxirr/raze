@@ -1206,6 +1206,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             bot_message = await update.message.reply_text("Thinking...")
 
             try:
+                import re as _re
                 client, _ = await get_client_and_agent()
                 bouncer_session_id = f"bouncer_{user_id}"
                 msg_time = update.message.date.strftime("%Y-%m-%d %H:%M:%S UTC") if update.message.date else None
