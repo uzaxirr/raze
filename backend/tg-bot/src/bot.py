@@ -1140,14 +1140,25 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             )
             total = get_waitlist_count()
             approved = get_approved_count()
+            # Multi-bubble onboarding — feels like a real conversation
+            import asyncio as _aio
+
             await update.message.reply_text(
                 f"yo. raze here — your future crypto assistant. brutally honest, actually useful.\n\n"
                 f"you're on the waitlist — #{entry.position} of {total}\n\n"
                 f"share your link to move up:\n"
                 f"raze.fun/ref/{entry.referral_code}\n\n"
-                f"5 referrals = instant access. every referral = +50 spots.\n\n"
-                f"you can chat with me while you wait — ask me anything about solana 🫡"
+                f"5 referrals = instant access. every referral = +50 spots."
             )
+
+            await _aio.sleep(1.5)
+            await update.message.chat.send_action(ChatAction.TYPING)
+            await _aio.sleep(1.5)
+
+            await update.message.reply_text(
+                "oh btw drop your email so i can ping you when you're off the waitlist. telegram notifs are mid"
+            )
+            context.user_data["awaiting_email"] = True
             return
 
         if access["access"] == "banned":
@@ -1261,17 +1272,31 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if context.user_data.get("awaiting_email"):
         context.user_data["awaiting_email"] = False
         import re
+        import asyncio as _aio
         email = message_text.strip()
         if re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
             from .waitlist import set_email
             set_email(user_id, email)
+            await update.message.reply_text("saved 🫡")
+
+            await _aio.sleep(1)
+            await update.message.chat.send_action(ChatAction.TYPING)
+            await _aio.sleep(1.5)
+
             await update.message.reply_text(
-                "saved. now go share that link before someone else takes your spot 🫡"
+                "anyway — drop your solana wallet address. wanna see what you're working with 👀"
             )
         else:
+            # Not an email — treat as a regular message, route to bouncer
+            # But first, let them know about email
             await update.message.reply_text(
-                "that doesn't look like an email. whatever, you can set it later with /email\n\n"
-                "more importantly — share your link to move up the waitlist"
+                "that's not an email but whatever. you can set it later with /email"
+            )
+            await _aio.sleep(1)
+            await update.message.chat.send_action(ChatAction.TYPING)
+            await _aio.sleep(1.5)
+            await update.message.reply_text(
+                "drop your solana wallet address tho. wanna see what you're working with 👀"
             )
         return
 
