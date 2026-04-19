@@ -1,8 +1,10 @@
 """Waitlist management — CRUD, position calculation, access control."""
+import os
 import secrets
 import logging
 from datetime import datetime, date
 
+import httpx
 from db.database import SessionLocal
 from db.models import Waitlist
 
@@ -12,6 +14,26 @@ logger = logging.getLogger(__name__)
 REFERRAL_BOOST = 50       # spots gained per referral
 AUTO_APPROVE_REFS = 5     # referrals needed for instant access
 DAILY_MSG_LIMIT = 5       # messages/day for taste mode
+
+# Admin notifications
+ADMIN_BOT_TOKEN = os.getenv("ADMIN_BOT_TOKEN")
+ADMIN_USER_ID = os.getenv("ADMIN_USER_ID", "1327643512")
+
+
+async def notify_admin(message: str):
+    """Send a notification to the admin via the admin bot."""
+    if not ADMIN_BOT_TOKEN or not ADMIN_USER_ID:
+        return
+    try:
+        url = f"https://api.telegram.org/bot{ADMIN_BOT_TOKEN}/sendMessage"
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            await client.post(url, json={
+                "chat_id": int(ADMIN_USER_ID),
+                "text": message,
+                "parse_mode": "HTML",
+            })
+    except Exception as e:
+        logger.warning(f"Failed to notify admin: {e}")
 
 
 def generate_referral_code() -> str:
@@ -111,6 +133,22 @@ def join_waitlist(
             process_referral(referrer.telegram_user_id, db)
 
         logger.info(f"User {telegram_user_id} joined waitlist at position {position}")
+
+        # Notify admin
+        import asyncio
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                loop.create_task(notify_admin(
+                    f"📥 <b>New waitlist join</b>\n"
+                    f"@{telegram_username or 'anon'} ({first_name or ''})\n"
+                    f"Position: #{position}\n"
+                    f"Via: {joined_via}\n"
+                    f"Referred by: {referred_by_code or 'direct'}"
+                ))
+        except Exception:
+            pass
+
         return entry
     finally:
         db.close()
@@ -137,6 +175,19 @@ def process_referral(referrer_user_id: int, db=None) -> dict | None:
             referrer.approved_at = datetime.utcnow()
             referrer.position = 0  # Top of the queue
             logger.info(f"User {referrer_user_id} auto-approved with {referrer.referral_count} referrals")
+
+            # Notify admin
+            import asyncio
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    loop.create_task(notify_admin(
+                        f"🔓 <b>Auto-approved</b>\n"
+                        f"@{referrer.telegram_username or referrer_user_id}\n"
+                        f"Reached {referrer.referral_count} referrals"
+                    ))
+            except Exception:
+                pass
         else:
             # Bump up position
             new_position = max(1, referrer.position - REFERRAL_BOOST)
@@ -182,6 +233,19 @@ def check_access(telegram_user_id: int) -> dict:
                 entry.status = "active"
                 entry.activated_at = datetime.utcnow()
                 db.commit()
+
+                import asyncio
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        loop.create_task(notify_admin(
+                            f"🚀 <b>User activated</b>\n"
+                            f"@{entry.telegram_username or entry.telegram_user_id}\n"
+                            f"Referrals: {entry.referral_count}"
+                        ))
+                except Exception:
+                    pass
+
             return {"access": "full"}
 
         # Status is "waiting" — check taste mode limits
@@ -251,6 +315,18 @@ def approve_user(telegram_user_id: int) -> bool:
             entry.status = "approved"
             entry.approved_at = datetime.utcnow()
             db.commit()
+
+            import asyncio
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    loop.create_task(notify_admin(
+                        f"✅ <b>User approved</b>\n"
+                        f"@{entry.telegram_username or telegram_user_id}"
+                    ))
+            except Exception:
+                pass
+
             return True
         return False
     finally:
