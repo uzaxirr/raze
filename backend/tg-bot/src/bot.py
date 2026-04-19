@@ -304,6 +304,44 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     if start_param.startswith("ref_"):
         context.user_data["referral_code"] = start_param[4:]  # strip "ref_" prefix
 
+    # Waitlist gate for /start
+    import os
+    waitlist_enabled = os.getenv("WAITLIST_ENABLED", "false").lower() == "true"
+    if waitlist_enabled:
+        from .waitlist import check_access, join_waitlist, get_waitlist_count, get_approved_count
+        access = check_access(user.id)
+
+        if access["access"] in ("new", "waiting", "taste", "limited"):
+            # Join waitlist if new
+            if access["access"] == "new":
+                ref_code = context.user_data.get("referral_code")
+                entry = join_waitlist(
+                    telegram_user_id=user.id,
+                    telegram_username=user.username,
+                    first_name=user.first_name,
+                    referred_by_code=ref_code,
+                    joined_via="referral" if ref_code else "direct",
+                )
+            else:
+                from .waitlist import get_waitlist_entry
+                entry = get_waitlist_entry(user.id)
+
+            total = get_waitlist_count()
+            await update.message.reply_text(
+                f"yo. raze here — your future crypto assistant. brutally honest, actually useful.\n\n"
+                f"you're on the waitlist — #{entry.position} of {total}\n\n"
+                f"share your link to move up:\n"
+                f"raze.fun/ref/{entry.referral_code}\n\n"
+                f"5 referrals = instant access. every referral = +50 spots.\n\n"
+                f"you can chat with me while you wait — 5 free msgs/day 🫡"
+            )
+            return
+
+        if access["access"] == "banned":
+            return
+
+        # access == "full" — fall through to normal /start flow
+
     # Show typing indicator while we set things up
     await update.message.chat.send_action(ChatAction.TYPING)
 
