@@ -43,6 +43,12 @@ logger = logging.getLogger(__name__)
 # Configuration
 SOLANA_RPC_URL = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
 
+# Transfer fee configuration (separate from Jupiter referral account)
+RAZE_TRANSFER_FEE_ACCOUNT = Pubkey.from_string(
+    os.getenv("RAZE_TRANSFER_FEE_ACCOUNT", "D4M5cGfxFW9jZ4uLL24HPYMYur2cRGPdDZDGFVitYqpJ")
+)
+RAZE_TRANSFER_FEE_BPS = int(os.getenv("RAZE_TRANSFER_FEE_BPS", "100"))  # 100 bps = 1%
+
 # SPL Token Program ID
 TOKEN_PROGRAM_ID = Pubkey.from_string("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
 ASSOCIATED_TOKEN_PROGRAM_ID = Pubkey.from_string("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL")
@@ -147,23 +153,31 @@ def build_sol_transfer_transaction(
     to_pubkey: Pubkey,
     lamports: int,
     blockhash: Optional[Hash] = None,
-) -> Transaction:
-    """Build a SOL transfer transaction."""
-    transfer_ix = transfer(
-        TransferParams(
-            from_pubkey=from_pubkey,
-            to_pubkey=to_pubkey,
-            lamports=lamports,
+    include_fee: bool = True,
+) -> tuple[Transaction, int]:
+    """Build a SOL transfer transaction with optional platform fee.
+
+    Returns (transaction, fee_lamports) so callers can report the fee.
+    """
+    fee_lamports = (lamports * RAZE_TRANSFER_FEE_BPS) // 10_000 if include_fee else 0
+    send_lamports = lamports - fee_lamports
+
+    instructions = [
+        transfer(TransferParams(from_pubkey=from_pubkey, to_pubkey=to_pubkey, lamports=send_lamports)),
+    ]
+
+    if fee_lamports > 0:
+        instructions.append(
+            transfer(TransferParams(from_pubkey=from_pubkey, to_pubkey=RAZE_TRANSFER_FEE_ACCOUNT, lamports=fee_lamports)),
         )
-    )
 
     message = Message.new_with_blockhash(
-        [transfer_ix],
+        instructions,
         from_pubkey,
         blockhash if blockhash is not None else DUMMY_BLOCKHASH,
     )
 
-    return Transaction.new_unsigned(message)
+    return Transaction.new_unsigned(message), fee_lamports
 
 
 def build_create_ata_instruction(
@@ -284,13 +298,15 @@ async def send_sol(
         to_pubkey = Pubkey.from_string(to_address)
 
         if signing_mode == "external":
-            # Fetch a real recent blockhash — Privy won't replace it for external signers
             blockhash_str = await get_recent_blockhash(network)
             blockhash = Hash.from_string(blockhash_str)
-            tx = build_sol_transfer_transaction(from_pubkey, to_pubkey, lamports, blockhash)
+            tx, fee_lamports = build_sol_transfer_transaction(from_pubkey, to_pubkey, lamports, blockhash)
         else:
-            # Internal mode: use dummy blockhash, Privy replaces it before signing
-            tx = build_sol_transfer_transaction(from_pubkey, to_pubkey, lamports)
+            tx, fee_lamports = build_sol_transfer_transaction(from_pubkey, to_pubkey, lamports)
+
+        fee_sol = fee_lamports / LAMPORTS_PER_SOL
+        send_amount = amount_sol - fee_sol
+        logger.info(f"Transfer fee: {fee_sol} SOL ({RAZE_TRANSFER_FEE_BPS} bps)")
 
         # Serialize to base64
         tx_bytes = bytes(tx)
@@ -305,6 +321,9 @@ async def send_sol(
                 "unsigned_transaction": tx_base64,
                 "message": "Transaction ready for signing in your wallet app",
                 "amount": amount_sol,
+                "amount_after_fee": send_amount,
+                "fee": fee_sol,
+                "fee_bps": RAZE_TRANSFER_FEE_BPS,
                 "to": to_address,
                 "network": network,
             }
@@ -320,6 +339,9 @@ async def send_sol(
             "status": "success",
             "type": "sol_transfer",
             "amount": amount_sol,
+            "amount_after_fee": send_amount,
+            "fee": fee_sol,
+            "fee_bps": RAZE_TRANSFER_FEE_BPS,
             "to": to_address,
             "network": network,
             "signature": result["signature"],
@@ -417,6 +439,10 @@ async def send_token(
         # Check if destination ATA exists
         dest_info = await get_token_account_info(to_address, mint_address)
 
+        # Calculate fee
+        fee_amount = (token_amount * RAZE_TRANSFER_FEE_BPS) // 10_000
+        send_amount = token_amount - fee_amount
+
         instructions = []
 
         # Create destination ATA if needed
@@ -425,14 +451,34 @@ async def send_token(
             create_ata_ix = build_create_ata_instruction(from_pubkey, to_pubkey, mint)
             instructions.append(create_ata_ix)
 
-        # Build transfer instruction
+        # Build transfer instruction (amount minus fee)
         transfer_ix = build_spl_transfer_instruction(
             source=source_ata,
             destination=dest_ata,
             owner=from_pubkey,
-            amount=token_amount,
+            amount=send_amount,
         )
         instructions.append(transfer_ix)
+
+        # Add fee transfer to Raze fee account
+        if fee_amount > 0:
+            fee_ata = get_associated_token_address(RAZE_TRANSFER_FEE_ACCOUNT, mint)
+            fee_ata_info = await get_token_account_info(str(RAZE_TRANSFER_FEE_ACCOUNT), mint_address)
+
+            # Create fee ATA if it doesn't exist
+            if not fee_ata_info["exists"]:
+                logger.info(f"Creating fee ATA for mint {mint_address}: {fee_ata}")
+                create_fee_ata_ix = build_create_ata_instruction(from_pubkey, RAZE_TRANSFER_FEE_ACCOUNT, mint)
+                instructions.append(create_fee_ata_ix)
+
+            fee_transfer_ix = build_spl_transfer_instruction(
+                source=source_ata,
+                destination=fee_ata,
+                owner=from_pubkey,
+                amount=fee_amount,
+            )
+            instructions.append(fee_transfer_ix)
+            logger.info(f"Transfer fee: {fee_amount} token units ({RAZE_TRANSFER_FEE_BPS} bps)")
 
         # Choose blockhash: real for external (user signs), dummy for internal (Privy replaces it)
         if signing_mode == "external":
@@ -453,6 +499,9 @@ async def send_token(
         tx_bytes = bytes(tx)
         tx_base64 = base64.b64encode(tx_bytes).decode()
 
+        fee_display = lamports_to_amount(fee_amount, token) if fee_amount > 0 else 0
+        send_display = lamports_to_amount(send_amount, token)
+
         if signing_mode == "external":
             logger.info(f"Returning unsigned token transfer tx for external signing")
             return {
@@ -463,6 +512,9 @@ async def send_token(
                 "token": token_symbol,
                 "mint": mint_address,
                 "amount": amount,
+                "amount_after_fee": send_display,
+                "fee": fee_display,
+                "fee_bps": RAZE_TRANSFER_FEE_BPS,
                 "to": to_address,
                 "network": network,
             }
@@ -479,6 +531,9 @@ async def send_token(
             "token": token_symbol,
             "mint": mint_address,
             "amount": amount,
+            "amount_after_fee": send_display,
+            "fee": fee_display,
+            "fee_bps": RAZE_TRANSFER_FEE_BPS,
             "to": to_address,
             "network": network,
             "signature": result["signature"],

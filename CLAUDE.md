@@ -118,11 +118,13 @@ Add handler in `tg-bot/src/bot.py`
 
 ## Environment Variables
 
-**Root .env**: DATABASE_URL, BIRDEYE_API_KEY, JUPITER_API_KEY, XAI_API_KEY, HELIUS_API_KEY, PRIVY_APP_ID, PRIVY_APP_SECRET, LUNARCRUSH_API_KEY, RAZE_REFERRAL_ACCOUNT, RAZE_REFERRAL_FEE_BPS
+**Root .env**: DATABASE_URL, BIRDEYE_API_KEY, JUPITER_API_KEY, XAI_API_KEY, HELIUS_API_KEY, PRIVY_APP_ID, PRIVY_APP_SECRET, LUNARCRUSH_API_KEY, RAZE_REFERRAL_ACCOUNT, RAZE_REFERRAL_FEE_BPS, RAZE_TRANSFER_FEE_ACCOUNT, RAZE_TRANSFER_FEE_BPS
 
 **tg-bot/.env**: TELEGRAM_BOT_TOKEN, AGENTOS_BASE_URL, PRIVY_APP_ID, PRIVY_APP_SECRET
 
-## Revenue — Swap Fees
+## Revenue
+
+### Swap Fees (Jupiter Referral)
 
 Raze earns revenue via Jupiter's referral fee program on every swap.
 
@@ -133,6 +135,18 @@ Raze earns revenue via Jupiter's referral fee program on every swap.
 - **Works with both signing modes**: Fee is baked into the transaction at quote time, before signing
 - **Env vars**: `RAZE_REFERRAL_ACCOUNT`, `RAZE_REFERRAL_FEE_BPS` (defaults hardcoded, overridable via env)
 - **Tradeoff**: Adding `referralAccount` disables RFQ routing (Metis-only quotes). Slightly worse pricing but enables revenue.
+
+### Transfer Fees (SOL & SPL Sends)
+
+Raze earns a 1% fee on every SOL and SPL token transfer.
+
+- **Fee Account**: `D4M5cGfxFW9jZ4uLL24HPYMYur2cRGPdDZDGFVitYqpJ` (regular wallet, not a Jupiter PDA)
+- **Fee**: 1% (100 bps) deducted from the send amount. User sends 10 SOL → recipient gets 9.9 SOL, Raze gets 0.1 SOL.
+- **Implementation**: `mcp-servers/transaction-executor/server.py` — extra transfer instruction added to `send_sol` and `send_token` transactions
+- **SPL tokens**: For token sends, a fee ATA is auto-created on first transfer of each token type
+- **Works with both signing modes**: Fee instruction is part of the transaction before signing
+- **Env vars**: `RAZE_TRANSFER_FEE_ACCOUNT` (defaults to `D4M5c...`), `RAZE_TRANSFER_FEE_BPS` (defaults to 100)
+- **Response includes**: `fee`, `amount_after_fee`, `fee_bps` fields so the bot can report fees transparently
 
 ## Testing the API
 
