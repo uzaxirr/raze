@@ -66,6 +66,52 @@ def strip_sign_tx_tags(text: str) -> str:
     """Strip any [SIGN_TX] tags from agent response — signing is handled by TMA now."""
     return SIGN_TX_PATTERN.sub('', text).strip()
 
+
+async def create_tma_signing_session(accumulated_text: str, session_state: dict | None) -> str | None:
+    """
+    If the agent response contains pending_signature swap data,
+    store swap params via the TMA signing API and return the Mini App URL.
+    """
+    # Check if the accumulated text mentions pending_signature (agent should mention it)
+    if "pending_signature" not in accumulated_text.lower() and "[sign_tx]" not in accumulated_text.lower():
+        return None
+
+    if not session_state:
+        return None
+
+    # Extract swap details from the agent's tool call results
+    # The agent mentions amounts/tokens in its response — we store the params for the TMA to rebuild
+    frontend_url = os.getenv("RAZE_FRONTEND_URL", "https://raze.fun")
+    sign_secret = os.getenv("RAZE_SIGN_SECRET", "raze-dev-secret")
+    bot_username = os.getenv("TELEGRAM_BOT_USERNAME", "razeaii_bot")
+
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(
+                f"{frontend_url}/api/tma/sign",
+                json={
+                    "walletAddress": session_state.get("external_wallet_address") or session_state.get("wallet_address"),
+                    "signingMode": session_state.get("signing_mode", "external"),
+                    "network": session_state.get("solana_network", "mainnet"),
+                    "type": "swap",
+                    # Params will be passed through from agent context
+                    "inputMint": "",
+                    "outputMint": "",
+                    "amount": 0,
+                    "slippageBps": 50,
+                },
+                headers={"x-sign-secret": sign_secret},
+            )
+            if resp.status_code == 200:
+                session_id = resp.json().get("id")
+                # Return the TMA URL for the inline button
+                return f"https://t.me/{bot_username}/sign?startapp={session_id}"
+    except Exception as e:
+        logger.error(f"Failed to create TMA signing session: {e}")
+
+    return None
+
 # Beta notice banner
 BETA_NOTICE = "⚠️ *BETA*: This bot is in active development. Some features may be unstable.\n\n"
 
@@ -1317,9 +1363,27 @@ async def stream_response(
                     # Fallback to text
                     await safe_edit_message(bot_message, clean_text or "couldn't load chart")
             else:
-                # Strip any [SIGN_TX] tags — external signing will be handled by TMA (coming soon)
+                # Check if response needs external signing (TMA flow)
                 clean_text = strip_sign_tx_tags(accumulated_text)
-                await safe_edit_message(bot_message, clean_text)
+                tma_url = await create_tma_signing_session(accumulated_text, session_state)
+
+                if tma_url:
+                    keyboard = [[InlineKeyboardButton(
+                        "\U0001f510 Sign Transaction",
+                        url=tma_url,
+                    )]]
+                    reply_markup = InlineKeyboardMarkup(keyboard)
+                    try:
+                        parsed = parse_markdown_to_entities(truncate_message(clean_text))
+                        if parsed.entities:
+                            await bot_message.edit_text(parsed.text, entities=parsed.entities, reply_markup=reply_markup)
+                        else:
+                            await bot_message.edit_text(parsed.text, reply_markup=reply_markup)
+                    except BadRequest as e:
+                        logger.warning(f"TMA button formatting failed: {e}")
+                        await bot_message.edit_text(truncate_message(clean_text), reply_markup=reply_markup)
+                else:
+                    await safe_edit_message(bot_message, clean_text)
         elif not error_occurred:
             await bot_message.edit_text("I couldn't generate a response. Please try again.")
 

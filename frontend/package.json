@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@reown/appkit": "^1.8.19",
+    "@reown/appkit-adapter-solana": "^1.8.19",
     "@solana/web3.js": "^1.98.4",
     "gsap": "^3.14.2",
     "next": "16.2.2",
