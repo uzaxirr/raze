@@ -1230,25 +1230,31 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 # Detect if user just shared a wallet address (32-44 base58 chars)
                 if _re.match(r'^[1-9A-HJ-NP-Za-km-z]{32,44}$', message_text.strip()) and not has_wallet:
                     context.user_data["bouncer_has_wallet"] = True
+                    context.user_data["bouncer_wallet_address"] = message_text.strip()
                     context.user_data["bouncer_step"] = 1  # wallet just shared, start sequence
                     bouncer_step = 1
                 elif has_wallet and bouncer_step > 0:
                     bouncer_step = context.user_data.get("bouncer_step", 1)
+
+                pending_swap_data = None
+                bouncer_session_state = {
+                    "telegram_username": update.effective_user.username or update.effective_user.first_name,
+                    "telegram_user_id": user_id,
+                    "bouncer_step": bouncer_step,
+                    "position": entry.position if entry else 0,
+                    "referral_count": entry.referral_count if entry else 0,
+                    "referral_code": entry.referral_code if entry else "",
+                    "message_sent_at": msg_time,
+                    "signing_mode": "external",
+                    "external_wallet_address": context.user_data.get("bouncer_wallet_address"),
+                }
 
                 async for event in client.run_agent_stream(
                     agent_id="bouncer",
                     message=message_text,
                     user_id=str(user_id),
                     session_id=bouncer_session_id,
-                    session_state={
-                        "telegram_username": update.effective_user.username or update.effective_user.first_name,
-                        "telegram_user_id": user_id,
-                        "bouncer_step": bouncer_step,
-                        "position": entry.position if entry else 0,
-                        "referral_count": entry.referral_count if entry else 0,
-                        "referral_code": entry.referral_code if entry else "",
-                        "message_sent_at": msg_time,
-                    },
+                    session_state=bouncer_session_state,
                 ):
                     if isinstance(event, RunContentEvent) and event.content:
                         accumulated_text += event.content
@@ -1260,6 +1266,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                             if display_text:
                                 await safe_edit_message(bot_message, display_text + " ...")
                             last_update_time = current_time
+                    elif isinstance(event, ToolCallCompletedEvent) and event.tool:
+                        tool_result = event.tool.result or ""
+                        tool_name = event.tool.tool_name or ""
+                        if "pending_signature" in tool_result and tool_name in ("swap_tokens", "send_sol", "send_token"):
+                            try:
+                                import json as _json
+                                result_data = _json.loads(tool_result)
+                                if result_data.get("status") == "pending_signature":
+                                    pending_swap_data = result_data
+                                    logger.info(f"Bouncer: captured pending_signature from {tool_name}")
+                            except Exception as e:
+                                logger.warning(f"Bouncer: failed to parse tool result: {e}")
                     elif isinstance(event, RunCompletedEvent):
                         break
 
@@ -1289,7 +1307,24 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                         logger.warning(f"Failed to parse bouncer remarks: {e}")
 
                 if accumulated_text:
-                    await safe_edit_message(bot_message, accumulated_text)
+                    # Check for TMA signing flow
+                    tma_url = await create_tma_signing_session(pending_swap_data, bouncer_session_state) if pending_swap_data else None
+                    if tma_url:
+                        keyboard = [[InlineKeyboardButton(
+                            "\U0001f510 Sign Transaction",
+                            url=tma_url,
+                        )]]
+                        reply_markup = InlineKeyboardMarkup(keyboard)
+                        try:
+                            parsed = parse_markdown_to_entities(truncate_message(accumulated_text))
+                            if parsed.entities:
+                                await bot_message.edit_text(parsed.text, entities=parsed.entities, reply_markup=reply_markup)
+                            else:
+                                await bot_message.edit_text(parsed.text, reply_markup=reply_markup)
+                        except BadRequest:
+                            await safe_edit_message(bot_message, accumulated_text)
+                    else:
+                        await safe_edit_message(bot_message, accumulated_text)
                 else:
                     await bot_message.edit_text("hmm. try again.")
 
