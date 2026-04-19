@@ -1223,6 +1223,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 import time as _time
                 last_update_time = _time.time()
 
+                # Track bouncer conversation step
+                bouncer_step = context.user_data.get("bouncer_step", 0)
+                has_wallet = context.user_data.get("bouncer_has_wallet", False)
+
+                # Detect if user just shared a wallet address (32-44 base58 chars)
+                if _re.match(r'^[1-9A-HJ-NP-Za-km-z]{32,44}$', message_text.strip()) and not has_wallet:
+                    context.user_data["bouncer_has_wallet"] = True
+                    context.user_data["bouncer_step"] = 1  # wallet just shared, start sequence
+                    bouncer_step = 1
+                elif has_wallet and bouncer_step > 0:
+                    bouncer_step = context.user_data.get("bouncer_step", 1)
+
                 async for event in client.run_agent_stream(
                     agent_id="bouncer",
                     message=message_text,
@@ -1231,6 +1243,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     session_state={
                         "telegram_username": update.effective_user.username or update.effective_user.first_name,
                         "telegram_user_id": user_id,
+                        "bouncer_step": bouncer_step,
                         "position": entry.position if entry else 0,
                         "referral_count": entry.referral_count if entry else 0,
                         "referral_code": entry.referral_code if entry else "",
@@ -1250,8 +1263,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     elif isinstance(event, RunCompletedEvent):
                         break
 
+                # Increment bouncer step after each exchange
+                if context.user_data.get("bouncer_has_wallet") and bouncer_step > 0:
+                    context.user_data["bouncer_step"] = bouncer_step + 1
+
                 # Strip hidden thought blocks
-                import re as _re
                 accumulated_text = _re.sub(r'\[THINK\].*?\[/THINK\]', '', accumulated_text, flags=_re.DOTALL).strip()
 
                 # Extract bouncer remarks
