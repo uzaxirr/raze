@@ -2,41 +2,14 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { createAppKit, useAppKitAccount, useAppKitProvider } from "@reown/appkit/react";
-import { SolanaAdapter } from "@reown/appkit-adapter-solana/react";
+import { useAppKitAccount, useAppKitProvider } from "@reown/appkit/react";
 import { useAppKitConnection } from "@reown/appkit-adapter-solana/react";
-import { solana } from "@reown/appkit/networks";
 import {
   Connection,
   VersionedTransaction,
   Transaction,
 } from "@solana/web3.js";
 import type { Provider } from "@reown/appkit-adapter-solana/react";
-
-// Initialize Solana adapter
-const solanaAdapter = new SolanaAdapter();
-
-// Initialize AppKit
-const projectId = process.env.NEXT_PUBLIC_REOWN_PROJECT_ID || "";
-
-const metadata = {
-  name: "Raze",
-  description: "Everything Solana in one chat",
-  url: "https://raze.fun",
-  icons: ["https://raze.fun/assets/imp-expressions/waving.png"],
-};
-
-createAppKit({
-  adapters: [solanaAdapter],
-  networks: [solana],
-  projectId,
-  metadata,
-  features: {
-    analytics: false,
-    email: false,
-    socials: false,
-  },
-});
 
 interface SessionData {
   id: string;
@@ -54,7 +27,14 @@ interface SessionData {
   toAddress?: string;
 }
 
-type PageState = "loading" | "details" | "signing" | "success" | "expired" | "error";
+type PageState = "loading" | "details" | "signing" | "simulating" | "success" | "expired" | "error";
+
+function withTimeout<T>(promise: Promise<T>, ms: number, msg: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error(msg)), ms)),
+  ]);
+}
 
 export default function TMASignPage() {
   const params = useParams();
@@ -69,17 +49,6 @@ export default function TMASignPage() {
   const { isConnected, address } = useAppKitAccount();
   const { connection } = useAppKitConnection();
   const { walletProvider } = useAppKitProvider<Provider>("solana");
-
-  // Expand Telegram Mini App to full height
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const tg = (window as any).Telegram?.WebApp;
-      if (tg) {
-        tg.expand();
-        tg.ready();
-      }
-    }
-  }, []);
 
   // Fetch session data
   useEffect(() => {
@@ -122,15 +91,19 @@ export default function TMASignPage() {
 
   // Sign and send transaction
   const handleSign = useCallback(async () => {
-    if (!session || !isConnected || !walletProvider || !connection) return;
+    if (!session || !isConnected || !walletProvider) return;
 
-    setState("signing");
+    // Fix 3: Wallet address verification
+    if (address && session.walletAddress && address.toLowerCase() !== session.walletAddress.toLowerCase()) {
+      setState("error");
+      setError(`Wrong wallet connected. Expected: ${session.walletAddress.slice(0, 8)}...${session.walletAddress.slice(-4)}`);
+      return;
+    }
+
+    setState("simulating");
     try {
-      // Fetch a fresh swap transaction from Jupiter with current blockhash
       const rpcUrl = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
-      const conn = new Connection(rpcUrl);
-
-      let sig: string;
+      const conn = new Connection(rpcUrl, { commitment: "confirmed" });
 
       if (!session.unsignedTransaction) {
         throw new Error("No unsigned transaction in session — it may have expired");
@@ -138,18 +111,28 @@ export default function TMASignPage() {
 
       const txBytes = Uint8Array.from(Buffer.from(session.unsignedTransaction, "base64"));
 
-      // Try versioned first, fall back to legacy
-      // Version detection via first-byte check is unreliable because
-      // unsigned transactions have signature placeholders that shift the version byte
-      let signed: any;
+      // Deserialize — try versioned first (Jupiter uses v0), fall back to legacy
+      let tx: VersionedTransaction | Transaction;
       try {
-        const vtx = VersionedTransaction.deserialize(txBytes);
-        signed = await walletProvider.signTransaction(vtx);
+        tx = VersionedTransaction.deserialize(txBytes);
       } catch {
-        const ltx = Transaction.from(txBytes);
-        signed = await walletProvider.signTransaction(ltx);
+        tx = Transaction.from(txBytes);
       }
-      sig = await conn.sendRawTransaction(signed.serialize());
+
+      // Fix 4: Simulate transaction before signing
+      const simulation = await conn.simulateTransaction(tx as VersionedTransaction);
+      if (simulation.value.err) {
+        throw new Error(`Transaction would fail: ${JSON.stringify(simulation.value.err)}. The swap may have expired — go back and try again.`);
+      }
+
+      setState("signing");
+
+      // Fix 2: Use sendTransaction (atomic sign + send) with timeout
+      const sig = await withTimeout(
+        walletProvider.sendTransaction(tx, conn as any),
+        60_000,
+        "Transaction signing timed out. The wallet may have been closed — please try again."
+      );
 
       setSignature(sig);
       setState("success");
@@ -161,20 +144,20 @@ export default function TMASignPage() {
         body: JSON.stringify({ status: "completed", txHash: sig }),
       });
 
-      // Close Mini App after a delay
+      // Show success, then offer to return to Telegram
       setTimeout(() => {
         const tg = (window as any).Telegram?.WebApp;
         if (tg) {
-          tg.sendData(JSON.stringify({ status: "completed", txHash: sig }));
-          tg.close();
+          tg.showAlert?.("Transaction sent!");
+          tg.openTelegramLink?.("https://t.me/razeaii_bot");
         }
-      }, 3000);
+      }, 2000);
 
     } catch (e: any) {
       setState("error");
       setError(e?.message || "signing failed");
     }
-  }, [session, isConnected, walletProvider, connection, address, id]);
+  }, [session, isConnected, walletProvider, address, id]);
 
   const txLabel = session
     ? session.type === "swap"
@@ -229,7 +212,17 @@ export default function TMASignPage() {
             <div style={{ textAlign: "center" }}>
               <div style={{ fontSize: 36, marginBottom: 8 }}>❌</div>
               <div style={{ fontSize: 18, fontWeight: 700, color: "#FF6B6B" }}>something went wrong</div>
-              <div style={{ fontSize: 13, color: "#6B6180", marginTop: 6 }}>{error}</div>
+              <div style={{ fontSize: 13, color: "#6B6180", marginTop: 6, lineHeight: 1.5 }}>{error}</div>
+              <button
+                onClick={() => { setState("details"); setError(""); }}
+                style={{
+                  marginTop: 12, padding: "10px 20px", borderRadius: 8,
+                  border: "1px solid #2A2540", background: "#12101A",
+                  color: "#9945FF", fontSize: 14, fontWeight: 600,
+                  cursor: "pointer", fontFamily: "inherit",
+                }}>
+                try again
+              </button>
             </div>
           )}
 
@@ -261,7 +254,7 @@ export default function TMASignPage() {
                 </div>
               </div>
 
-              {/* Reown AppKit wallet button */}
+              {/* Wallet connect / sign */}
               {!isConnected ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   <appkit-button />
@@ -282,6 +275,12 @@ export default function TMASignPage() {
                 </>
               )}
             </>
+          )}
+
+          {state === "simulating" && (
+            <div style={{ textAlign: "center", color: "#6B6180", fontSize: 14, padding: 16 }}>
+              simulating transaction...
+            </div>
           )}
 
           {state === "signing" && (
@@ -307,9 +306,19 @@ export default function TMASignPage() {
                   view on solscan →
                 </a>
               )}
-              <div style={{ fontSize: 11, color: "#3A3550", marginTop: 12 }}>
-                closing in 3 seconds...
-              </div>
+              <button
+                onClick={() => {
+                  const tg = (window as any).Telegram?.WebApp;
+                  tg?.openTelegramLink?.("https://t.me/razeaii_bot");
+                }}
+                style={{
+                  display: "block", marginTop: 12, padding: "10px 20px",
+                  borderRadius: 8, border: "1px solid #2A2540", background: "#12101A",
+                  color: "#6B6180", fontSize: 13, cursor: "pointer",
+                  fontFamily: "inherit", width: "100%",
+                }}>
+                back to telegram
+              </button>
             </div>
           )}
         </div>
