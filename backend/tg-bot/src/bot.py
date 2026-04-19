@@ -1284,19 +1284,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             await _aio.sleep(1.5)
 
             await update.message.reply_text(
-                "anyway — drop your solana wallet address. wanna see what you're working with 👀"
+                "now drop your wallet address and watch the magic. or don't. your call."
             )
         else:
             # Not an email — treat as a regular message, route to bouncer
-            # But first, let them know about email
             await update.message.reply_text(
-                "that's not an email but whatever. you can set it later with /email"
+                "that's not an email but whatever. /email later if you change your mind."
             )
             await _aio.sleep(1)
             await update.message.chat.send_action(ChatAction.TYPING)
             await _aio.sleep(1.5)
             await update.message.reply_text(
-                "drop your solana wallet address tho. wanna see what you're working with 👀"
+                "drop your wallet address tho. wanna see if you're worth my time."
             )
         return
 
