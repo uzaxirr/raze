@@ -84,9 +84,11 @@ class JupiterClient:
             "taker": user_public_key,
         }
 
-        if RAZE_REFERRAL_ACCOUNT:
-            params["referralAccount"] = RAZE_REFERRAL_ACCOUNT
-            params["referralFee"] = str(RAZE_REFERRAL_FEE_BPS)
+        # TODO: Re-enable after linking referral account to v2 project at referral.jup.ag
+        # Project ID: DkiqsTrw1u1bYFumumC7sCG2S8K25qc2vemJFHyW2wJc
+        # if RAZE_REFERRAL_ACCOUNT:
+        #     params["referralAccount"] = RAZE_REFERRAL_ACCOUNT
+        #     params["referralFee"] = str(RAZE_REFERRAL_FEE_BPS)
 
         logger.info(f"Getting Jupiter order: {input_mint} -> {output_mint}, amount={amount}, taker={user_public_key}")
 
