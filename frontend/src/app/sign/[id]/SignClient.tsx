@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { UnifiedWalletButton } from "@jup-ag/wallet-adapter";
+import { useAppKitAccount, useAppKitProvider } from "@reown/appkit/react";
+import { useAppKitConnection } from "@reown/appkit-adapter-solana/react";
 import { Connection, VersionedTransaction, Transaction } from "@solana/web3.js";
+import type { Provider } from "@reown/appkit-adapter-solana/react";
 
 interface SessionData {
   id: string;
@@ -49,9 +50,12 @@ export default function SignClient({ id }: { id: string }) {
   const [error, setError] = useState("");
   const [timeLeft, setTimeLeft] = useState(0);
 
-  const { connected, publicKey, signTransaction, disconnect } = useWallet();
+  const { isConnected, address } = useAppKitAccount();
+  const { connection } = useAppKitConnection();
+  const { walletProvider } = useAppKitProvider<Provider>("solana");
 
-  const connectedAddress = publicKey?.toBase58() || "";
+  const connected = isConnected;
+  const connectedAddress = address || "";
   const walletMismatch = !!(
     connected &&
     session?.walletAddress &&
@@ -107,7 +111,7 @@ export default function SignClient({ id }: { id: string }) {
 
   // Sign transaction
   const handleSign = useCallback(async () => {
-    if (!session || !connected || !signTransaction || walletMismatch) return;
+    if (!session || !connected || !walletProvider || walletMismatch) return;
 
     setState("simulating");
     try {
@@ -144,9 +148,9 @@ export default function SignClient({ id }: { id: string }) {
 
       setState("signing");
 
-      // Sign the transaction
+      // Sign the transaction via AppKit
       const signed = await withTimeout(
-        signTransaction(tx),
+        walletProvider.signTransaction(tx),
         60_000,
         "Signing timed out — please try again."
       );
@@ -200,7 +204,7 @@ export default function SignClient({ id }: { id: string }) {
       setState("error");
       setError(e instanceof Error ? e.message : "signing failed");
     }
-  }, [session, connected, signTransaction, walletMismatch, id]);
+  }, [session, connected, walletProvider, walletMismatch, id]);
 
   const txLabel = session
     ? session.type === "swap"
@@ -427,7 +431,7 @@ export default function SignClient({ id }: { id: string }) {
                     alignItems: "center",
                   }}
                 >
-                  <UnifiedWalletButton />
+                  <appkit-button />
                   {session.walletAddress && (
                     <div
                       style={{
@@ -495,23 +499,7 @@ export default function SignClient({ id }: { id: string }) {
                       switch to the correct wallet, then reconnect.
                     </div>
                   </div>
-                  <button
-                    onClick={() => disconnect()}
-                    style={{
-                      width: "100%",
-                      padding: "12px 16px",
-                      borderRadius: 10,
-                      border: "1px solid #2A2540",
-                      background: "#12101A",
-                      color: "#FF6B6B",
-                      fontSize: 14,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      fontFamily: "inherit",
-                    }}
-                  >
-                    disconnect wallet
-                  </button>
+                  <appkit-button />
                 </div>
               ) : (
                 <>
