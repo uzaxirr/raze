@@ -1,0 +1,651 @@
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { UnifiedWalletButton } from "@jup-ag/wallet-adapter";
+import { Connection, VersionedTransaction, Transaction } from "@solana/web3.js";
+
+interface SessionData {
+  id: string;
+  type: "swap" | "sol_transfer" | "token_transfer";
+  unsignedTransaction?: string;
+  walletAddress: string;
+  network: string;
+  status: string;
+  expiresAt: number;
+  fromSymbol?: string;
+  toSymbol?: string;
+  inputAmount?: number;
+  outputAmount?: number;
+  priceImpact?: string;
+  toAddress?: string;
+  requestId?: string;
+}
+
+type PageState =
+  | "loading"
+  | "details"
+  | "simulating"
+  | "signing"
+  | "success"
+  | "expired"
+  | "error";
+
+function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  msg: string
+): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error(msg)), ms)),
+  ]);
+}
+
+export default function SignClient({ id }: { id: string }) {
+  const [state, setState] = useState<PageState>("loading");
+  const [session, setSession] = useState<SessionData | null>(null);
+  const [signature, setSignature] = useState("");
+  const [error, setError] = useState("");
+  const [timeLeft, setTimeLeft] = useState(0);
+
+  const { connected, publicKey, signTransaction, disconnect } = useWallet();
+
+  const connectedAddress = publicKey?.toBase58() || "";
+  const walletMismatch = !!(
+    connected &&
+    session?.walletAddress &&
+    connectedAddress &&
+    session.walletAddress !== connectedAddress
+  );
+
+  // Fetch session
+  useEffect(() => {
+    async function fetchSession() {
+      try {
+        const res = await fetch(`/api/tma/sign/${id}`);
+        if (res.status === 404 || res.status === 410) {
+          setState("expired");
+          return;
+        }
+        if (!res.ok) {
+          setState("error");
+          setError("failed to load transaction");
+          return;
+        }
+        const data = await res.json();
+        if (data.status === "completed") {
+          setState("expired");
+          return;
+        }
+        setSession(data);
+        setState("details");
+      } catch {
+        setState("error");
+        setError("network error");
+      }
+    }
+    fetchSession();
+  }, [id]);
+
+  // Countdown
+  useEffect(() => {
+    if (!session) return;
+    const interval = setInterval(() => {
+      const remaining = Math.max(
+        0,
+        Math.floor((session.expiresAt - Date.now()) / 1000)
+      );
+      setTimeLeft(remaining);
+      if (remaining <= 0) {
+        setState("expired");
+        clearInterval(interval);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [session]);
+
+  // Sign transaction
+  const handleSign = useCallback(async () => {
+    if (!session || !connected || !signTransaction || walletMismatch) return;
+
+    setState("simulating");
+    try {
+      const rpcUrl =
+        process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
+        "https://api.mainnet-beta.solana.com";
+      const conn = new Connection(rpcUrl, { commitment: "confirmed" });
+
+      if (!session.unsignedTransaction) {
+        throw new Error("No transaction data — session may have expired");
+      }
+
+      const txBytes = Uint8Array.from(
+        Buffer.from(session.unsignedTransaction, "base64")
+      );
+
+      // Deserialize — try versioned first (Jupiter uses v0), fall back to legacy
+      let tx: VersionedTransaction | Transaction;
+      try {
+        tx = VersionedTransaction.deserialize(txBytes);
+      } catch {
+        tx = Transaction.from(txBytes);
+      }
+
+      // Simulate
+      const simulation = await conn.simulateTransaction(
+        tx as VersionedTransaction
+      );
+      if (simulation.value.err) {
+        throw new Error(
+          `Transaction would fail: ${JSON.stringify(simulation.value.err)}. Go back to Telegram and try again.`
+        );
+      }
+
+      setState("signing");
+
+      // Sign the transaction
+      const signed = await withTimeout(
+        signTransaction(tx),
+        60_000,
+        "Signing timed out — please try again."
+      );
+
+      // Serialize signed tx
+      const signedBytes =
+        signed instanceof VersionedTransaction
+          ? signed.serialize()
+          : signed.serialize();
+      const signedBase64 = Buffer.from(signedBytes).toString("base64");
+
+      // Send via Jupiter /execute if we have a requestId, otherwise broadcast directly
+      let sig: string;
+      if (session.requestId) {
+        const execRes = await fetch("https://api.jup.ag/swap/v2/execute", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": process.env.NEXT_PUBLIC_JUPITER_API_KEY || "",
+          },
+          body: JSON.stringify({
+            signedTransaction: signedBase64,
+            requestId: session.requestId,
+          }),
+        });
+        const execData = await execRes.json();
+        if (!execRes.ok || !execData.signature) {
+          throw new Error(
+            execData.error || "Jupiter failed to land transaction"
+          );
+        }
+        sig = execData.signature;
+      } else {
+        // Fallback: broadcast directly
+        sig = await conn.sendRawTransaction(signedBytes, {
+          skipPreflight: true,
+          maxRetries: 3,
+        });
+      }
+
+      setSignature(sig);
+      setState("success");
+
+      // Notify backend
+      await fetch(`/api/tma/sign/${id}/complete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "completed", txHash: sig }),
+      }).catch(() => {});
+    } catch (e: unknown) {
+      setState("error");
+      setError(e instanceof Error ? e.message : "signing failed");
+    }
+  }, [session, connected, signTransaction, walletMismatch, id]);
+
+  const txLabel = session
+    ? session.type === "swap"
+      ? `Swap ${session.inputAmount || ""} ${session.fromSymbol || ""} → ${session.toSymbol || ""}`
+      : session.type === "sol_transfer"
+        ? `Send ${session.inputAmount || ""} SOL`
+        : `Send ${session.inputAmount || ""} ${session.fromSymbol || "tokens"}`
+    : "";
+
+  const formatTime = (s: number) =>
+    `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
+  const explorerUrl = signature ? `https://solscan.io/tx/${signature}` : "";
+
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#0D0B14",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 16,
+        fontFamily: "var(--font-space-grotesk), 'Space Grotesk', sans-serif",
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 400,
+          display: "flex",
+          flexDirection: "column",
+          gap: 16,
+          alignItems: "center",
+        }}
+      >
+        {/* Logo */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/assets/imp-expressions/waving.png"
+            alt="Raze"
+            style={{ width: 32, height: 32, objectFit: "contain" }}
+          />
+          <span
+            style={{
+              fontSize: 20,
+              fontWeight: 700,
+              color: "#F0ECF9",
+              letterSpacing: "-0.03em",
+            }}
+          >
+            raze
+          </span>
+        </div>
+
+        {/* Card */}
+        <div
+          style={{
+            width: "100%",
+            background: "#1A1725",
+            borderRadius: 16,
+            border: "1px solid #2A2540",
+            padding: 24,
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+          }}
+        >
+          {state === "loading" && (
+            <div
+              style={{ textAlign: "center", color: "#6B6180", fontSize: 14 }}
+            >
+              loading transaction...
+            </div>
+          )}
+
+          {state === "expired" && (
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>⏰</div>
+              <div
+                style={{ fontSize: 18, fontWeight: 700, color: "#FF6B6B" }}
+              >
+                session expired
+              </div>
+              <div
+                style={{ fontSize: 13, color: "#6B6180", marginTop: 6 }}
+              >
+                go back to telegram and try again
+              </div>
+            </div>
+          )}
+
+          {state === "error" && (
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>❌</div>
+              <div
+                style={{ fontSize: 18, fontWeight: 700, color: "#FF6B6B" }}
+              >
+                something went wrong
+              </div>
+              <div
+                style={{
+                  fontSize: 13,
+                  color: "#6B6180",
+                  marginTop: 6,
+                  lineHeight: 1.5,
+                }}
+              >
+                {error}
+              </div>
+              <button
+                onClick={() => {
+                  setState("details");
+                  setError("");
+                }}
+                style={{
+                  marginTop: 12,
+                  padding: "10px 20px",
+                  borderRadius: 8,
+                  border: "1px solid #2A2540",
+                  background: "#12101A",
+                  color: "#9945FF",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                try again
+              </button>
+            </div>
+          )}
+
+          {state === "details" && session && (
+            <>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontFamily:
+                      "var(--font-jetbrains-mono), monospace",
+                    color: "#6B6180",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.1em",
+                  }}
+                >
+                  sign transaction
+                </span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontFamily:
+                      "var(--font-jetbrains-mono), monospace",
+                    color: timeLeft < 60 ? "#FF6B6B" : "#6B6180",
+                  }}
+                >
+                  {formatTime(timeLeft)}
+                </span>
+              </div>
+
+              {/* Transaction details */}
+              <div
+                style={{
+                  background: "#12101A",
+                  borderRadius: 10,
+                  padding: 16,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 16,
+                    fontWeight: 600,
+                    color: "#F0ECF9",
+                  }}
+                >
+                  {txLabel}
+                </div>
+                {session.outputAmount != null && (
+                  <div style={{ fontSize: 13, color: "#14F195" }}>
+                    ≈ {session.outputAmount} {session.toSymbol}
+                  </div>
+                )}
+                {session.priceImpact && (
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontFamily:
+                        "var(--font-jetbrains-mono), monospace",
+                      color: "#6B6180",
+                    }}
+                  >
+                    impact: {Number(session.priceImpact).toFixed(4)}%
+                  </div>
+                )}
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontFamily:
+                      "var(--font-jetbrains-mono), monospace",
+                    color: "#6B6180",
+                  }}
+                >
+                  network: {session.network}
+                </div>
+              </div>
+
+              {/* Wallet connect / sign */}
+              {!connected ? (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                    alignItems: "center",
+                  }}
+                >
+                  <UnifiedWalletButton />
+                  {session.walletAddress && (
+                    <div
+                      style={{
+                        fontSize: 11,
+                        fontFamily:
+                          "var(--font-jetbrains-mono), monospace",
+                        color: "#6B6180",
+                        textAlign: "center",
+                      }}
+                    >
+                      connect:{" "}
+                      {session.walletAddress.slice(0, 8)}...
+                      {session.walletAddress.slice(-4)}
+                    </div>
+                  )}
+                </div>
+              ) : walletMismatch ? (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 10,
+                  }}
+                >
+                  <div
+                    style={{
+                      background: "#2A1A1A",
+                      borderRadius: 8,
+                      padding: 12,
+                      border: "1px solid #FF6B6B33",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: "#FF6B6B",
+                        marginBottom: 6,
+                      }}
+                    >
+                      wrong wallet connected
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        fontFamily:
+                          "var(--font-jetbrains-mono), monospace",
+                        color: "#6B6180",
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      connected: {connectedAddress.slice(0, 8)}...
+                      {connectedAddress.slice(-4)}
+                      <br />
+                      expected: {session.walletAddress.slice(0, 8)}...
+                      {session.walletAddress.slice(-4)}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: "#999",
+                        marginTop: 8,
+                      }}
+                    >
+                      switch to the correct wallet, then reconnect.
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => disconnect()}
+                    style={{
+                      width: "100%",
+                      padding: "12px 16px",
+                      borderRadius: 10,
+                      border: "1px solid #2A2540",
+                      background: "#12101A",
+                      color: "#FF6B6B",
+                      fontSize: 14,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    disconnect wallet
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontFamily:
+                        "var(--font-jetbrains-mono), monospace",
+                      color: "#14F195",
+                      textAlign: "center",
+                    }}
+                  >
+                    ✓ connected: {connectedAddress.slice(0, 8)}...
+                    {connectedAddress.slice(-4)}
+                  </div>
+                  <button
+                    onClick={handleSign}
+                    style={{
+                      width: "100%",
+                      padding: "14px 16px",
+                      borderRadius: 10,
+                      border: "none",
+                      background: "#9945FF",
+                      color: "#fff",
+                      fontSize: 16,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    sign & send
+                  </button>
+                </>
+              )}
+            </>
+          )}
+
+          {state === "simulating" && (
+            <div
+              style={{
+                textAlign: "center",
+                color: "#6B6180",
+                fontSize: 14,
+                padding: 16,
+              }}
+            >
+              simulating transaction...
+            </div>
+          )}
+
+          {state === "signing" && (
+            <div
+              style={{
+                textAlign: "center",
+                color: "#6B6180",
+                fontSize: 14,
+                padding: 16,
+              }}
+            >
+              waiting for wallet approval...
+            </div>
+          )}
+
+          {state === "success" && (
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>✅</div>
+              <div
+                style={{ fontSize: 18, fontWeight: 700, color: "#14F195" }}
+              >
+                transaction sent
+              </div>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontFamily:
+                    "var(--font-jetbrains-mono), monospace",
+                  color: "#6B6180",
+                  marginTop: 8,
+                  wordBreak: "break-all",
+                }}
+              >
+                {signature.slice(0, 20)}...{signature.slice(-20)}
+              </div>
+              {explorerUrl && (
+                <a
+                  href={explorerUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "inline-block",
+                    marginTop: 12,
+                    padding: "8px 20px",
+                    borderRadius: 8,
+                    background: "#12101A",
+                    border: "1px solid #2A2540",
+                    color: "#9945FF",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    textDecoration: "none",
+                    fontFamily:
+                      "var(--font-jetbrains-mono), monospace",
+                  }}
+                >
+                  view on solscan →
+                </a>
+              )}
+              <a
+                href="https://t.me/razeaii_bot"
+                style={{
+                  display: "block",
+                  marginTop: 12,
+                  padding: "10px 20px",
+                  borderRadius: 8,
+                  border: "1px solid #2A2540",
+                  background: "#12101A",
+                  color: "#6B6180",
+                  fontSize: 13,
+                  textDecoration: "none",
+                  fontFamily: "inherit",
+                  textAlign: "center",
+                }}
+              >
+                back to telegram
+              </a>
+            </div>
+          )}
+        </div>
+
+        <div
+          style={{ fontSize: 11, color: "#3A3550", textAlign: "center" }}
+        >
+          raze.fun — everything solana in one chat
+        </div>
+      </div>
+    </div>
+  );
+}

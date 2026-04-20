@@ -2,6 +2,7 @@ export interface SignSession {
   id: string;
   type: "swap" | "sol_transfer" | "token_transfer";
   unsignedTransaction?: string;
+  requestId?: string;
   walletAddress: string;
   signingMode: string;
   toAddress?: string;

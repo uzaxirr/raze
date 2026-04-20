@@ -84,18 +84,15 @@ def extract_pending_swap(text: str) -> tuple[str, dict | None]:
     return text, None
 
 
-async def create_tma_signing_session(swap_params: dict, session_state: dict | None) -> str | None:
+async def create_signing_session(swap_params: dict, session_state: dict | None) -> str | None:
     """
-    Store swap params via the TMA signing API and return the Mini App URL.
+    Store swap params via the signing API and return a raze.fun/sign URL.
     """
     if not session_state or not swap_params:
         return None
 
-    # Extract swap details from the agent's tool call results
-    # The agent mentions amounts/tokens in its response — we store the params for the TMA to rebuild
     frontend_url = os.getenv("RAZE_FRONTEND_URL", "https://raze.fun")
     sign_secret = os.getenv("RAZE_SIGN_SECRET", "raze-dev-secret")
-    bot_username = os.getenv("TELEGRAM_BOT_USERNAME", "razeaii_bot")
 
     try:
         import httpx
@@ -108,6 +105,7 @@ async def create_tma_signing_session(swap_params: dict, session_state: dict | No
                     "network": session_state.get("solana_network", "mainnet"),
                     "type": swap_params.get("type", "swap"),
                     "unsignedTransaction": swap_params.get("unsigned_transaction", ""),
+                    "requestId": swap_params.get("request_id", ""),
                     "fromSymbol": swap_params.get("from_token", swap_params.get("fromSymbol", "")),
                     "toSymbol": swap_params.get("to_token", swap_params.get("toSymbol", "")),
                     "inputAmount": swap_params.get("input_amount", swap_params.get("amount", 0)),
@@ -119,9 +117,9 @@ async def create_tma_signing_session(swap_params: dict, session_state: dict | No
             )
             if resp.status_code == 200:
                 session_id = resp.json().get("id")
-                return f"https://t.me/{bot_username}/sign?startapp={session_id}"
+                return f"{frontend_url}/sign/{session_id}"
     except Exception as e:
-        logger.error(f"Failed to create TMA signing session: {e}")
+        logger.error(f"Failed to create signing session: {e}")
 
     return None
 
@@ -1308,7 +1306,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
                 if accumulated_text:
                     # Check for TMA signing flow
-                    tma_url = await create_tma_signing_session(pending_swap_data, bouncer_session_state) if pending_swap_data else None
+                    tma_url = await create_signing_session(pending_swap_data, bouncer_session_state) if pending_swap_data else None
                     if tma_url:
                         keyboard = [[InlineKeyboardButton(
                             "\U0001f510 Sign Transaction",
@@ -1687,7 +1685,7 @@ async def stream_response(
                 # Check for pending swap from tool results (TMA signing flow)
                 clean_text = strip_sign_tx_tags(accumulated_text)
                 clean_text, _ = extract_pending_swap(clean_text)  # Strip any PENDING_SWAP tags too
-                tma_url = await create_tma_signing_session(pending_swap_data, session_state) if pending_swap_data else None
+                tma_url = await create_signing_session(pending_swap_data, session_state) if pending_swap_data else None
 
                 if tma_url:
                     keyboard = [[InlineKeyboardButton(

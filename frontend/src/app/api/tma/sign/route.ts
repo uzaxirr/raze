@@ -18,6 +18,7 @@ export async function POST(req: NextRequest) {
     id,
     type: body.type || "swap",
     unsignedTransaction: body.unsignedTransaction,
+    requestId: body.requestId,
     walletAddress: body.walletAddress,
     signingMode: body.signingMode || "external",
     toAddress: body.toAddress,
