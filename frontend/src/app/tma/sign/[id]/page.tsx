@@ -89,16 +89,15 @@ export default function TMASignPage() {
     return () => clearInterval(interval);
   }, [session]);
 
+  const walletMismatch = !!(
+    isConnected && session?.walletAddress && address && session.walletAddress !== address
+  );
+
   // Sign and send transaction
   const handleSign = useCallback(async () => {
     if (!session || !isConnected || !walletProvider) return;
 
-    // Wallet address verification — only check if the session has a specific external wallet set
-    // Skip check if walletAddress is empty or matches the connected wallet
-    if (session.walletAddress && address && session.walletAddress !== address) {
-      // Show warning but don't block — user may have multiple wallets
-      console.warn(`Connected wallet ${address} differs from expected ${session.walletAddress}`);
-    }
+    if (walletMismatch) return;
 
     setState("simulating");
     try {
@@ -157,7 +156,7 @@ export default function TMASignPage() {
       setState("error");
       setError(e?.message || "signing failed");
     }
-  }, [session, isConnected, walletProvider, address, id]);
+  }, [session, isConnected, walletProvider, address, id, walletMismatch]);
 
   const txLabel = session
     ? session.type === "swap"
@@ -265,11 +264,35 @@ export default function TMASignPage() {
               {!isConnected ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   <appkit-button />
+                  {session.walletAddress && (
+                    <div style={{ fontSize: 11, fontFamily: "monospace", color: "#6B6180", textAlign: "center" }}>
+                      connect wallet: {session.walletAddress.slice(0, 8)}...{session.walletAddress.slice(-4)}
+                    </div>
+                  )}
+                </div>
+              ) : walletMismatch ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div style={{
+                    background: "#2A1A1A", borderRadius: 8, padding: 12,
+                    border: "1px solid #FF6B6B33",
+                  }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#FF6B6B", marginBottom: 6 }}>
+                      wrong wallet connected
+                    </div>
+                    <div style={{ fontSize: 11, fontFamily: "monospace", color: "#6B6180", lineHeight: 1.6 }}>
+                      connected: {address?.slice(0, 8)}...{address?.slice(-4)}<br />
+                      expected: {session.walletAddress.slice(0, 8)}...{session.walletAddress.slice(-4)}
+                    </div>
+                    <div style={{ fontSize: 12, color: "#999", marginTop: 8 }}>
+                      switch to the correct wallet in your wallet app, then reconnect.
+                    </div>
+                  </div>
+                  <appkit-button />
                 </div>
               ) : (
                 <>
-                  <div style={{ fontSize: 11, fontFamily: "monospace", color: "#6B6180", textAlign: "center" }}>
-                    connected: {address?.slice(0, 8)}...{address?.slice(-4)}
+                  <div style={{ fontSize: 11, fontFamily: "monospace", color: "#14F195", textAlign: "center" }}>
+                    ✓ connected: {address?.slice(0, 8)}...{address?.slice(-4)}
                   </div>
                   <button onClick={handleSign} style={{
                     width: "100%", padding: "14px 16px", borderRadius: 10,

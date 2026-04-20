@@ -1,4 +1,4 @@
-"""Jupiter aggregator API client for token swaps."""
+"""Jupiter aggregator API client for token swaps (v2 Meta-Aggregator)."""
 import os
 import logging
 from pathlib import Path
@@ -16,13 +16,13 @@ load_dotenv(_root / '.env')
 
 logger = logging.getLogger(__name__)
 
-# Jupiter API endpoints
-JUPITER_API_URL = os.getenv("JUPITER_API_URL", "https://api.jup.ag/swap/v1")
+# Jupiter API v2
+JUPITER_API_URL = os.getenv("JUPITER_API_URL", "https://api.jup.ag/swap/v2")
+JUPITER_API_KEY = os.getenv("JUPITER_API_KEY", "")
 
 # Raze referral account for swap fees
 RAZE_REFERRAL_ACCOUNT = os.getenv("RAZE_REFERRAL_ACCOUNT", "2sZdpSqnggDWj1xMfrytd4Pum34wBjVW7KtyuknRgkGZ")
 RAZE_REFERRAL_FEE_BPS = int(os.getenv("RAZE_REFERRAL_FEE_BPS", "200"))  # 2% (Raze keeps 80% = 1.6%)
-
 
 # Jupiter Referral Program ID
 REFERRAL_PROGRAM_ID = Pubkey.from_string("REFER4ZgmyYx9c6He5XfaTMiGfdLwRnkV4RPp9t9iF3")
@@ -39,125 +39,19 @@ def derive_referral_fee_account(referral_account: str, fee_mint: str) -> str:
     return str(pda)
 
 
+def _headers() -> Dict[str, str]:
+    """Common headers for Jupiter API requests."""
+    h = {"Content-Type": "application/json"}
+    if JUPITER_API_KEY:
+        h["x-api-key"] = JUPITER_API_KEY
+    return h
+
+
 class JupiterClient:
-    """Jupiter aggregator API client for Solana token swaps."""
+    """Jupiter v2 Meta-Aggregator API client for Solana token swaps."""
 
     def __init__(self, api_url: Optional[str] = None):
-        """
-        Initialize the Jupiter client.
-
-        Args:
-            api_url: Jupiter API base URL (defaults to env var or public endpoint)
-        """
         self.api_url = api_url or JUPITER_API_URL
-
-    async def get_quote(
-        self,
-        input_mint: str,
-        output_mint: str,
-        amount: int,
-        slippage_bps: int = 50,
-        swap_mode: str = "ExactIn",
-    ) -> Dict[str, Any]:
-        """
-        Get a swap quote from Jupiter.
-
-        Args:
-            input_mint: Input token mint address
-            output_mint: Output token mint address
-            amount: Amount in smallest units (lamports)
-            slippage_bps: Slippage tolerance in basis points (50 = 0.5%)
-            swap_mode: "ExactIn" or "ExactOut"
-
-        Returns:
-            Quote response with routing info and expected output
-        """
-        url = f"{self.api_url}/quote"
-        params = {
-            "inputMint": input_mint,
-            "outputMint": output_mint,
-            "amount": str(amount),
-            "slippageBps": slippage_bps,
-            "swapMode": swap_mode,
-            "platformFeeBps": RAZE_REFERRAL_FEE_BPS,
-        }
-
-        logger.info(f"Getting Jupiter quote: {input_mint} -> {output_mint}, amount={amount}")
-
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.get(url, params=params)
-
-            if response.status_code != 200:
-                error_detail = response.text
-                logger.error(f"Jupiter quote error: {response.status_code} - {error_detail}")
-                raise Exception(f"Failed to get Jupiter quote: {error_detail}")
-
-            quote = response.json()
-            logger.info(f"Got quote: {quote.get('inAmount')} -> {quote.get('outAmount')}")
-            return quote
-
-    async def get_swap_transaction(
-        self,
-        quote: Dict[str, Any],
-        user_public_key: str,
-        wrap_unwrap_sol: bool = True,
-        fee_account: Optional[str] = None,
-        compute_unit_price_micro_lamports: Optional[int] = None,
-    ) -> str:
-        """
-        Get an unsigned swap transaction from Jupiter.
-
-        Args:
-            quote: Quote response from get_quote()
-            user_public_key: User's wallet address
-            wrap_unwrap_sol: Auto wrap/unwrap SOL
-            fee_account: Optional fee account for referral fees
-            compute_unit_price_micro_lamports: Priority fee in micro-lamports
-
-        Returns:
-            Base64-encoded unsigned transaction
-        """
-        url = f"{self.api_url}/swap"
-
-        # Derive the referral fee token account PDA from the quote's fee mint
-        if not fee_account and RAZE_REFERRAL_ACCOUNT:
-            # For ExactIn, fee is taken from output mint
-            fee_mint = quote.get("outputMint")
-            if fee_mint:
-                fee_account = derive_referral_fee_account(RAZE_REFERRAL_ACCOUNT, fee_mint)
-                logger.info(f"Derived referral fee account: {fee_account} for mint {fee_mint}")
-
-        payload = {
-            "quoteResponse": quote,
-            "userPublicKey": user_public_key,
-            "wrapAndUnwrapSol": wrap_unwrap_sol,
-            "dynamicComputeUnitLimit": True,
-        }
-
-        if fee_account:
-            payload["feeAccount"] = fee_account
-
-        if compute_unit_price_micro_lamports:
-            payload["computeUnitPriceMicroLamports"] = compute_unit_price_micro_lamports
-
-        logger.info(f"Getting swap transaction for {user_public_key}")
-
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(url, json=payload)
-
-            if response.status_code != 200:
-                error_detail = response.text
-                logger.error(f"Jupiter swap error: {response.status_code} - {error_detail}")
-                raise Exception(f"Failed to get swap transaction: {error_detail}")
-
-            result = response.json()
-            swap_transaction = result.get("swapTransaction")
-
-            if not swap_transaction:
-                raise Exception(f"No swap transaction in response: {result}")
-
-            logger.info("Got swap transaction successfully")
-            return swap_transaction
 
     async def get_swap_quote_and_transaction(
         self,
@@ -168,36 +62,109 @@ class JupiterClient:
         slippage_bps: int = 50,
     ) -> Dict[str, Any]:
         """
-        Get both quote and swap transaction in one call.
+        Get quote + assembled unsigned transaction via /order.
 
         Args:
             input_mint: Input token mint address
             output_mint: Output token mint address
-            amount: Amount in the smallest units
-            user_public_key: User's wallet address
+            amount: Amount in smallest units (lamports)
+            user_public_key: User's wallet address (taker)
             slippage_bps: Slippage tolerance in basis points
 
         Returns:
-            Dict with quote info and unsigned transaction
+            Dict with quote info, unsigned transaction, and requestId
         """
-        # Get quote
-        quote = await self.get_quote(
-            input_mint=input_mint,
-            output_mint=output_mint,
-            amount=amount,
-            slippage_bps=slippage_bps,
-        )
+        url = f"{self.api_url}/order"
 
-        # Get swap transaction
-        swap_transaction = await self.get_swap_transaction(
-            quote=quote,
-            user_public_key=user_public_key,
-        )
+        # Derive referral fee account for the output mint
+        fee_account = None
+        if RAZE_REFERRAL_ACCOUNT:
+            fee_account = derive_referral_fee_account(RAZE_REFERRAL_ACCOUNT, output_mint)
+            logger.info(f"Derived referral fee account: {fee_account} for mint {output_mint}")
 
-        return {
-            "quote": quote,
-            "input_amount": int(quote.get("inAmount", 0)),
-            "output_amount": int(quote.get("outAmount", 0)),
-            "price_impact_pct": quote.get("priceImpactPct"),
-            "swap_transaction": swap_transaction,
+        params = {
+            "inputMint": input_mint,
+            "outputMint": output_mint,
+            "amount": str(amount),
+            "slippageBps": slippage_bps,
+            "taker": user_public_key,
+            "platformFeeBps": RAZE_REFERRAL_FEE_BPS,
         }
+
+        if fee_account:
+            params["referralAccount"] = RAZE_REFERRAL_ACCOUNT
+
+        logger.info(f"Getting Jupiter order: {input_mint} -> {output_mint}, amount={amount}, taker={user_public_key}")
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(url, params=params, headers=_headers())
+
+            if response.status_code != 200:
+                error_detail = response.text
+                logger.error(f"Jupiter order error: {response.status_code} - {error_detail}")
+                raise Exception(f"Failed to get Jupiter order: {error_detail}")
+
+            result = response.json()
+
+            swap_transaction = result.get("transaction")
+            request_id = result.get("requestId")
+            in_amount = result.get("inAmount", "0")
+            out_amount = result.get("outAmount", "0")
+
+            if not swap_transaction:
+                raise Exception(f"No transaction in Jupiter order response: {result}")
+
+            logger.info(f"Got order: {in_amount} -> {out_amount}, requestId={request_id}")
+
+            return {
+                "quote": result,
+                "input_amount": int(in_amount),
+                "output_amount": int(out_amount),
+                "price_impact_pct": result.get("priceImpactPct"),
+                "swap_transaction": swap_transaction,
+                "request_id": request_id,
+            }
+
+    async def execute_signed_transaction(
+        self,
+        signed_transaction: str,
+        request_id: str,
+    ) -> Dict[str, Any]:
+        """
+        Submit a signed transaction to Jupiter for landing via /execute.
+
+        Args:
+            signed_transaction: Base64-encoded signed transaction
+            request_id: The requestId from the /order response
+
+        Returns:
+            Dict with transaction signature and status
+        """
+        url = f"{self.api_url}/execute"
+
+        payload = {
+            "signedTransaction": signed_transaction,
+            "requestId": request_id,
+        }
+
+        logger.info(f"Executing swap via Jupiter, requestId={request_id}")
+
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(url, json=payload, headers=_headers())
+
+            if response.status_code != 200:
+                error_detail = response.text
+                logger.error(f"Jupiter execute error: {response.status_code} - {error_detail}")
+                raise Exception(f"Failed to execute swap: {error_detail}")
+
+            result = response.json()
+            signature = result.get("signature")
+
+            if not signature:
+                raise Exception(f"No signature in Jupiter execute response: {result}")
+
+            logger.info(f"Swap executed: {signature}")
+            return {
+                "signature": signature,
+                "status": "confirmed",
+            }

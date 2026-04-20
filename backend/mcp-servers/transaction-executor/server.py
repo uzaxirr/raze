@@ -660,6 +660,7 @@ async def swap_tokens(
                 "status": "pending_signature",
                 "type": "swap",
                 "unsigned_transaction": swap_transaction,
+                "request_id": swap_result.get("request_id"),
                 "message": "Transaction ready for signing in your wallet app",
                 "from_token": from_symbol,
                 "to_token": to_symbol,
