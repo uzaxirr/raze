@@ -21,7 +21,7 @@ JUPITER_API_URL = os.getenv("JUPITER_API_URL", "https://api.jup.ag/swap/v2")
 JUPITER_API_KEY = os.getenv("JUPITER_API_KEY", "")
 
 # Raze referral account for swap fees
-RAZE_REFERRAL_ACCOUNT = os.getenv("RAZE_REFERRAL_ACCOUNT", "2sZdpSqnggDWj1xMfrytd4Pum34wBjVW7KtyuknRgkGZ")
+RAZE_REFERRAL_ACCOUNT = os.getenv("RAZE_REFERRAL_ACCOUNT", "5JZe6rRbXoDjxcie4JLemUdXYsJk2k5L1TA1yekNGqKw")
 RAZE_REFERRAL_FEE_BPS = int(os.getenv("RAZE_REFERRAL_FEE_BPS", "200"))  # 2% (Raze keeps 80% = 1.6%)
 
 # Jupiter Referral Program ID
@@ -84,11 +84,9 @@ class JupiterClient:
             "taker": user_public_key,
         }
 
-        # TODO: Re-enable after linking referral account to v2 project at referral.jup.ag
-        # Project ID: DkiqsTrw1u1bYFumumC7sCG2S8K25qc2vemJFHyW2wJc
-        # if RAZE_REFERRAL_ACCOUNT:
-        #     params["referralAccount"] = RAZE_REFERRAL_ACCOUNT
-        #     params["referralFee"] = str(RAZE_REFERRAL_FEE_BPS)
+        if RAZE_REFERRAL_ACCOUNT:
+            params["referralAccount"] = RAZE_REFERRAL_ACCOUNT
+            params["referralFee"] = str(RAZE_REFERRAL_FEE_BPS)
 
         logger.info(f"Getting Jupiter order: {input_mint} -> {output_mint}, amount={amount}, taker={user_public_key}")
 
