@@ -76,23 +76,17 @@ class JupiterClient:
         """
         url = f"{self.api_url}/order"
 
-        # Derive referral fee account for the output mint
-        fee_account = None
-        if RAZE_REFERRAL_ACCOUNT:
-            fee_account = derive_referral_fee_account(RAZE_REFERRAL_ACCOUNT, output_mint)
-            logger.info(f"Derived referral fee account: {fee_account} for mint {output_mint}")
-
         params = {
             "inputMint": input_mint,
             "outputMint": output_mint,
             "amount": str(amount),
             "slippageBps": slippage_bps,
             "taker": user_public_key,
-            "platformFeeBps": RAZE_REFERRAL_FEE_BPS,
         }
 
-        if fee_account:
+        if RAZE_REFERRAL_ACCOUNT:
             params["referralAccount"] = RAZE_REFERRAL_ACCOUNT
+            params["referralFee"] = str(RAZE_REFERRAL_FEE_BPS)
 
         logger.info(f"Getting Jupiter order: {input_mint} -> {output_mint}, amount={amount}, taker={user_public_key}")
 
