@@ -57,6 +57,8 @@ export default function Image() {
           {/* Headline */}
           <div
             style={{
+              display: "flex",
+              flexDirection: "column",
               fontSize: "56px",
               fontWeight: 700,
               color: "#1A1A1A",
@@ -64,23 +66,23 @@ export default function Image() {
               letterSpacing: "-0.03em",
             }}
           >
-            you were
-            <br />
-            invited.
+            <span>you were</span>
+            <span>invited.</span>
           </div>
 
           {/* Subtitle */}
           <div
             style={{
+              display: "flex",
+              flexDirection: "column",
               fontSize: "20px",
               color: "#777",
               lineHeight: 1.5,
               maxWidth: "400px",
             }}
           >
-            your friend thinks you need a crypto co-pilot.
-            <br />
-            they might be right.
+            <span>your friend thinks you need a crypto co-pilot.</span>
+            <span>they might be right.</span>
           </div>
 
           {/* CTA button */}
