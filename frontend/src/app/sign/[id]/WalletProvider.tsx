@@ -6,13 +6,14 @@ import {
   WalletProvider as SolanaWalletProvider,
 } from "@solana/wallet-adapter-react";
 import { UnifiedWalletProvider } from "@jup-ag/wallet-adapter";
+import { JupiterMobileAdapter } from "@jup-ag/jup-mobile-adapter";
 
 const RPC_URL =
   process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
   "https://api.mainnet-beta.solana.com";
 
 export default function WalletProvider({ children }: { children: ReactNode }) {
-  const wallets = useMemo(() => [], []);
+  const wallets = useMemo(() => [new JupiterMobileAdapter()], []);
 
   return (
     <ConnectionProvider endpoint={RPC_URL}>

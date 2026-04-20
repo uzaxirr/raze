@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@jup-ag/jup-mobile-adapter": "^0.0.2",
     "@jup-ag/wallet-adapter": "^0.2.6",
     "@reown/appkit": "^1.8.19",
     "@reown/appkit-adapter-solana": "^1.8.19",
