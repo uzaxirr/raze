@@ -226,3 +226,58 @@ class Waitlist(Base):
 
     def __repr__(self):
         return f"<Waitlist(user={self.telegram_user_id}, pos={self.position}, status={self.status})>"
+
+
+class SignSession(Base):
+    """External transaction signing sessions (intent-based, no pre-built tx)."""
+    __tablename__ = "sign_sessions"
+
+    id = Column(String(36), primary_key=True)
+    viewer_token_hash = Column(String(64), nullable=False)
+
+    # Intent — what the user wants to do
+    type = Column(String(20), nullable=False)  # swap | sol_transfer | token_transfer
+    wallet_address = Column(String(64))
+    from_token = Column(String(64))
+    to_token = Column(String(64))
+    amount = Column(Numeric(24, 12), nullable=False)
+    to_address = Column(String(64))
+    slippage_bps = Column(Integer, default=50)
+    network = Column(String(20), default="mainnet")
+
+    # Tracking
+    reference_key = Column(String(64), nullable=False, index=True)
+    telegram_chat_id = Column(BigInteger)
+    execution_mode = Column(String(20))  # managed_execute | wallet_broadcast
+
+    # Status
+    status = Column(String(20), default="pending", index=True)
+    tx_hash = Column(String(128))
+    error_message = Column(Text)
+
+    # Display metadata (populated after /build)
+    from_symbol = Column(String(20))
+    to_symbol = Column(String(20))
+    output_amount = Column(Numeric(24, 12))
+    price_impact = Column(String(64))
+    fee_amount = Column(Numeric(24, 12))
+    fee_bps = Column(Integer)
+
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+    expires_at = Column(DateTime, nullable=False)
+    confirmed_at = Column(DateTime)
+
+    def __repr__(self):
+        return f"<SignSession(id={self.id[:8]}..., type={self.type}, status={self.status})>"
+
+
+class SignSessionEvent(Base):
+    """Audit trail for signing session state transitions."""
+    __tablename__ = "sign_session_events"
+
+    id = Column(Integer, primary_key=True)
+    session_id = Column(String(36), ForeignKey("sign_sessions.id"), nullable=False, index=True)
+    event = Column(String(50), nullable=False)
+    data = Column(Text)  # JSON string
+    created_at = Column(DateTime, server_default=func.now())

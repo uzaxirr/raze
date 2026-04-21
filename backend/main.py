@@ -177,5 +177,9 @@ agent_os = AgentOS(
 )
 app = agent_os.get_app()
 
+# Mount the v2 signing sessions API
+from api.sign_sessions import router as sign_router
+app.include_router(sign_router)
+
 if __name__ == "__main__":
     agent_os.serve(app="main:app", reload=True)
