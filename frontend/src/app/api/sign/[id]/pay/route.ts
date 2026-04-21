@@ -153,6 +153,7 @@ export async function POST(
         wrapAndUnwrapSol: true,
         dynamicComputeUnitLimit: true,
         asLegacyTransaction: true,
+        prioritizationFeeLamports: "auto",
       };
       if (session.referenceKey) {
         swapBody.trackingAccount = session.referenceKey;
