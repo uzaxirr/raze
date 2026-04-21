@@ -503,17 +503,17 @@ export default function SignClient({ id }: { id: string }) {
                 </div>
               ) : (
                 <>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontFamily:
-                        "var(--font-jetbrains-mono), monospace",
-                      color: "#14F195",
-                      textAlign: "center",
-                    }}
-                  >
-                    ✓ connected: {connectedAddress.slice(0, 8)}...
-                    {connectedAddress.slice(-4)}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        fontFamily: "var(--font-jetbrains-mono), monospace",
+                        color: "#14F195",
+                      }}
+                    >
+                      ✓ {connectedAddress.slice(0, 8)}...{connectedAddress.slice(-4)}
+                    </div>
+                    <appkit-button />
                   </div>
                   <button
                     onClick={handleSign}
