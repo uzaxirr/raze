@@ -90,42 +90,48 @@ async def create_signing_session(
     telegram_chat_id: int | str | None = None,
 ) -> str | None:
     """
-    Store swap params via the signing API and return a raze.fun/sign URL.
+    Create an intent-based signing session via the backend API.
+    Returns a raze.fun/sign URL with viewer token.
     """
     if not session_state or not swap_params:
         return None
 
     frontend_url = os.getenv("RAZE_FRONTEND_URL", "https://raze.fun")
-    sign_secret = os.getenv("RAZE_SIGN_SECRET", "raze-dev-secret")
+    backend_url = os.getenv("AGENTOS_BASE_URL", "http://localhost:7777")
+    sign_secret = os.getenv("RAZE_SIGN_SECRET")
+    if not sign_secret:
+        logger.error("RAZE_SIGN_SECRET not set — cannot create signing session")
+        return None
 
     try:
         import httpx
+        # Intent-only payload — NO pre-built transaction
         payload: dict = {
-            "walletAddress": session_state.get("external_wallet_address") or session_state.get("wallet_address"),
-            "signingMode": session_state.get("signing_mode", "external"),
-            "network": session_state.get("solana_network", "mainnet"),
             "type": swap_params.get("type", "swap"),
-            "unsignedTransaction": swap_params.get("unsigned_transaction", ""),
-            "requestId": swap_params.get("request_id", ""),
-            "fromSymbol": swap_params.get("from_token", swap_params.get("fromSymbol", "")),
-            "toSymbol": swap_params.get("to_token", swap_params.get("toSymbol", "")),
-            "inputAmount": swap_params.get("input_amount", swap_params.get("amount", 0)),
-            "outputAmount": swap_params.get("output_amount", swap_params.get("outputAmount", 0)),
-            "priceImpact": swap_params.get("price_impact", swap_params.get("priceImpact", "")),
+            "walletAddress": session_state.get("external_wallet_address") or session_state.get("wallet_address"),
+            "fromToken": swap_params.get("from_token", swap_params.get("fromSymbol", "")),
+            "toToken": swap_params.get("to_token", swap_params.get("toSymbol", "")),
+            "amount": swap_params.get("input_amount", swap_params.get("amount", 0)),
             "toAddress": swap_params.get("to", swap_params.get("toAddress", "")),
+            "slippageBps": 50,
+            "network": session_state.get("solana_network", "mainnet"),
         }
         if telegram_chat_id is not None:
-            payload["telegramChatId"] = telegram_chat_id
+            payload["telegramChatId"] = int(telegram_chat_id)
 
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.post(
-                f"{frontend_url}/api/tma/sign",
+                f"{backend_url}/api/sign/sessions",
                 json=payload,
                 headers={"x-sign-secret": sign_secret},
             )
             if resp.status_code == 200:
-                session_id = resp.json().get("id")
-                return f"{frontend_url}/sign/{session_id}"
+                data = resp.json()
+                session_id = data.get("sessionId")
+                viewer_token = data.get("viewerToken")
+                return f"{frontend_url}/sign/{session_id}?t={viewer_token}"
+            else:
+                logger.error(f"Session creation failed: {resp.status_code} {resp.text}")
     except Exception as e:
         logger.error(f"Failed to create signing session: {e}")
 
