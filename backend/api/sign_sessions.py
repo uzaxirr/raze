@@ -209,7 +209,10 @@ async def create_session(body: CreateSessionRequest, request: Request, db: Sessi
 
     session_id = str(uuid.uuid4())
     viewer_token = secrets.token_urlsafe(32)
-    reference_key = secrets.token_urlsafe(32)  # Random key for on-chain detection
+    # Generate a proper Solana public key for on-chain detection via findReference
+    from solders.keypair import Keypair as SoldersKeypair
+    ref_keypair = SoldersKeypair()
+    reference_key = str(ref_keypair.pubkey())
 
     session = SignSession(
         id=session_id,
