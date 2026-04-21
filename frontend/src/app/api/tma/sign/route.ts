@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
+import { Keypair } from "@solana/web3.js";
 import { sessions, SESSION_TTL_MS, type SignSession } from "./_store";
 
 // POST — create a new signing session
@@ -13,6 +14,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const id = randomUUID();
   const now = Date.now();
+  const referenceKeypair = Keypair.generate();
 
   const session: SignSession = {
     id,
@@ -31,6 +33,9 @@ export async function POST(req: NextRequest) {
     inputAmount: body.inputAmount,
     outputAmount: body.outputAmount,
     priceImpact: body.priceImpact,
+    referenceKey: referenceKeypair.publicKey.toBase58(),
+    telegramChatId: body.telegramChatId,
+    callbackUrl: body.callbackUrl,
   };
 
   sessions.set(id, session);

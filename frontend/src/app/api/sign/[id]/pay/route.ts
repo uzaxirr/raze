@@ -147,16 +147,21 @@ export async function POST(
 
       // Step 2: Get fresh swap transaction as LEGACY (not versioned)
       // Phantom's Solana Pay implementation handles legacy txs better
+      const swapBody: Record<string, unknown> = {
+        quoteResponse: quote,
+        userPublicKey: account,
+        wrapAndUnwrapSol: true,
+        dynamicComputeUnitLimit: true,
+        asLegacyTransaction: true,
+      };
+      if (session.referenceKey) {
+        swapBody.trackingAccount = session.referenceKey;
+      }
+
       const swapRes = await fetch("https://api.jup.ag/swap/v1/swap", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...headers },
-        body: JSON.stringify({
-          quoteResponse: quote,
-          userPublicKey: account,
-          wrapAndUnwrapSol: true,
-          dynamicComputeUnitLimit: true,
-          asLegacyTransaction: true,
-        }),
+        body: JSON.stringify(swapBody),
       });
 
       if (!swapRes.ok) {

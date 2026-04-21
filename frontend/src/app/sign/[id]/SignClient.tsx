@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useAppKitAccount, useAppKitProvider } from "@reown/appkit/react";
 import { useAppKitConnection } from "@reown/appkit-adapter-solana/react";
 import { Connection, VersionedTransaction, Transaction } from "@solana/web3.js";
@@ -22,6 +22,7 @@ interface SessionData {
   priceImpact?: string;
   toAddress?: string;
   requestId?: string;
+  referenceKey?: string;
 }
 
 type PageState =
@@ -103,6 +104,8 @@ export default function SignClient({ id }: { id: string }) {
   const [timeLeft, setTimeLeft] = useState(0);
   const [totalTime, setTotalTime] = useState(0);
   const [signMethod, setSignMethod] = useState<"qr" | "connect">("qr");
+  const qrPollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const qrPollingStartRef = useRef<number>(0);
 
   const { isConnected, address } = useAppKitAccount();
   const { connection } = useAppKitConnection();
@@ -142,6 +145,49 @@ export default function SignClient({ id }: { id: string }) {
     }, 1000);
     return () => clearInterval(interval);
   }, [session]);
+
+  // QR confirmation polling — poll /api/sign/{id}/status every 2s for up to 120s
+  useEffect(() => {
+    if (state !== "details" || !session?.referenceKey) return;
+    // Only poll when QR tab is active
+    if (signMethod !== "qr") return;
+
+    qrPollingStartRef.current = Date.now();
+
+    const interval = setInterval(async () => {
+      // Stop after 120 seconds
+      if (Date.now() - qrPollingStartRef.current > 120_000) {
+        clearInterval(interval);
+        qrPollingRef.current = null;
+        return;
+      }
+      try {
+        const res = await fetch(`/api/sign/${id}/status`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.status === "confirmed" && data.signature) {
+          clearInterval(interval);
+          qrPollingRef.current = null;
+          setSignature(data.signature);
+          setState("success");
+          // Notify bot via complete endpoint
+          fetch(`/api/tma/sign/${id}/complete`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "completed", txHash: data.signature }),
+          }).catch(() => {});
+        }
+      } catch {
+        // network hiccup — keep polling
+      }
+    }, 2_000);
+
+    qrPollingRef.current = interval;
+    return () => {
+      clearInterval(interval);
+      qrPollingRef.current = null;
+    };
+  }, [state, session, signMethod, id]);
 
   // Sign
   const handleSign = useCallback(async () => {

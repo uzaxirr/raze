@@ -84,7 +84,11 @@ def extract_pending_swap(text: str) -> tuple[str, dict | None]:
     return text, None
 
 
-async def create_signing_session(swap_params: dict, session_state: dict | None) -> str | None:
+async def create_signing_session(
+    swap_params: dict,
+    session_state: dict | None,
+    telegram_chat_id: int | str | None = None,
+) -> str | None:
     """
     Store swap params via the signing API and return a raze.fun/sign URL.
     """
@@ -96,23 +100,27 @@ async def create_signing_session(swap_params: dict, session_state: dict | None) 
 
     try:
         import httpx
+        payload: dict = {
+            "walletAddress": session_state.get("external_wallet_address") or session_state.get("wallet_address"),
+            "signingMode": session_state.get("signing_mode", "external"),
+            "network": session_state.get("solana_network", "mainnet"),
+            "type": swap_params.get("type", "swap"),
+            "unsignedTransaction": swap_params.get("unsigned_transaction", ""),
+            "requestId": swap_params.get("request_id", ""),
+            "fromSymbol": swap_params.get("from_token", swap_params.get("fromSymbol", "")),
+            "toSymbol": swap_params.get("to_token", swap_params.get("toSymbol", "")),
+            "inputAmount": swap_params.get("input_amount", swap_params.get("amount", 0)),
+            "outputAmount": swap_params.get("output_amount", swap_params.get("outputAmount", 0)),
+            "priceImpact": swap_params.get("price_impact", swap_params.get("priceImpact", "")),
+            "toAddress": swap_params.get("to", swap_params.get("toAddress", "")),
+        }
+        if telegram_chat_id is not None:
+            payload["telegramChatId"] = telegram_chat_id
+
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.post(
                 f"{frontend_url}/api/tma/sign",
-                json={
-                    "walletAddress": session_state.get("external_wallet_address") or session_state.get("wallet_address"),
-                    "signingMode": session_state.get("signing_mode", "external"),
-                    "network": session_state.get("solana_network", "mainnet"),
-                    "type": swap_params.get("type", "swap"),
-                    "unsignedTransaction": swap_params.get("unsigned_transaction", ""),
-                    "requestId": swap_params.get("request_id", ""),
-                    "fromSymbol": swap_params.get("from_token", swap_params.get("fromSymbol", "")),
-                    "toSymbol": swap_params.get("to_token", swap_params.get("toSymbol", "")),
-                    "inputAmount": swap_params.get("input_amount", swap_params.get("amount", 0)),
-                    "outputAmount": swap_params.get("output_amount", swap_params.get("outputAmount", 0)),
-                    "priceImpact": swap_params.get("price_impact", swap_params.get("priceImpact", "")),
-                    "toAddress": swap_params.get("to", swap_params.get("toAddress", "")),
-                },
+                json=payload,
                 headers={"x-sign-secret": sign_secret},
             )
             if resp.status_code == 200:
@@ -1306,7 +1314,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
                 if accumulated_text:
                     # Check for TMA signing flow
-                    tma_url = await create_signing_session(pending_swap_data, bouncer_session_state) if pending_swap_data else None
+                    tma_url = await create_signing_session(pending_swap_data, bouncer_session_state, telegram_chat_id=update.message.chat.id) if pending_swap_data else None
                     if tma_url:
                         keyboard = [[InlineKeyboardButton(
                             "\U0001f510 Sign Transaction",
@@ -1685,7 +1693,7 @@ async def stream_response(
                 # Check for pending swap from tool results (TMA signing flow)
                 clean_text = strip_sign_tx_tags(accumulated_text)
                 clean_text, _ = extract_pending_swap(clean_text)  # Strip any PENDING_SWAP tags too
-                tma_url = await create_signing_session(pending_swap_data, session_state) if pending_swap_data else None
+                tma_url = await create_signing_session(pending_swap_data, session_state, telegram_chat_id=update.message.chat.id) if pending_swap_data else None
 
                 if tma_url:
                     keyboard = [[InlineKeyboardButton(

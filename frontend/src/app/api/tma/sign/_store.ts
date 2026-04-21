@@ -16,6 +16,9 @@ export interface SignSession {
   inputAmount?: number;
   outputAmount?: number;
   priceImpact?: string;
+  referenceKey?: string;
+  telegramChatId?: string | number;
+  callbackUrl?: string;
 }
 
 // Shared in-memory store — upgrade to Redis for production persistence
