@@ -217,7 +217,7 @@ export default function SignClient({ id }: { id: string }) {
               </svg>
               <div className="sp-title" style={{ color: "#CC0000" }}>session expired</div>
               <p className="sp-sub">go back to telegram and try again</p>
-              <a href="https://t.me/razeaii_bot" className="sp-btn-outline">back to telegram</a>
+              <a href="tg://resolve?domain=razeaii_bot" className="sp-btn-outline">back to telegram</a>
             </div>
           )}
 
@@ -337,7 +337,7 @@ export default function SignClient({ id }: { id: string }) {
                   view on solscan
                 </a>
               )}
-              <a href="https://t.me/razeaii_bot" className="sp-btn-ghost">back to telegram</a>
+              <a href="tg://resolve?domain=razeaii_bot" className="sp-btn-ghost">back to telegram</a>
             </div>
           )}
         </div>
