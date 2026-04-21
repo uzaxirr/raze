@@ -5,8 +5,7 @@ import { useAppKitAccount, useAppKitProvider } from "@reown/appkit/react";
 import { useAppKitConnection } from "@reown/appkit-adapter-solana/react";
 import { Connection, VersionedTransaction, Transaction } from "@solana/web3.js";
 import type { Provider } from "@reown/appkit-adapter-solana/react";
-import { QRCodeSVG } from "qrcode.react";
-import { encodeURL } from "@solana/pay";
+import { createQR, encodeURL } from "@solana/pay";
 
 interface SessionData {
   id: string;
@@ -195,6 +194,23 @@ export default function SignClient({ id }: { id: string }) {
     }
   }, [session, connected, walletProvider, walletMismatch, id]);
 
+  // Solana Pay QR code
+  const qrRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (!node || !id) return;
+      node.innerHTML = "";
+      try {
+        const apiUrl = `${typeof window !== "undefined" ? window.location.origin : "https://raze.fun"}/api/sign/${id}/pay`;
+        const solanaUrl = encodeURL({ link: new URL(apiUrl) });
+        const qr = createQR(solanaUrl, 200, "white", "#1A1A1A");
+        qr.append(node);
+      } catch (e) {
+        console.error("[QR] Failed to create:", e);
+      }
+    },
+    [id]
+  );
+
   const explorerUrl = signature ? `https://solscan.io/tx/${signature}` : "";
   const typeLabel = session?.type === "swap" ? "Swap" : session?.type === "sol_transfer" ? "Transfer" : "Send";
 
@@ -303,23 +319,7 @@ export default function SignClient({ id }: { id: string }) {
               {/* QR Code */}
               {signMethod === "qr" && (
                 <div className="sp-qr-section">
-                  <div className="sp-qr-box">
-                    <QRCodeSVG
-                      value={encodeURL({
-                        link: new URL(`${typeof window !== "undefined" ? window.location.origin : "https://raze.fun"}/api/sign/${id}/pay`),
-                      }).toString()}
-                      size={200}
-                      bgColor="#ffffff"
-                      fgColor="#1A1A1A"
-                      level="M"
-                      imageSettings={{
-                        src: "/assets/imp-expressions/waving.png",
-                        width: 36,
-                        height: 36,
-                        excavate: true,
-                      }}
-                    />
-                  </div>
+                  <div className="sp-qr-box" ref={qrRef} />
                   <div className="sp-qr-hint">scan with your wallet app</div>
                   <div className="sp-qr-wallets">phantom &middot; jupiter &middot; backpack &middot; solflare</div>
                 </div>
