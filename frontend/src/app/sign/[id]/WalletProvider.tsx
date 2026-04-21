@@ -5,63 +5,71 @@ import { type ReactNode, useEffect, useState } from "react";
 const projectId = process.env.NEXT_PUBLIC_REOWN_PROJECT_ID || "";
 
 let initialized = false;
-let initError: string | null = null;
-
-function initAppKit() {
-  if (initialized) return;
-  if (!projectId) {
-    initError = "Missing NEXT_PUBLIC_REOWN_PROJECT_ID";
-    console.error("[WalletProvider]", initError);
-    return;
-  }
-  try {
-    console.log("[WalletProvider] Importing AppKit modules...");
-    const { createAppKit } = require("@reown/appkit/react");
-    console.log("[WalletProvider] createAppKit imported");
-    const { SolanaAdapter } = require("@reown/appkit-adapter-solana/react");
-    console.log("[WalletProvider] SolanaAdapter imported");
-    const { solana } = require("@reown/appkit/networks");
-    console.log("[WalletProvider] solana network imported");
-
-    createAppKit({
-      adapters: [new SolanaAdapter()],
-      networks: [solana],
-      projectId,
-      metadata: {
-        name: "Raze",
-        description: "Everything Solana in one chat",
-        url: "https://raze.fun",
-        icons: ["https://raze.fun/assets/imp-expressions/waving.png"],
-      },
-      features: {
-        analytics: false,
-        email: false,
-        socials: false,
-      },
-    });
-    initialized = true;
-    console.log("[WalletProvider] AppKit initialized successfully");
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e);
-    initError = msg;
-    console.error("[WalletProvider] AppKit init failed:", msg);
-    if (e instanceof Error && e.stack) {
-      console.error("[WalletProvider] Stack:", e.stack);
-    }
-  }
-}
 
 export default function WalletProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [log, setLog] = useState<string[]>([]);
 
   useEffect(() => {
-    console.log("[WalletProvider] useEffect running, initialized:", initialized);
-    initAppKit();
-    if (initError) {
-      setError(initError);
+    const logs: string[] = [];
+    const addLog = (msg: string) => {
+      console.log("[WalletProvider]", msg);
+      logs.push(msg);
+      setLog([...logs]);
+    };
+
+    async function init() {
+      if (initialized) {
+        addLog("Already initialized");
+        setReady(true);
+        return;
+      }
+
+      if (!projectId) {
+        setError("Missing NEXT_PUBLIC_REOWN_PROJECT_ID");
+        setReady(true);
+        return;
+      }
+
+      try {
+        addLog("Importing @reown/appkit/react...");
+        const appkit = await import("@reown/appkit/react");
+        addLog("OK. Importing @reown/appkit-adapter-solana/react...");
+        const adapter = await import("@reown/appkit-adapter-solana/react");
+        addLog("OK. Importing @reown/appkit/networks...");
+        const networks = await import("@reown/appkit/networks");
+        addLog("OK. All imports done. Creating AppKit...");
+
+        appkit.createAppKit({
+          adapters: [new adapter.SolanaAdapter()],
+          networks: [networks.solana],
+          projectId,
+          metadata: {
+            name: "Raze",
+            description: "Everything Solana in one chat",
+            url: "https://raze.fun",
+            icons: ["https://raze.fun/assets/imp-expressions/waving.png"],
+          },
+          features: {
+            analytics: false,
+            email: false,
+            socials: false,
+          },
+        });
+
+        initialized = true;
+        addLog("AppKit created successfully");
+        setReady(true);
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e);
+        addLog(`FAILED: ${msg}`);
+        setError(msg);
+        setReady(true);
+      }
     }
-    setReady(true);
+
+    init();
   }, []);
 
   if (!ready) {
@@ -70,13 +78,19 @@ export default function WalletProvider({ children }: { children: ReactNode }) {
         minHeight: "100vh",
         background: "#0D0B14",
         display: "flex",
+        flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
+        gap: 8,
+        padding: 24,
         color: "#6B6180",
-        fontSize: 14,
-        fontFamily: "var(--font-space-grotesk), sans-serif",
+        fontSize: 12,
+        fontFamily: "monospace",
       }}>
-        loading wallet...
+        <div style={{ fontSize: 14, color: "#F0ECF9" }}>loading wallet...</div>
+        {log.map((l, i) => (
+          <div key={i} style={{ color: l.includes("FAIL") ? "#FF6B6B" : "#4A4560" }}>{l}</div>
+        ))}
       </div>
     );
   }
@@ -99,21 +113,24 @@ export default function WalletProvider({ children }: { children: ReactNode }) {
           wallet connection failed
         </div>
         <div style={{
-          fontSize: 12,
+          fontSize: 11,
           color: "#6B6180",
           textAlign: "center",
-          maxWidth: 320,
+          maxWidth: 340,
           lineHeight: 1.6,
           fontFamily: "monospace",
           wordBreak: "break-all",
         }}>
           {error}
         </div>
-        <div style={{ fontSize: 12, color: "#6B6180", marginTop: 8 }}>
+        <div style={{ fontSize: 11, color: "#4A4560", marginTop: 4, fontFamily: "monospace" }}>
           projectId: {projectId ? `${projectId.slice(0, 8)}...` : "NOT SET"}
         </div>
+        {log.map((l, i) => (
+          <div key={i} style={{ fontSize: 10, color: "#4A4560", fontFamily: "monospace" }}>{l}</div>
+        ))}
         <button
-          onClick={() => { setError(null); initError = null; initialized = false; initAppKit(); if (initError) setError(initError); }}
+          onClick={() => window.location.reload()}
           style={{
             marginTop: 8,
             padding: "10px 20px",
