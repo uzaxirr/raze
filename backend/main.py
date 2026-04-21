@@ -177,6 +177,16 @@ agent_os = AgentOS(
 )
 app = agent_os.get_app()
 
+# CORS — allow frontend to call backend API
+from fastapi.middleware.cors import CORSMiddleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://raze.fun", "http://localhost:3000", "http://localhost:3004"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Mount the v2 signing sessions API
 from api.sign_sessions import router as sign_router
 app.include_router(sign_router)
