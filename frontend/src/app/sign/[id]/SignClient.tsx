@@ -5,6 +5,7 @@ import { useAppKitAccount, useAppKitProvider } from "@reown/appkit/react";
 import { useAppKitConnection } from "@reown/appkit-adapter-solana/react";
 import { Connection, VersionedTransaction, Transaction } from "@solana/web3.js";
 import type { Provider } from "@reown/appkit-adapter-solana/react";
+import { QRCodeSVG } from "qrcode.react";
 
 interface SessionData {
   id: string;
@@ -101,6 +102,7 @@ export default function SignClient({ id }: { id: string }) {
   const [error, setError] = useState("");
   const [timeLeft, setTimeLeft] = useState(0);
   const [totalTime, setTotalTime] = useState(0);
+  const [signMethod, setSignMethod] = useState<"qr" | "connect">("qr");
 
   const { isConnected, address } = useAppKitAccount();
   const { connection } = useAppKitConnection();
@@ -281,41 +283,84 @@ export default function SignClient({ id }: { id: string }) {
               {/* Divider */}
               <div className="sp-divider" />
 
-              {/* Wallet connect / sign */}
-              {!connected ? (
-                <div className="sp-wallet-section">
-                  <appkit-button />
-                </div>
-              ) : walletMismatch ? (
-                <div className="sp-mismatch">
-                  <div className="sp-mismatch-icon">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#CC0000" strokeWidth="1.5" strokeLinecap="round">
-                      <path d="M8 1l7 14H1L8 1z" /><line x1="8" y1="6" x2="8" y2="9" /><circle cx="8" cy="11.5" r="0.5" fill="#CC0000" />
-                    </svg>
+              {/* Method tabs */}
+              <div className="sp-tabs">
+                <button
+                  className={`sp-tab ${signMethod === "qr" ? "sp-tab-active" : ""}`}
+                  onClick={() => setSignMethod("qr")}
+                >
+                  scan QR
+                </button>
+                <button
+                  className={`sp-tab ${signMethod === "connect" ? "sp-tab-active" : ""}`}
+                  onClick={() => setSignMethod("connect")}
+                >
+                  connect wallet
+                </button>
+              </div>
+
+              {/* QR Code */}
+              {signMethod === "qr" && (
+                <div className="sp-qr-section">
+                  <div className="sp-qr-box">
+                    <QRCodeSVG
+                      value={`solana:${typeof window !== "undefined" ? window.location.origin : "https://raze.fun"}/api/sign/${id}/pay`}
+                      size={200}
+                      bgColor="#ffffff"
+                      fgColor="#1A1A1A"
+                      level="M"
+                      imageSettings={{
+                        src: "/assets/imp-expressions/waving.png",
+                        width: 36,
+                        height: 36,
+                        excavate: true,
+                      }}
+                    />
                   </div>
-                  <div>
-                    <div className="sp-mismatch-title">wrong wallet connected</div>
-                    <div className="sp-mismatch-addrs">
-                      connected: <strong>{connectedAddress.slice(0, 6)}...{connectedAddress.slice(-4)}</strong>
-                      <br />
-                      expected: <strong>{session.walletAddress.slice(0, 6)}...{session.walletAddress.slice(-4)}</strong>
+                  <div className="sp-qr-hint">scan with your wallet app</div>
+                  <div className="sp-qr-wallets">phantom &middot; jupiter &middot; backpack &middot; solflare</div>
+                </div>
+              )}
+
+              {/* Connect wallet */}
+              {signMethod === "connect" && (
+                <>
+                  {!connected ? (
+                    <div className="sp-wallet-section">
+                      <appkit-button />
                     </div>
-                  </div>
-                  <div className="sp-mismatch-action">
-                    <appkit-button />
-                  </div>
-                </div>
-              ) : (
-                <div className="sp-wallet-section">
-                  <div className="sp-connected">
-                    <div className="sp-connected-left">
-                      <div className="sp-dot" />
-                      <span>{connectedAddress.slice(0, 6)}...{connectedAddress.slice(-4)}</span>
+                  ) : walletMismatch ? (
+                    <div className="sp-mismatch">
+                      <div className="sp-mismatch-icon">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#CC0000" strokeWidth="1.5" strokeLinecap="round">
+                          <path d="M8 1l7 14H1L8 1z" /><line x1="8" y1="6" x2="8" y2="9" /><circle cx="8" cy="11.5" r="0.5" fill="#CC0000" />
+                        </svg>
+                      </div>
+                      <div>
+                        <div className="sp-mismatch-title">wrong wallet connected</div>
+                        <div className="sp-mismatch-addrs">
+                          connected: <strong>{connectedAddress.slice(0, 6)}...{connectedAddress.slice(-4)}</strong>
+                          <br />
+                          expected: <strong>{session.walletAddress.slice(0, 6)}...{session.walletAddress.slice(-4)}</strong>
+                        </div>
+                      </div>
+                      <div className="sp-mismatch-action">
+                        <appkit-button />
+                      </div>
                     </div>
-                    <appkit-button />
-                  </div>
-                  <button onClick={handleSign} className="sp-btn-primary">sign & send</button>
-                </div>
+                  ) : (
+                    <div className="sp-wallet-section">
+                      <div className="sp-connected">
+                        <div className="sp-connected-left">
+                          <div className="sp-dot" />
+                          <span>{connectedAddress.slice(0, 6)}...{connectedAddress.slice(-4)}</span>
+                        </div>
+                        <appkit-button />
+                      </div>
+                      <button onClick={handleSign} className="sp-btn-primary">sign & send</button>
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}
@@ -431,6 +476,28 @@ export default function SignClient({ id }: { id: string }) {
         .sp-tx-wallet-addr { color: #1A1A1A; font-weight: 500; }
 
         .sp-divider { height: 1px; background: #F0EDFF; margin: 2px 0; }
+
+        .sp-tabs {
+          display: flex; gap: 4px;
+          background: #F0EDFF; border-radius: 10px; padding: 3px;
+        }
+        .sp-tab {
+          flex: 1; padding: 8px 12px; border-radius: 8px;
+          border: none; background: transparent; color: #999;
+          font-size: 12px; font-weight: 600; cursor: pointer;
+          font-family: inherit; transition: all 0.15s;
+        }
+        .sp-tab-active { background: #fff; color: #1A1A1A; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+        .sp-qr-section {
+          display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 8px 0;
+        }
+        .sp-qr-box {
+          background: #fff; border-radius: 16px; padding: 16px;
+          border: 1px solid #F0EDFF; box-shadow: 0 2px 8px rgba(153,69,255,0.06);
+        }
+        .sp-qr-hint { font-size: 13px; color: #1A1A1A; font-weight: 500; }
+        .sp-qr-wallets { font-size: 11px; color: #BBB; font-family: var(--font-jetbrains-mono), monospace; }
 
         .sp-wallet-section { display: flex; flex-direction: column; gap: 10px; align-items: center; }
         .sp-connected {
