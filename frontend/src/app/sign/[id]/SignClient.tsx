@@ -201,8 +201,8 @@ export default function SignClient({ id }: { id: string }) {
       node.innerHTML = "";
       try {
         const apiUrl = `${typeof window !== "undefined" ? window.location.origin : "https://raze.fun"}/api/sign/${id}/pay`;
-        const solanaUrl = encodeURL({ link: new URL(apiUrl) });
-        const qr = createQR(solanaUrl, 200, "white", "#1A1A1A");
+        const solanaUrl = encodeURL({ link: new URL(apiUrl), label: "Raze", message: "Sign transaction" });
+        const qr = createQR(solanaUrl, 200, "white");
         qr.append(node);
       } catch (e) {
         console.error("[QR] Failed to create:", e);
