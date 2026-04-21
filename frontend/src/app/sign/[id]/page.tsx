@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Metadata } from "next";
 import WalletProvider from "./WalletProvider";
 import SignClient from "./SignClient";
@@ -22,7 +23,13 @@ export default async function SignPage({ params }: Props) {
 
   return (
     <WalletProvider>
-      <SignClient id={id} />
+      <Suspense fallback={
+        <div style={{ minHeight: "100vh", background: "#FAFAFE", display: "flex", alignItems: "center", justifyContent: "center", color: "#999" }}>
+          loading...
+        </div>
+      }>
+        <SignClient id={id} />
+      </Suspense>
     </WalletProvider>
   );
 }
