@@ -6,6 +6,7 @@ import { useAppKitConnection } from "@reown/appkit-adapter-solana/react";
 import { Connection, VersionedTransaction, Transaction } from "@solana/web3.js";
 import type { Provider } from "@reown/appkit-adapter-solana/react";
 import { QRCodeSVG } from "qrcode.react";
+import { encodeURL } from "@solana/pay";
 
 interface SessionData {
   id: string;
@@ -304,7 +305,9 @@ export default function SignClient({ id }: { id: string }) {
                 <div className="sp-qr-section">
                   <div className="sp-qr-box">
                     <QRCodeSVG
-                      value={`solana:${typeof window !== "undefined" ? window.location.origin : "https://raze.fun"}/api/sign/${id}/pay`}
+                      value={encodeURL({
+                        link: new URL(`${typeof window !== "undefined" ? window.location.origin : "https://raze.fun"}/api/sign/${id}/pay`),
+                      }).toString()}
                       size={200}
                       bgColor="#ffffff"
                       fgColor="#1A1A1A"
