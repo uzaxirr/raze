@@ -39,8 +39,59 @@ function withTimeout<T>(
 ): Promise<T> {
   return Promise.race([
     promise,
-    new Promise<never>((_, reject) => setTimeout(() => reject(new Error(msg)), ms)),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(msg)), ms)
+    ),
   ]);
+}
+
+/* ── Circular countdown ── */
+function CountdownRing({ timeLeft, total }: { timeLeft: number; total: number }) {
+  const r = 20;
+  const circ = 2 * Math.PI * r;
+  const progress = total > 0 ? timeLeft / total : 0;
+  const offset = circ * (1 - progress);
+  const urgent = timeLeft < 60;
+  const color = urgent ? "#CC0000" : "#9945FF";
+
+  return (
+    <div style={{ position: "relative", width: 50, height: 50, flexShrink: 0 }}>
+      <svg width="50" height="50" viewBox="0 0 50 50" style={{ transform: "rotate(-90deg)" }}>
+        <circle cx="25" cy="25" r={r} fill="none" stroke="#E4DCFF" strokeWidth="3" />
+        <circle
+          cx="25" cy="25" r={r} fill="none"
+          stroke={color} strokeWidth="3" strokeLinecap="round"
+          strokeDasharray={circ} strokeDashoffset={offset}
+          style={{ transition: "stroke-dashoffset 1s linear, stroke 0.3s" }}
+        />
+      </svg>
+      <div style={{
+        position: "absolute", inset: 0,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontFamily: "var(--font-jetbrains-mono), monospace",
+        fontSize: 11, fontWeight: 600, color,
+      }}>
+        {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, "0")}
+      </div>
+    </div>
+  );
+}
+
+/* ── Pulsing spinner ── */
+function Spinner({ label }: { label: string }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: "28px 0" }}>
+      <div style={{ display: "flex", gap: 5 }}>
+        {[0, 1, 2].map((i) => (
+          <div key={i} style={{
+            width: 7, height: 7, borderRadius: "50%", background: "#9945FF",
+            animation: `signPulse 1.2s ease-in-out ${i * 0.2}s infinite`,
+          }} />
+        ))}
+      </div>
+      <div style={{ fontSize: 13, color: "#999", fontFamily: "var(--font-inter), sans-serif" }}>{label}</div>
+    </div>
+  );
 }
 
 export default function SignClient({ id }: { id: string }) {
@@ -49,6 +100,7 @@ export default function SignClient({ id }: { id: string }) {
   const [signature, setSignature] = useState("");
   const [error, setError] = useState("");
   const [timeLeft, setTimeLeft] = useState(0);
+  const [totalTime, setTotalTime] = useState(0);
 
   const { isConnected, address } = useAppKitAccount();
   const { connection } = useAppKitConnection();
@@ -57,9 +109,7 @@ export default function SignClient({ id }: { id: string }) {
   const connected = isConnected;
   const connectedAddress = address || "";
   const walletMismatch = !!(
-    connected &&
-    session?.walletAddress &&
-    connectedAddress &&
+    connected && session?.walletAddress && connectedAddress &&
     session.walletAddress !== connectedAddress
   );
 
@@ -68,26 +118,14 @@ export default function SignClient({ id }: { id: string }) {
     async function fetchSession() {
       try {
         const res = await fetch(`/api/tma/sign/${id}`);
-        if (res.status === 404 || res.status === 410) {
-          setState("expired");
-          return;
-        }
-        if (!res.ok) {
-          setState("error");
-          setError("failed to load transaction");
-          return;
-        }
+        if (res.status === 404 || res.status === 410) { setState("expired"); return; }
+        if (!res.ok) { setState("error"); setError("failed to load transaction"); return; }
         const data = await res.json();
-        if (data.status === "completed") {
-          setState("expired");
-          return;
-        }
+        if (data.status === "completed") { setState("expired"); return; }
         setSession(data);
+        setTotalTime(Math.max(0, Math.floor((data.expiresAt - Date.now()) / 1000)));
         setState("details");
-      } catch {
-        setState("error");
-        setError("network error");
-      }
+      } catch { setState("error"); setError("network error"); }
     }
     fetchSession();
   }, [id]);
@@ -96,108 +134,56 @@ export default function SignClient({ id }: { id: string }) {
   useEffect(() => {
     if (!session) return;
     const interval = setInterval(() => {
-      const remaining = Math.max(
-        0,
-        Math.floor((session.expiresAt - Date.now()) / 1000)
-      );
+      const remaining = Math.max(0, Math.floor((session.expiresAt - Date.now()) / 1000));
       setTimeLeft(remaining);
-      if (remaining <= 0) {
-        setState("expired");
-        clearInterval(interval);
-      }
+      if (remaining <= 0) { setState("expired"); clearInterval(interval); }
     }, 1000);
     return () => clearInterval(interval);
   }, [session]);
 
-  // Sign transaction
+  // Sign
   const handleSign = useCallback(async () => {
     if (!session || !connected || !walletProvider || walletMismatch) return;
-
     setState("simulating");
     try {
-      const rpcUrl =
-        process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
-        "https://api.mainnet-beta.solana.com";
+      const rpcUrl = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
       const conn = new Connection(rpcUrl, { commitment: "confirmed" });
+      if (!session.unsignedTransaction) throw new Error("No transaction data — session may have expired");
 
-      if (!session.unsignedTransaction) {
-        throw new Error("No transaction data — session may have expired");
-      }
-
-      const txBytes = Uint8Array.from(
-        Buffer.from(session.unsignedTransaction, "base64")
-      );
-
-      // Deserialize — try versioned first (Jupiter uses v0), fall back to legacy
+      const txBytes = Uint8Array.from(Buffer.from(session.unsignedTransaction, "base64"));
       let tx: VersionedTransaction | Transaction;
-      try {
-        tx = VersionedTransaction.deserialize(txBytes);
-      } catch {
-        tx = Transaction.from(txBytes);
-      }
+      try { tx = VersionedTransaction.deserialize(txBytes); }
+      catch { tx = Transaction.from(txBytes); }
 
-      // Simulate
-      const simulation = await conn.simulateTransaction(
-        tx as VersionedTransaction
-      );
+      const simulation = await conn.simulateTransaction(tx as VersionedTransaction);
       if (simulation.value.err) {
-        throw new Error(
-          `Transaction would fail: ${JSON.stringify(simulation.value.err)}. Go back to Telegram and try again.`
-        );
+        throw new Error(`Transaction would fail: ${JSON.stringify(simulation.value.err)}. Go back to Telegram and try again.`);
       }
 
       setState("signing");
+      const signed = await withTimeout(walletProvider.signTransaction(tx), 60_000, "Signing timed out — please try again.");
 
-      // Sign the transaction via AppKit
-      const signed = await withTimeout(
-        walletProvider.signTransaction(tx),
-        60_000,
-        "Signing timed out — please try again."
-      );
-
-      // Serialize signed tx
-      const signedBytes =
-        signed instanceof VersionedTransaction
-          ? signed.serialize()
-          : signed.serialize();
+      const signedBytes = signed instanceof VersionedTransaction ? signed.serialize() : signed.serialize();
       const signedBase64 = Buffer.from(signedBytes).toString("base64");
 
-      // Send via Jupiter /execute if we have a requestId, otherwise broadcast directly
       let sig: string;
       if (session.requestId) {
         const execRes = await fetch("https://api.jup.ag/swap/v2/execute", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": process.env.NEXT_PUBLIC_JUPITER_API_KEY || "",
-          },
-          body: JSON.stringify({
-            signedTransaction: signedBase64,
-            requestId: session.requestId,
-          }),
+          headers: { "Content-Type": "application/json", "x-api-key": process.env.NEXT_PUBLIC_JUPITER_API_KEY || "" },
+          body: JSON.stringify({ signedTransaction: signedBase64, requestId: session.requestId }),
         });
         const execData = await execRes.json();
-        if (!execRes.ok || !execData.signature) {
-          throw new Error(
-            execData.error || "Jupiter failed to land transaction"
-          );
-        }
+        if (!execRes.ok || !execData.signature) throw new Error(execData.error || "Failed to land transaction");
         sig = execData.signature;
       } else {
-        // Fallback: broadcast directly
-        sig = await conn.sendRawTransaction(signedBytes, {
-          skipPreflight: true,
-          maxRetries: 3,
-        });
+        sig = await conn.sendRawTransaction(signedBytes, { skipPreflight: true, maxRetries: 3 });
       }
 
       setSignature(sig);
       setState("success");
-
-      // Notify backend
       await fetch(`/api/tma/sign/${id}/complete`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "completed", txHash: sig }),
       }).catch(() => {});
     } catch (e: unknown) {
@@ -206,434 +192,327 @@ export default function SignClient({ id }: { id: string }) {
     }
   }, [session, connected, walletProvider, walletMismatch, id]);
 
-  const txLabel = session
-    ? session.type === "swap"
-      ? `Swap ${session.inputAmount || ""} ${session.fromSymbol || ""} → ${session.toSymbol || ""}`
-      : session.type === "sol_transfer"
-        ? `Send ${session.inputAmount || ""} SOL`
-        : `Send ${session.inputAmount || ""} ${session.fromSymbol || "tokens"}`
-    : "";
-
-  const formatTime = (s: number) =>
-    `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-
   const explorerUrl = signature ? `https://solscan.io/tx/${signature}` : "";
+  const typeLabel = session?.type === "swap" ? "Swap" : session?.type === "sol_transfer" ? "Transfer" : "Send";
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#0D0B14",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 16,
-        fontFamily: "var(--font-space-grotesk), 'Space Grotesk', sans-serif",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 400,
-          display: "flex",
-          flexDirection: "column",
-          gap: 16,
-          alignItems: "center",
-        }}
-      >
-        {/* Logo */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+    <div className="sp">
+      <div className="sp-container">
+        {/* Header */}
+        <div className="sp-header">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/assets/imp-expressions/waving.png"
-            alt="Raze"
-            style={{ width: 32, height: 32, objectFit: "contain" }}
-          />
-          <span
-            style={{
-              fontSize: 20,
-              fontWeight: 700,
-              color: "#F0ECF9",
-              letterSpacing: "-0.03em",
-            }}
-          >
-            raze
-          </span>
+          <img src="/assets/imp-expressions/waving.png" alt="Raze" style={{ width: 36, height: 36, objectFit: "contain" }} />
+          <span className="sp-wordmark">raze</span>
         </div>
 
         {/* Card */}
-        <div
-          style={{
-            width: "100%",
-            background: "#1A1725",
-            borderRadius: 16,
-            border: "1px solid #2A2540",
-            padding: 24,
-            display: "flex",
-            flexDirection: "column",
-            gap: 16,
-          }}
-        >
-          {state === "loading" && (
-            <div
-              style={{ textAlign: "center", color: "#6B6180", fontSize: 14 }}
-            >
-              loading transaction...
-            </div>
-          )}
+        <div className="sp-card">
+
+          {state === "loading" && <Spinner label="loading transaction..." />}
 
           {state === "expired" && (
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 36, marginBottom: 8 }}>⏰</div>
-              <div
-                style={{ fontSize: 18, fontWeight: 700, color: "#FF6B6B" }}
-              >
-                session expired
-              </div>
-              <div
-                style={{ fontSize: 13, color: "#6B6180", marginTop: 6 }}
-              >
-                go back to telegram and try again
-              </div>
+            <div className="sp-center">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#CC0000" strokeWidth="1.5" strokeLinecap="round">
+                <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+              </svg>
+              <div className="sp-title" style={{ color: "#CC0000" }}>session expired</div>
+              <p className="sp-sub">go back to telegram and try again</p>
+              <a href="https://t.me/razeaii_bot" className="sp-btn-outline">back to telegram</a>
             </div>
           )}
 
           {state === "error" && (
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 36, marginBottom: 8 }}>❌</div>
-              <div
-                style={{ fontSize: 18, fontWeight: 700, color: "#FF6B6B" }}
-              >
-                something went wrong
-              </div>
-              <div
-                style={{
-                  fontSize: 13,
-                  color: "#6B6180",
-                  marginTop: 6,
-                  lineHeight: 1.5,
-                }}
-              >
-                {error}
-              </div>
-              <button
-                onClick={() => {
-                  setState("details");
-                  setError("");
-                }}
-                style={{
-                  marginTop: 12,
-                  padding: "10px 20px",
-                  borderRadius: 8,
-                  border: "1px solid #2A2540",
-                  background: "#12101A",
-                  color: "#9945FF",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                }}
-              >
-                try again
-              </button>
+            <div className="sp-center">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#CC0000" strokeWidth="1.5" strokeLinecap="round">
+                <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
+              </svg>
+              <div className="sp-title" style={{ color: "#CC0000" }}>something went wrong</div>
+              <p className="sp-error-msg">{error}</p>
+              <button onClick={() => { setState("details"); setError(""); }} className="sp-btn-outline">try again</button>
             </div>
           )}
 
           {state === "details" && session && (
             <>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontFamily:
-                      "var(--font-jetbrains-mono), monospace",
-                    color: "#6B6180",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.1em",
-                  }}
-                >
-                  sign transaction
-                </span>
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontFamily:
-                      "var(--font-jetbrains-mono), monospace",
-                    color: timeLeft < 60 ? "#FF6B6B" : "#6B6180",
-                  }}
-                >
-                  {formatTime(timeLeft)}
-                </span>
+              {/* Type + countdown */}
+              <div className="sp-top">
+                <div>
+                  <div className="sp-type">{typeLabel}</div>
+                  <div className="sp-network">{session.network}</div>
+                </div>
+                <CountdownRing timeLeft={timeLeft} total={totalTime} />
               </div>
 
-              {/* Transaction details */}
-              <div
-                style={{
-                  background: "#12101A",
-                  borderRadius: 10,
-                  padding: 16,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 16,
-                    fontWeight: 600,
-                    color: "#F0ECF9",
-                  }}
-                >
-                  {txLabel}
+              {/* Amounts */}
+              <div className="sp-amounts">
+                <div className="sp-token">
+                  <div className="sp-token-label">you pay</div>
+                  <div className="sp-token-amount">{session.inputAmount ?? "—"}</div>
+                  <div className="sp-token-symbol">{session.fromSymbol || "—"}</div>
                 </div>
-                {session.outputAmount != null && (
-                  <div style={{ fontSize: 13, color: "#14F195" }}>
-                    ≈ {session.outputAmount} {session.toSymbol}
-                  </div>
-                )}
-                {session.priceImpact && (
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontFamily:
-                        "var(--font-jetbrains-mono), monospace",
-                      color: "#6B6180",
-                    }}
-                  >
-                    impact: {Number(session.priceImpact).toFixed(4)}%
-                  </div>
-                )}
-                <div
-                  style={{
-                    fontSize: 11,
-                    fontFamily:
-                      "var(--font-jetbrains-mono), monospace",
-                    color: "#6B6180",
-                  }}
-                >
-                  network: {session.network}
+                <div className="sp-arrow-wrap">
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#999" strokeWidth="1.5" strokeLinecap="round">
+                    <path d="M3 9h12M11 5l4 4-4 4" />
+                  </svg>
+                </div>
+                <div className="sp-token">
+                  <div className="sp-token-label">you get</div>
+                  <div className="sp-token-amount sp-token-green">{session.outputAmount ?? "—"}</div>
+                  <div className="sp-token-symbol">{session.toSymbol || "—"}</div>
                 </div>
               </div>
+
+              {/* Details */}
+              {session.priceImpact && (
+                <div className="sp-row">
+                  <span>price impact</span>
+                  <span style={{ color: Number(session.priceImpact) > 1 ? "#CC0000" : undefined }}>{Number(session.priceImpact).toFixed(4)}%</span>
+                </div>
+              )}
+
+              {/* Transaction wallet */}
+              {session.walletAddress && (
+                <div className="sp-tx-wallet">
+                  <span>transaction for</span>
+                  <span className="sp-tx-wallet-addr">{session.walletAddress.slice(0, 6)}...{session.walletAddress.slice(-4)}</span>
+                </div>
+              )}
+
+              {/* Divider */}
+              <div className="sp-divider" />
 
               {/* Wallet connect / sign */}
               {!connected ? (
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 8,
-                    alignItems: "center",
-                  }}
-                >
+                <div className="sp-wallet-section">
                   <appkit-button />
-                  {session.walletAddress && (
-                    <div
-                      style={{
-                        fontSize: 11,
-                        fontFamily:
-                          "var(--font-jetbrains-mono), monospace",
-                        color: "#6B6180",
-                        textAlign: "center",
-                      }}
-                    >
-                      connect:{" "}
-                      {session.walletAddress.slice(0, 8)}...
-                      {session.walletAddress.slice(-4)}
-                    </div>
-                  )}
                 </div>
               ) : walletMismatch ? (
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 10,
-                  }}
-                >
-                  <div
-                    style={{
-                      background: "#2A1A1A",
-                      borderRadius: 8,
-                      padding: 12,
-                      border: "1px solid #FF6B6B33",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 600,
-                        color: "#FF6B6B",
-                        marginBottom: 6,
-                      }}
-                    >
-                      wrong wallet connected
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        fontFamily:
-                          "var(--font-jetbrains-mono), monospace",
-                        color: "#6B6180",
-                        lineHeight: 1.6,
-                      }}
-                    >
-                      connected: {connectedAddress.slice(0, 8)}...
-                      {connectedAddress.slice(-4)}
+                <div className="sp-mismatch">
+                  <div className="sp-mismatch-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#CC0000" strokeWidth="1.5" strokeLinecap="round">
+                      <path d="M8 1l7 14H1L8 1z" /><line x1="8" y1="6" x2="8" y2="9" /><circle cx="8" cy="11.5" r="0.5" fill="#CC0000" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="sp-mismatch-title">wrong wallet connected</div>
+                    <div className="sp-mismatch-addrs">
+                      connected: <strong>{connectedAddress.slice(0, 6)}...{connectedAddress.slice(-4)}</strong>
                       <br />
-                      expected: {session.walletAddress.slice(0, 8)}...
-                      {session.walletAddress.slice(-4)}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: "#999",
-                        marginTop: 8,
-                      }}
-                    >
-                      switch to the correct wallet, then reconnect.
+                      expected: <strong>{session.walletAddress.slice(0, 6)}...{session.walletAddress.slice(-4)}</strong>
                     </div>
                   </div>
-                  <appkit-button />
+                  <div className="sp-mismatch-action">
+                    <appkit-button />
+                  </div>
                 </div>
               ) : (
-                <>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        fontFamily: "var(--font-jetbrains-mono), monospace",
-                        color: "#14F195",
-                      }}
-                    >
-                      ✓ {connectedAddress.slice(0, 8)}...{connectedAddress.slice(-4)}
+                <div className="sp-wallet-section">
+                  <div className="sp-connected">
+                    <div className="sp-connected-left">
+                      <div className="sp-dot" />
+                      <span>{connectedAddress.slice(0, 6)}...{connectedAddress.slice(-4)}</span>
                     </div>
                     <appkit-button />
                   </div>
-                  <button
-                    onClick={handleSign}
-                    style={{
-                      width: "100%",
-                      padding: "14px 16px",
-                      borderRadius: 10,
-                      border: "none",
-                      background: "#9945FF",
-                      color: "#fff",
-                      fontSize: 16,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      fontFamily: "inherit",
-                    }}
-                  >
-                    sign & send
-                  </button>
-                </>
+                  <button onClick={handleSign} className="sp-btn-primary">sign & send</button>
+                </div>
               )}
             </>
           )}
 
-          {state === "simulating" && (
-            <div
-              style={{
-                textAlign: "center",
-                color: "#6B6180",
-                fontSize: 14,
-                padding: 16,
-              }}
-            >
-              simulating transaction...
-            </div>
-          )}
-
-          {state === "signing" && (
-            <div
-              style={{
-                textAlign: "center",
-                color: "#6B6180",
-                fontSize: 14,
-                padding: 16,
-              }}
-            >
-              waiting for wallet approval...
-            </div>
-          )}
+          {state === "simulating" && <Spinner label="simulating transaction..." />}
+          {state === "signing" && <Spinner label="approve in your wallet app..." />}
 
           {state === "success" && (
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 36, marginBottom: 8 }}>✅</div>
-              <div
-                style={{ fontSize: 18, fontWeight: 700, color: "#14F195" }}
-              >
-                transaction sent
+            <div className="sp-center">
+              <div className="sp-success-check">
+                <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="#14F195" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 14l6 6L22 8" />
+                </svg>
               </div>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontFamily:
-                    "var(--font-jetbrains-mono), monospace",
-                  color: "#6B6180",
-                  marginTop: 8,
-                  wordBreak: "break-all",
-                }}
-              >
-                {signature.slice(0, 20)}...{signature.slice(-20)}
-              </div>
+              <div className="sp-title" style={{ color: "#14F195" }}>transaction sent</div>
+              <div className="sp-sig">{signature.slice(0, 16)}...{signature.slice(-16)}</div>
               {explorerUrl && (
-                <a
-                  href={explorerUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: "inline-block",
-                    marginTop: 12,
-                    padding: "8px 20px",
-                    borderRadius: 8,
-                    background: "#12101A",
-                    border: "1px solid #2A2540",
-                    color: "#9945FF",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    textDecoration: "none",
-                    fontFamily:
-                      "var(--font-jetbrains-mono), monospace",
-                  }}
-                >
-                  view on solscan →
+                <a href={explorerUrl} target="_blank" rel="noopener noreferrer" className="sp-btn-outline">
+                  view on solscan
                 </a>
               )}
-              <a
-                href="https://t.me/razeaii_bot"
-                style={{
-                  display: "block",
-                  marginTop: 12,
-                  padding: "10px 20px",
-                  borderRadius: 8,
-                  border: "1px solid #2A2540",
-                  background: "#12101A",
-                  color: "#6B6180",
-                  fontSize: 13,
-                  textDecoration: "none",
-                  fontFamily: "inherit",
-                  textAlign: "center",
-                }}
-              >
-                back to telegram
-              </a>
+              <a href="https://t.me/razeaii_bot" className="sp-btn-ghost">back to telegram</a>
             </div>
           )}
         </div>
 
-        <div
-          style={{ fontSize: 11, color: "#3A3550", textAlign: "center" }}
-        >
-          raze.fun — everything solana in one chat
-        </div>
+        {/* Footer */}
+        <p className="sp-footer">raze.fun &middot; @raze_aii</p>
       </div>
+
+      <style>{`
+        @keyframes signPulse {
+          0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+          40% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes spFadeIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          * { animation-duration: 0.01ms !important; }
+        }
+
+        .sp {
+          min-height: 100vh;
+          background: linear-gradient(180deg, #FAFAFE 0%, #F0EDFF 60%, #E4DCFF 100%);
+          display: flex; align-items: center; justify-content: center;
+          padding: 16px;
+          font-family: var(--font-space-grotesk), sans-serif;
+        }
+        .sp-container {
+          width: 100%; max-width: 400px;
+          display: flex; flex-direction: column; gap: 14px; align-items: center;
+          animation: spFadeIn 0.4s ease both;
+        }
+        .sp-header { display: flex; align-items: center; gap: 8px; }
+        .sp-wordmark {
+          font-size: 20px; font-weight: 700; color: #1A1A1A;
+          letter-spacing: -0.03em;
+        }
+
+        .sp-card {
+          width: 100%;
+          background: #fff;
+          border-radius: 20px;
+          border: 1px solid #E4DCFF;
+          padding: 24px;
+          display: flex; flex-direction: column; gap: 14px;
+          box-shadow: 0 4px 24px rgba(153,69,255,0.06);
+        }
+
+        .sp-top { display: flex; justify-content: space-between; align-items: flex-start; }
+        .sp-type { font-size: 24px; font-weight: 700; color: #1A1A1A; letter-spacing: -0.02em; }
+        .sp-network {
+          display: inline-block; margin-top: 4px;
+          font-size: 10px; font-weight: 600; color: #9945FF;
+          background: rgba(153,69,255,0.08); border: 1px solid rgba(153,69,255,0.15);
+          border-radius: 4px; padding: 2px 8px;
+          text-transform: uppercase; letter-spacing: 0.08em;
+          font-family: var(--font-jetbrains-mono), monospace;
+        }
+
+        .sp-amounts {
+          display: flex; align-items: center;
+          background: #FAFAFE; border-radius: 14px; padding: 20px 16px;
+          border: 1px solid #F0EDFF;
+        }
+        .sp-token { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 1; }
+        .sp-token-label {
+          font-size: 10px; color: #999; text-transform: uppercase;
+          letter-spacing: 0.08em; font-family: var(--font-jetbrains-mono), monospace;
+        }
+        .sp-token-amount { font-size: 22px; font-weight: 700; color: #1A1A1A; letter-spacing: -0.02em; }
+        .sp-token-green { color: #14F195; }
+        .sp-token-symbol { font-size: 13px; font-weight: 600; color: #9945FF; }
+        .sp-arrow-wrap {
+          width: 32px; height: 32px; border-radius: 50%;
+          background: #fff; border: 1px solid #E4DCFF;
+          display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+
+        .sp-row {
+          display: flex; justify-content: space-between;
+          font-size: 11px; color: #999; padding: 0 4px;
+          font-family: var(--font-jetbrains-mono), monospace;
+        }
+
+        .sp-tx-wallet {
+          display: flex; justify-content: space-between; align-items: center;
+          font-size: 11px; color: #999; padding: 0 4px;
+          font-family: var(--font-jetbrains-mono), monospace;
+        }
+        .sp-tx-wallet-addr { color: #1A1A1A; font-weight: 500; }
+
+        .sp-divider { height: 1px; background: #F0EDFF; margin: 2px 0; }
+
+        .sp-wallet-section { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+        .sp-connected {
+          width: 100%; display: flex; justify-content: space-between; align-items: center;
+        }
+        .sp-connected-left {
+          display: flex; align-items: center; gap: 6px;
+          font-size: 12px; color: #1A1A1A; font-weight: 500;
+          font-family: var(--font-jetbrains-mono), monospace;
+        }
+        .sp-dot {
+          width: 6px; height: 6px; border-radius: 50%;
+          background: #14F195; box-shadow: 0 0 6px rgba(20,241,149,0.4);
+        }
+
+        .sp-mismatch {
+          width: 100%;
+          background: rgba(204,0,0,0.04); border: 1px solid rgba(204,0,0,0.12);
+          border-radius: 12px; padding: 14px;
+          display: flex; flex-direction: column; gap: 8px; align-items: center;
+        }
+        .sp-mismatch-icon { flex-shrink: 0; }
+        .sp-mismatch-title { font-size: 13px; font-weight: 700; color: #CC0000; }
+        .sp-mismatch-addrs {
+          font-size: 11px; color: #999; line-height: 1.8; text-align: center;
+          font-family: var(--font-jetbrains-mono), monospace;
+        }
+        .sp-mismatch-addrs strong { color: #1A1A1A; font-weight: 600; }
+        .sp-mismatch-action { margin-top: 4px; }
+
+        .sp-btn-primary {
+          width: 100%; padding: 14px 16px; border-radius: 9999px;
+          border: none; background: #9945FF; color: #fff;
+          font-size: 16px; font-weight: 700; cursor: pointer;
+          font-family: inherit; letter-spacing: -0.01em;
+          transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .sp-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(153,69,255,0.25); }
+        .sp-btn-primary:active { transform: translateY(0); }
+
+        .sp-btn-outline {
+          display: block; width: 100%; padding: 12px 20px;
+          border-radius: 9999px; border: 1px solid #E4DCFF;
+          background: #fff; color: #9945FF;
+          font-size: 13px; font-weight: 600; text-decoration: none;
+          text-align: center; font-family: inherit; cursor: pointer;
+          transition: border-color 0.15s;
+        }
+        .sp-btn-outline:hover { border-color: #9945FF; }
+
+        .sp-btn-ghost {
+          display: block; width: 100%; padding: 10px 20px;
+          border: none; background: transparent; color: #999;
+          font-size: 13px; text-decoration: none; text-align: center;
+          font-family: inherit; cursor: pointer;
+        }
+        .sp-btn-ghost:hover { color: #666; }
+
+        .sp-center {
+          display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 16px 0;
+        }
+        .sp-title { font-size: 18px; font-weight: 700; color: #1A1A1A; }
+        .sp-sub { font-size: 13px; color: #999; margin: 0; }
+        .sp-error-msg {
+          font-size: 12px; color: #999; text-align: center; line-height: 1.5;
+          max-width: 300px; word-break: break-word;
+          font-family: var(--font-jetbrains-mono), monospace;
+        }
+        .sp-success-check {
+          width: 56px; height: 56px; border-radius: 50%;
+          background: rgba(20,241,149,0.1); display: flex;
+          align-items: center; justify-content: center;
+        }
+        .sp-sig {
+          font-size: 11px; color: #999; word-break: break-all; text-align: center;
+          font-family: var(--font-jetbrains-mono), monospace;
+        }
+        .sp-footer {
+          font-size: 12px; color: #BBB; margin: 0;
+          font-family: var(--font-jetbrains-mono), monospace;
+        }
+      `}</style>
     </div>
   );
 }
