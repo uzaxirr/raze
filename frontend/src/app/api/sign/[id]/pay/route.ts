@@ -145,7 +145,8 @@ export async function POST(
       }
       const quote = await quoteRes.json();
 
-      // Step 2: Get fresh swap transaction with scanner's wallet as user
+      // Step 2: Get fresh swap transaction as LEGACY (not versioned)
+      // Phantom's Solana Pay implementation handles legacy txs better
       const swapRes = await fetch("https://api.jup.ag/swap/v1/swap", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...headers },
@@ -154,6 +155,7 @@ export async function POST(
           userPublicKey: account,
           wrapAndUnwrapSol: true,
           dynamicComputeUnitLimit: true,
+          asLegacyTransaction: true,
         }),
       });
 
