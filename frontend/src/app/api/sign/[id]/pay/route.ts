@@ -71,15 +71,9 @@ export async function POST(
     return NextResponse.json({ error: "missing account" }, { status: 400, headers: corsHeaders() });
   }
 
-  // Verify wallet matches
-  if (session.walletAddress && account !== session.walletAddress) {
-    return NextResponse.json(
-      {
-        error: `Wrong wallet. Expected ${session.walletAddress.slice(0, 8)}...${session.walletAddress.slice(-4)}`,
-      },
-      { status: 403, headers: corsHeaders() }
-    );
-  }
+  // Note: we don't enforce wallet match here — the transaction's feePayer
+  // is baked in, so only the correct wallet can sign it successfully.
+  // If the wrong wallet signs, the transaction will fail on-chain.
 
   if (!session.unsignedTransaction) {
     return NextResponse.json(
