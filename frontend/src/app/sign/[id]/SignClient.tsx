@@ -151,7 +151,7 @@ export default function SignClient({ id }: { id: string }) {
           setState("success");
         }
       } catch { /* keep polling */ }
-    }, 3000);
+    }, 1500);
 
     pollingRef.current = interval;
     return () => { clearInterval(interval); pollingRef.current = null; };
