@@ -146,6 +146,47 @@ async def _resolve_sns_domain(address: str) -> str | None:
     return None
 
 
+# In-memory cache for mint → symbol resolution (survives within container lifetime)
+_mint_symbol_cache: dict[str, str | None] = {}
+
+
+async def _resolve_mint_symbol(mint: str, helius_key: str) -> str | None:
+    """Resolve a mint address to its token symbol via Helius DAS getAsset.
+    Cached in-memory. Returns symbol or None."""
+    import httpx
+
+    if mint in _mint_symbol_cache:
+        return _mint_symbol_cache[mint]
+
+    try:
+        rpc_url = f"https://mainnet.helius-rpc.com/?api-key={helius_key}"
+        async with httpx.AsyncClient(timeout=2.0) as client:
+            resp = await client.post(rpc_url, json={
+                "jsonrpc": "2.0", "id": 1,
+                "method": "getAsset",
+                "params": {"id": mint},
+            })
+            if resp.status_code == 200:
+                data = resp.json().get("result", {})
+                symbol = data.get("content", {}).get("metadata", {}).get("symbol", "")
+                if symbol:
+                    _mint_symbol_cache[mint] = symbol
+                    return symbol
+    except Exception:
+        pass
+
+    _mint_symbol_cache[mint] = None
+    return None
+
+
+def _replace_mints_with_symbols(text: str, mint_map: dict[str, str]) -> str:
+    """Replace raw mint addresses in text with their symbols using a provided mapping."""
+    for mint, symbol in mint_map.items():
+        if mint in text:
+            text = text.replace(mint, symbol)
+    return text
+
+
 async def _fetch_wallet_context(wallet_address: str) -> str:
     """Fetch wallet balances + recent txs from Helius, enriched with identity labels.
 
@@ -266,6 +307,10 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
 
                 token_entries.append((symbol, human_balance, usd, flags_str))
 
+                # Build mint → symbol map from portfolio (free, no extra API calls)
+                if mint and symbol:
+                    _mint_symbol_cache[mint] = symbol
+
         # Sort by USD value descending, take top 5
         token_entries.sort(key=lambda x: x[2], reverse=True)
         token_parts = [f"{sym}: {bal:.4g} (${usd:.2f}){flags}" for sym, bal, usd, flags in token_entries[:5]]
@@ -365,14 +410,32 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
             identity_labels = await _resolve_identities(counterparties, helius_key)
         user_domain = _sns_cache.get(wallet_address)
 
-        # Build enriched transaction descriptions
+        # Collect unknown mints from tx descriptions and resolve via DAS getAsset
+        import re as _re_mod
+        _mint_pattern = _re_mod.compile(r'[1-9A-HJ-NP-Za-km-z]{32,44}')
+        unknown_mints = set()
+        for _, desc, _ in tx_entries:
+            for match in _mint_pattern.findall(desc):
+                if match not in _mint_symbol_cache and match != wallet_address:
+                    unknown_mints.add(match)
+
+        # Resolve unknown mints in parallel (max 5 to bound latency)
+        if unknown_mints:
+            import asyncio as _aio
+            resolve_tasks = [_resolve_mint_symbol(m, helius_key) for m in list(unknown_mints)[:5]]
+            await _aio.gather(*resolve_tasks, return_exceptions=True)
+
+        # Build enriched transaction descriptions — replace addresses + mints with labels
         tx_parts = []
         for time_str, desc, addrs in tx_entries:
             enriched = desc
+            # Replace counterparty addresses with identity labels
             for addr in addrs:
                 label = identity_labels.get(addr)
                 if label:
                     enriched = enriched.replace(addr, label)
+            # Replace raw mint addresses with token symbols
+            enriched = _replace_mints_with_symbols(enriched, _mint_symbol_cache)
             tx_parts.append(f"{time_str}: {enriched}")
 
         # ── Format compact context ──
