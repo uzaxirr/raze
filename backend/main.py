@@ -141,7 +141,7 @@ agent = Agent(
 bouncer_agent = Agent(
     name="Bouncer",
     model=Claude(
-        id="claude-sonnet-4-20250514",
+        id="claude-opus-4-20250514",
         cache_system_prompt=True,
     ),
     debug_mode=True,
