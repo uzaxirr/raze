@@ -1361,6 +1361,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     bouncer_step = context.user_data.get("bouncer_step", 1)
 
                 pending_swap_data = None
+                # Fetch wallet context for bouncer if wallet shared
+                bouncer_wallet_ctx = ""
+                bouncer_wallet_addr = context.user_data.get("bouncer_wallet_address")
+                if bouncer_wallet_addr:
+                    try:
+                        bouncer_wallet_ctx = await _fetch_wallet_context(bouncer_wallet_addr)
+                    except Exception:
+                        pass
+
                 bouncer_session_state = {
                     "telegram_username": update.effective_user.username or update.effective_user.first_name,
                     "telegram_user_id": user_id,
@@ -1370,7 +1379,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     "referral_code": entry.referral_code if entry else "",
                     "message_sent_at": msg_time,
                     "signing_mode": "external",
-                    "external_wallet_address": context.user_data.get("bouncer_wallet_address"),
+                    "external_wallet_address": bouncer_wallet_addr,
+                    "wallet_context": bouncer_wallet_ctx,
                 }
 
                 async for event in client.run_agent_stream(
