@@ -84,23 +84,30 @@ def extract_pending_swap(text: str) -> tuple[str, dict | None]:
     return text, None
 
 
-# In-memory cache for identity labels (exchange addresses don't change)
-_identity_cache: dict[str, str | None] = {}
-_sns_cache: dict[str, str | None] = {}
+# ── Cache-backed resolution functions ──
+# All caching goes through cache.py (Redis L2 + in-memory L1 fallback)
+
+from .cache import (
+    mem_mint, mem_identity, mem_sns,
+    get_mint_symbol, set_mint, set_mint_negative, is_mint_cached, bulk_set_mints,
+    get_identity, set_identity, is_identity_cached,
+    get_sns, set_sns,
+)
 
 
 async def _resolve_identities(addresses: list[str], helius_key: str) -> dict[str, str]:
     """Batch-resolve addresses to identity labels via Helius Identity API.
     Returns {address: "Binance Hot Wallet 1 (exchange)"} for known entities.
-    Uses in-memory cache. Batch endpoint handles up to 100 addresses in one call (100 credits)."""
+    Redis-cached. Batch endpoint handles up to 100 addresses in one call (100 credits)."""
     import httpx
 
     result = {}
     uncached = []
     for addr in addresses[:100]:
-        if addr in _identity_cache:
-            if _identity_cache[addr]:
-                result[addr] = _identity_cache[addr]
+        if await is_identity_cached(addr):
+            label = await get_identity(addr)
+            if label:
+                result[addr] = label
         else:
             uncached.append(addr)
 
@@ -110,7 +117,7 @@ async def _resolve_identities(addresses: list[str], helius_key: str) -> dict[str
     try:
         async with httpx.AsyncClient(timeout=3.0) as client:
             resp = await client.post(
-                f"https://api.helius.xyz/v1/wallet/batch-identity",
+                "https://api.helius.xyz/v1/wallet/batch-identity",
                 params={"api-key": helius_key},
                 json={"addresses": uncached},
             )
@@ -120,43 +127,32 @@ async def _resolve_identities(addresses: list[str], helius_key: str) -> dict[str
                     ident_type = item.get("type", "unknown")
                     if ident_type != "unknown" and item.get("name"):
                         label = f"{item['name']} ({item.get('category', ident_type)})"
-                        _identity_cache[addr] = label
+                        await set_identity(addr, label)
                         result[addr] = label
                         # Also capture .sol domains from identity response
                         domains = item.get("domainNames", [])
                         if domains:
-                            _sns_cache[addr] = domains[0] if domains[0].endswith(".sol") else f"{domains[0]}.sol"
+                            domain = domains[0] if domains[0].endswith(".sol") else f"{domains[0]}.sol"
+                            await set_sns(addr, domain)
                     else:
-                        _identity_cache[addr] = None
+                        await set_identity(addr, None)
     except Exception:
         pass  # Silent fallback — identity is enrichment, not critical
 
     return result
 
 
-async def _resolve_sns_domain(address: str) -> str | None:
-    """Resolve address to .sol domain via Helius Identity API domainNames field.
-    Falls back to Bonfida proxy (1s timeout). Returns 'alice.sol' or None. Cached.
-    Note: The agent also has get_domains tool for on-demand reverse lookup."""
-    if address in _sns_cache:
-        return _sns_cache[address]
-    # SNS resolution happens opportunistically via Helius Identity (domainNames field).
-    # We don't make a separate call here — the identity batch already captures it.
-    _sns_cache[address] = None
-    return None
-
-
-# In-memory cache for mint → symbol resolution (survives within container lifetime)
-_mint_symbol_cache: dict[str, str | None] = {}
-
-
 async def _resolve_mint_symbol(mint: str, helius_key: str) -> str | None:
     """Resolve a mint address to its token symbol via Helius DAS getAsset.
-    Cached in-memory. Returns symbol or None."""
+    Redis-cached (permanent — token metadata is immutable). Returns symbol or None."""
     import httpx
 
-    if mint in _mint_symbol_cache:
-        return _mint_symbol_cache[mint]
+    # Check cache (L1 in-memory → L2 Redis)
+    cached = await get_mint_symbol(mint)
+    if cached is not None:
+        return cached
+    if await is_mint_cached(mint):
+        return None  # Negative cache hit
 
     try:
         rpc_url = f"https://mainnet.helius-rpc.com/?api-key={helius_key}"
@@ -168,21 +164,25 @@ async def _resolve_mint_symbol(mint: str, helius_key: str) -> str | None:
             })
             if resp.status_code == 200:
                 data = resp.json().get("result", {})
-                symbol = data.get("content", {}).get("metadata", {}).get("symbol", "")
+                metadata = data.get("content", {}).get("metadata", {})
+                symbol = metadata.get("symbol", "")
+                name = metadata.get("name", "")
+                token_info = data.get("token_info", {})
+                decimals = token_info.get("decimals", 0)
                 if symbol:
-                    _mint_symbol_cache[mint] = symbol
+                    await set_mint(mint, symbol, name, decimals)
                     return symbol
     except Exception:
         pass
 
-    _mint_symbol_cache[mint] = None
+    await set_mint_negative(mint)
     return None
 
 
-def _replace_mints_with_symbols(text: str, mint_map: dict[str, str]) -> str:
-    """Replace raw mint addresses in text with their symbols using a provided mapping."""
-    for mint, symbol in mint_map.items():
-        if mint in text:
+def _replace_mints_with_symbols(text: str) -> str:
+    """Replace raw mint addresses in text with their symbols from the cache."""
+    for mint, symbol in mem_mint.items():
+        if symbol and mint in text:
             text = text.replace(mint, symbol)
     return text
 
@@ -309,11 +309,16 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
 
                 # Build mint → symbol map from portfolio (free, no extra API calls)
                 if mint and symbol:
-                    _mint_symbol_cache[mint] = symbol
+                    mem_mint[mint] = symbol  # L1 in-memory, batched to Redis below
 
         # Sort by USD value descending, take top 5
         token_entries.sort(key=lambda x: x[2], reverse=True)
         token_parts = [f"{sym}: {bal:.4g} (${usd:.2f}){flags}" for sym, bal, usd, flags in token_entries[:5]]
+
+        # Batch-write portfolio mints to Redis (async, non-blocking)
+        portfolio_mints = {m: (s, "", 0) for m, s in mem_mint.items() if s}
+        if portfolio_mints:
+            await bulk_set_mints(portfolio_mints)
 
         # ── Parse transactions ──
         tx_entries = []  # (time_str, description, counterparty_addresses)
@@ -408,7 +413,7 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
 
         if counterparties:
             identity_labels = await _resolve_identities(counterparties, helius_key)
-        user_domain = _sns_cache.get(wallet_address)
+        user_domain = await get_sns(wallet_address)
 
         # Collect unknown mints from tx descriptions and resolve via DAS getAsset
         import re as _re_mod
@@ -416,7 +421,7 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
         unknown_mints = set()
         for _, desc, _ in tx_entries:
             for match in _mint_pattern.findall(desc):
-                if match not in _mint_symbol_cache and match != wallet_address:
+                if match not in mem_mint and match != wallet_address:
                     unknown_mints.add(match)
 
         # Resolve unknown mints in parallel (max 5 to bound latency)
@@ -435,7 +440,7 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
                 if label:
                     enriched = enriched.replace(addr, label)
             # Replace raw mint addresses with token symbols
-            enriched = _replace_mints_with_symbols(enriched, _mint_symbol_cache)
+            enriched = _replace_mints_with_symbols(enriched)
             tx_parts.append(f"{time_str}: {enriched}")
 
         # ── Format compact context ──
