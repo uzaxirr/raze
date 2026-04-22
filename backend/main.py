@@ -144,6 +144,7 @@ bouncer_agent = Agent(
         id="claude-sonnet-4-20250514",
         cache_system_prompt=True,
     ),
+    debug_mode=True,
     tools=[
         read_mcp, sns_resolver, token_data, transaction_executor, market_research,
     ],
