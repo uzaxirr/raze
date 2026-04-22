@@ -186,58 +186,76 @@ async def get_wallet_balance(wallet_address: str, network: str = "mainnet") -> D
 @mcp.tool()
 async def get_token_balances(wallet_address: str, network: str = "mainnet") -> Dict[str, Any]:
     """
-    Get all SPL token balances for a wallet.
+    Get all token balances for a wallet with USD values using Helius DAS API.
 
     Args:
         wallet_address: Solana wallet address
         network: Solana network ("mainnet" or "devnet"). Defaults to "mainnet".
 
     Returns:
-        List of tokens with balances and symbols
+        List of tokens with balances, symbols, prices, and USD values
     """
     try:
-        result = await rpc_call(
-            "getTokenAccountsByOwner",
-            [
-                wallet_address,
-                {"programId": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"},
-                {"encoding": "jsonParsed"}
-            ],
-            network=network
-        )
+        rpc_url = get_rpc_url(network)
+        async with httpx.AsyncClient(timeout=RPC_TIMEOUT) as client:
+            resp = await client.post(rpc_url, json={
+                "jsonrpc": "2.0", "id": 1,
+                "method": "getAssetsByOwner",
+                "params": {
+                    "ownerAddress": wallet_address,
+                    "displayOptions": {"showFungible": True, "showNativeBalance": True},
+                }
+            })
 
-        if not result or "value" not in result:
-            return {"wallet": wallet_address, "network": network, "tokens": [], "count": 0}
+        data = resp.json().get("result", {})
 
-        # Extract token data
-        raw_tokens = []
-        for account in result["value"]:
-            try:
-                info = account["account"]["data"]["parsed"]["info"]
-                token_amount = info.get("tokenAmount", {})
-                balance = float(token_amount.get("uiAmountString", "0"))
+        # Native SOL
+        native = data.get("nativeBalance", {})
+        sol_balance = native.get("lamports", 0) / LAMPORTS_PER_SOL
+        sol_price = native.get("price_per_sol", 0)
+        sol_usd = sol_balance * sol_price
+        total_usd = sol_usd
 
-                if balance > 0:
-                    raw_tokens.append({
-                        "mint": info.get("mint"),
-                        "balance": balance,
-                        "decimals": token_amount.get("decimals", 0)
-                    })
-            except (KeyError, TypeError):
+        tokens = []
+        for item in data.get("items", []):
+            content = item.get("content", {})
+            metadata = content.get("metadata", {})
+            symbol = metadata.get("symbol", "")
+            name = metadata.get("name", "")
+            if not symbol:
                 continue
 
-        # Fetch symbols in parallel
-        async def enrich_token(token):
-            symbol = await get_token_symbol(token["mint"])
-            return {**token, "symbol": symbol}
+            token_info = item.get("token_info", {})
+            balance = token_info.get("balance", 0)
+            decimals = token_info.get("decimals", 0)
+            human_balance = balance / (10 ** decimals) if decimals else 0
 
-        tokens = await asyncio.gather(*[enrich_token(t) for t in raw_tokens])
+            if human_balance > 0:
+                price = token_info.get("price_info", {}).get("price_per_token", 0)
+                usd = human_balance * price if price else 0
+                total_usd += usd
+                tokens.append({
+                    "mint": item.get("id", ""),
+                    "symbol": symbol,
+                    "name": name,
+                    "balance": round(human_balance, 6),
+                    "decimals": decimals,
+                    "price_usd": round(price, 6) if price else None,
+                    "value_usd": round(usd, 2) if usd else None,
+                })
+
+        # Sort by USD value descending
+        tokens.sort(key=lambda t: t.get("value_usd") or 0, reverse=True)
 
         return {
             "wallet": wallet_address,
             "network": network,
-            "tokens": list(tokens),
-            "count": len(tokens)
+            "sol_balance": round(sol_balance, 6),
+            "sol_price_usd": round(sol_price, 2),
+            "sol_value_usd": round(sol_usd, 2),
+            "tokens": tokens,
+            "count": len(tokens),
+            "total_portfolio_usd": round(total_usd, 2),
         }
     except Exception as e:
         return {"error": str(e)}
@@ -250,91 +268,84 @@ async def get_recent_transactions(
     network: str = "mainnet"
 ) -> Dict[str, Any]:
     """
-    Get recent transactions for a wallet.
+    Get recent transactions for a wallet with human-readable descriptions using Helius Enhanced Transactions API.
 
     Args:
         wallet_address: Solana wallet address
-        limit: Number of transactions to fetch (max 25 for detail, 100 for signatures only)
+        limit: Number of transactions to fetch (max 25)
         network: Solana network ("mainnet" or "devnet"). Defaults to "mainnet".
 
     Returns:
-        List of transactions with details
+        List of transactions with type, description, transfers, and timestamps
     """
     try:
-        # Cap limit for performance
-        sig_limit = min(limit, 100)
-        detail_limit = min(limit, 25)
+        tx_limit = min(limit, 25)
 
-        # Get signatures
-        signatures = await rpc_call(
-            "getSignaturesForAddress",
-            [wallet_address, {"limit": sig_limit}],
-            network=network
-        )
+        async with httpx.AsyncClient(timeout=RPC_TIMEOUT) as client:
+            resp = await client.get(
+                f"https://api.helius.xyz/v0/addresses/{wallet_address}/transactions",
+                params={"api-key": HELIUS_API_KEY, "limit": tx_limit}
+            )
 
-        if not signatures:
-            return {"wallet": wallet_address, "network": network, "transactions": [], "count": 0}
+        if resp.status_code != 200:
+            return {"error": f"Helius API error: {resp.status_code}", "wallet": wallet_address}
 
-        # Fetch transaction details in parallel
-        async def fetch_tx_detail(sig_info):
-            sig = sig_info.get("signature")
-            if not sig:
-                return None
+        raw_txs = resp.json()
+        import time
+        now = int(time.time())
 
-            try:
-                tx_data = await rpc_call(
-                    "getTransaction",
-                    [sig, {"encoding": "jsonParsed", "maxSupportedTransactionVersion": 0}],
-                    network=network
-                )
+        transactions = []
+        for tx in raw_txs:
+            timestamp = tx.get("timestamp", 0)
+            ago = now - timestamp if timestamp else 0
 
-                if not tx_data:
-                    return None
+            # Human-readable time
+            if ago < 60:
+                time_ago = f"{ago}s ago"
+            elif ago < 3600:
+                time_ago = f"{ago // 60}min ago"
+            elif ago < 86400:
+                time_ago = f"{ago // 3600}hr ago"
+            else:
+                time_ago = f"{ago // 86400}d ago"
 
-                meta = tx_data.get("meta", {})
-                fee = meta.get("fee", 0)
+            # Token transfers
+            token_transfers = []
+            for xf in tx.get("tokenTransfers", []):
+                token_transfers.append({
+                    "from": xf.get("fromUserAccount"),
+                    "to": xf.get("toUserAccount"),
+                    "amount": xf.get("tokenAmount", 0),
+                    "mint": xf.get("mint"),
+                })
 
-                # Extract transfers
-                transfers = []
-                instructions = tx_data.get("transaction", {}).get("message", {}).get("instructions", [])
+            # Native SOL transfers
+            sol_transfers = []
+            for xf in tx.get("nativeTransfers", []):
+                amt = xf.get("amount", 0) / LAMPORTS_PER_SOL
+                if amt >= 0.000001:
+                    sol_transfers.append({
+                        "from": xf.get("fromUserAccount"),
+                        "to": xf.get("toUserAccount"),
+                        "amount_sol": round(amt, 6),
+                    })
 
-                for inst in instructions:
-                    parsed = inst.get("parsed") if isinstance(inst, dict) else None
-                    if isinstance(parsed, dict) and parsed.get("type") == "transfer":
-                        info = parsed.get("info", {})
-                        lamports = info.get("lamports", 0)
-                        # Filter spam/dust transfers below threshold
-                        if lamports >= SPAM_THRESHOLD_LAMPORTS:
-                            transfers.append({
-                                "from": info.get("source"),
-                                "to": info.get("destination"),
-                                "lamports": lamports,
-                                "sol": lamports_to_sol(lamports)
-                            })
-
-                return {
-                    "signature": sig,
-                    "timestamp": sig_info.get("blockTime"),
-                    "slot": tx_data.get("slot"),
-                    "fee_lamports": fee,
-                    "fee_sol": lamports_to_sol(fee),
-                    "status": "failed" if meta.get("err") else "success",
-                    "transfers": transfers
-                }
-            except Exception:
-                return {"signature": sig, "error": "Failed to fetch details"}
-
-        # Parallel fetch (only for detail_limit transactions)
-        tasks = [fetch_tx_detail(s) for s in signatures[:detail_limit]]
-        results = await asyncio.gather(*tasks)
-        transactions = [tx for tx in results if tx]
+            transactions.append({
+                "signature": tx.get("signature"),
+                "type": tx.get("type", "UNKNOWN"),
+                "description": tx.get("description", ""),
+                "timestamp": timestamp,
+                "time_ago": time_ago,
+                "fee_sol": tx.get("fee", 0) / LAMPORTS_PER_SOL,
+                "token_transfers": token_transfers[:5],
+                "sol_transfers": sol_transfers[:5],
+            })
 
         return {
             "wallet": wallet_address,
             "network": network,
             "transactions": transactions,
             "count": len(transactions),
-            "total_found": len(signatures)
         }
     except Exception as e:
         return {"error": str(e)}
