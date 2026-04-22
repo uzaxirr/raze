@@ -586,36 +586,77 @@ async def get_new_listings(
         return {"status": "error", "error": str(e)}
 
 
+# Known legitimate tokens — these should NEVER be flagged as unsafe.
+# Active mint/freeze authority is by-design for regulated stablecoins and LSTs.
+KNOWN_SAFE_TOKENS = {
+    # Stablecoins
+    "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v": {"symbol": "USDC", "issuer": "Circle", "type": "stablecoin"},
+    "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB": {"symbol": "USDT", "issuer": "Tether", "type": "stablecoin"},
+    "2u1tszSeqZ3qBWF3uNGPFc8TzMk2tdiwknnRMWGWjGWH": {"symbol": "USDG", "issuer": "Paxos", "type": "stablecoin"},
+    "2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo": {"symbol": "PYUSD", "issuer": "PayPal/Paxos", "type": "stablecoin"},
+    "USDSwr9ApdHk5bvJKMjzff41FfuX8bSxdKcR81vTwcA": {"symbol": "USDS", "issuer": "Sky (Maker)", "type": "stablecoin"},
+    # LSTs
+    "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So": {"symbol": "mSOL", "issuer": "Marinade", "type": "lst"},
+    "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn": {"symbol": "jitoSOL", "issuer": "Jito", "type": "lst"},
+    "bSo13r4TkiE4KumL71LsHTPpL2euBYLFx6h9HP3piy1": {"symbol": "bSOL", "issuer": "Blaze", "type": "lst"},
+    # Major tokens
+    "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263": {"symbol": "BONK", "issuer": "community", "type": "memecoin"},
+    "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN": {"symbol": "JUP", "issuer": "Jupiter", "type": "governance"},
+    "27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4": {"symbol": "JLP", "issuer": "Jupiter", "type": "lp_token"},
+}
+
+
 @mcp.tool()
 async def get_token_security(
     address: str
 ) -> Dict[str, Any]:
     """
-    Get security analysis for a token (for sniper safety checks).
+    Get security facts for a token. Returns raw data — NOT a verdict.
 
-    Checks:
-    - Mint authority status (revoked = safe)
-    - Top holder concentration (< 25% = safe)
-    - Overall safety score
+    For known tokens (USDC, USDT, USDG, PYUSD, mSOL, jitoSOL, JUP, BONK, etc.),
+    returns immediately with verified info. Active mint authority is NORMAL for
+    stablecoins and LSTs — it's how the issuer mints/burns supply.
+
+    For unknown tokens, checks mint authority and top holder concentration via Birdeye.
 
     Args:
         address: Token mint address
 
     Returns:
-        Security analysis including mint_revoked, top_holder_pct, is_safe
+        Security facts: mint_authority_status, top_holder_pct, risk_level, notes
     """
+    # ── Fast path: known safe tokens ──
+    known = KNOWN_SAFE_TOKENS.get(address)
+    if known:
+        return {
+            "status": "success",
+            "token": address,
+            "symbol": known["symbol"],
+            "known_token": True,
+            "issuer": known["issuer"],
+            "token_type": known["type"],
+            "risk_level": "low",
+            "mint_authority": "active (by design — issuer manages supply)",
+            "notes": f"{known['symbol']} is a well-known {known['type']} issued by {known['issuer']}. "
+                     f"Active mint authority is expected and normal for {known['type']}s.",
+        }
+
+    # ── Unknown token: check via Birdeye ──
     result = {
         "status": "success",
         "token": address,
-        "mint_revoked": None,
+        "known_token": False,
+        "risk_level": "unknown",
+        "mint_authority": None,
         "top_holder_pct": None,
-        "is_safe": False,
-        "checks": {}
+        "notes": "",
     }
+
+    flags = []
 
     try:
         async with httpx.AsyncClient() as client:
-            # Check 1: Get token security info from Birdeye
+            # Check 1: Mint authority via Birdeye token_security
             security_response = await client.get(
                 f"{CONFIG['api_url']}/defi/token_security",
                 headers={
@@ -629,12 +670,14 @@ async def get_token_security(
 
             if security_response.status_code == 200:
                 security_data = security_response.json().get("data", {})
-                # Check if mint authority is None/revoked
                 mint_authority = security_data.get("mintAuthority")
-                result["mint_revoked"] = mint_authority is None or mint_authority == ""
-                result["checks"]["mint_authority"] = mint_authority
+                if mint_authority is None or mint_authority == "":
+                    result["mint_authority"] = "revoked"
+                else:
+                    result["mint_authority"] = "active"
+                    flags.append("mint authority is active — issuer can mint more tokens")
 
-            # Check 2: Get top holders
+            # Check 2: Top holder concentration
             holders_response = await client.get(
                 f"{CONFIG['api_url']}/defi/v3/token/holder",
                 headers={
@@ -650,21 +693,34 @@ async def get_token_security(
                 holders_data = holders_response.json().get("data", {})
                 items = holders_data.get("items", [])
                 if items:
-                    top_holder = items[0]
-                    # Calculate percentage (assuming we have amount and total supply)
-                    top_holder_pct = top_holder.get("percentage", 0)
+                    top_holder_pct = items[0].get("percentage", 0)
                     if isinstance(top_holder_pct, str):
                         top_holder_pct = float(top_holder_pct.replace("%", ""))
                     result["top_holder_pct"] = top_holder_pct
-                    result["checks"]["top_holder_address"] = top_holder.get("address", "")[:10] + "..."
+                    if top_holder_pct > 50:
+                        flags.append(f"top holder owns {top_holder_pct:.1f}% of supply — highly concentrated")
+                    elif top_holder_pct > 25:
+                        flags.append(f"top holder owns {top_holder_pct:.1f}% of supply — moderately concentrated")
 
-            # Determine overall safety
-            mint_ok = result["mint_revoked"] is True
-            holder_ok = result["top_holder_pct"] is not None and result["top_holder_pct"] < 25
-            result["is_safe"] = mint_ok and holder_ok
-            result["checks"]["mint_ok"] = mint_ok
-            result["checks"]["holder_ok"] = holder_ok
+            # Determine risk level from flags + data availability
+            has_mint_data = result["mint_authority"] is not None
+            has_holder_data = result["top_holder_pct"] is not None
 
+            if not has_mint_data and not has_holder_data:
+                result["risk_level"] = "unknown"
+                result["notes"] = "Could not verify — Birdeye returned no security data for this token. Proceed with caution."
+                flags.append("no security data available")
+            elif not flags:
+                result["risk_level"] = "low"
+                result["notes"] = "Mint authority revoked, holder distribution looks normal."
+            elif len(flags) == 1:
+                result["risk_level"] = "medium"
+                result["notes"] = " | ".join(flags)
+            else:
+                result["risk_level"] = "high"
+                result["notes"] = " | ".join(flags)
+
+            result["flags"] = flags
             return result
 
     except httpx.TimeoutException:

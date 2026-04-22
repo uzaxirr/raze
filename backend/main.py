@@ -12,7 +12,7 @@ from fastapi import FastAPI
 
 from workflows.token_sniper import token_sniper_workflow
 from agent_prompt import RAZE_SYSTEM_PROMPT
-from bouncer_prompt import BOUNCER_SYSTEM_PROMPT
+from bouncer_prompt import build_bouncer_instructions
 
 logger = logging.getLogger(__name__)
 
@@ -167,7 +167,7 @@ bouncer_agent = Agent(
         "bouncer_step": 0,
         "message_sent_at": None,
     },
-    instructions=BOUNCER_SYSTEM_PROMPT,
+    instructions=build_bouncer_instructions,
 )
 
 agent_os = AgentOS(

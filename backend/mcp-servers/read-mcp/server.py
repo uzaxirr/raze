@@ -447,6 +447,60 @@ async def get_program_idl(program_id: str, network: str = "mainnet") -> Dict[str
         return {"error": str(e)}
 
 
+@mcp.tool()
+async def get_wallet_identity(
+    addresses: str,
+) -> Dict[str, Any]:
+    """
+    Identify known wallets/programs by address — returns entity name, category, and tags.
+    Covers exchanges (Binance, Coinbase), DeFi protocols (Jupiter, Raydium, Drift),
+    DAOs, KOLs, hackers, scammers, and 10K+ labeled entities.
+
+    Use this to answer "who is this address?" or to investigate counterparties in transactions.
+    Returns type="unknown" for normal user wallets.
+
+    Args:
+        addresses: One or more Solana addresses, comma-separated. Max 100.
+                   Example: "2ojv9BAiH...,JUP6Lkb..."
+
+    Returns:
+        List of identity objects with name, type, category, tags, website, twitter, domainNames.
+    """
+    addr_list = [a.strip() for a in addresses.split(",") if a.strip()]
+    if not addr_list:
+        return {"status": "error", "error": "No addresses provided"}
+    if len(addr_list) > 100:
+        addr_list = addr_list[:100]
+
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.post(
+                "https://api.helius.xyz/v1/wallet/batch-identity",
+                params={"api-key": HELIUS_API_KEY},
+                json={"addresses": addr_list},
+            )
+            if resp.status_code != 200:
+                return {"status": "error", "error": f"Helius Identity API error: {resp.status_code}"}
+
+            results = resp.json()
+            # Filter to only include known entities (type != "unknown")
+            known = [r for r in results if r.get("type") != "unknown"]
+            unknown_count = len(results) - len(known)
+
+            return {
+                "status": "success",
+                "identities": known,
+                "known_count": len(known),
+                "unknown_count": unknown_count,
+                "total": len(results),
+            }
+
+    except httpx.TimeoutException:
+        return {"status": "error", "error": "Identity lookup timed out"}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
 # ===== MAIN =====
 def main():
     print("Starting Solana Read MCP Server v3.0...")

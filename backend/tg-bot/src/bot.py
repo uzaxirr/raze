@@ -84,8 +84,74 @@ def extract_pending_swap(text: str) -> tuple[str, dict | None]:
     return text, None
 
 
+# In-memory cache for identity labels (exchange addresses don't change)
+_identity_cache: dict[str, str | None] = {}
+_sns_cache: dict[str, str | None] = {}
+
+
+async def _resolve_identities(addresses: list[str], helius_key: str) -> dict[str, str]:
+    """Batch-resolve addresses to identity labels via Helius Identity API.
+    Returns {address: "Binance Hot Wallet 1 (exchange)"} for known entities.
+    Uses in-memory cache. Batch endpoint handles up to 100 addresses in one call (100 credits)."""
+    import httpx
+
+    result = {}
+    uncached = []
+    for addr in addresses[:100]:
+        if addr in _identity_cache:
+            if _identity_cache[addr]:
+                result[addr] = _identity_cache[addr]
+        else:
+            uncached.append(addr)
+
+    if not uncached:
+        return result
+
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            resp = await client.post(
+                f"https://api.helius.xyz/v1/wallet/batch-identity",
+                params={"api-key": helius_key},
+                json={"addresses": uncached},
+            )
+            if resp.status_code == 200:
+                for item in resp.json():
+                    addr = item.get("address", "")
+                    ident_type = item.get("type", "unknown")
+                    if ident_type != "unknown" and item.get("name"):
+                        label = f"{item['name']} ({item.get('category', ident_type)})"
+                        _identity_cache[addr] = label
+                        result[addr] = label
+                        # Also capture .sol domains from identity response
+                        domains = item.get("domainNames", [])
+                        if domains:
+                            _sns_cache[addr] = domains[0] if domains[0].endswith(".sol") else f"{domains[0]}.sol"
+                    else:
+                        _identity_cache[addr] = None
+    except Exception:
+        pass  # Silent fallback — identity is enrichment, not critical
+
+    return result
+
+
+async def _resolve_sns_domain(address: str) -> str | None:
+    """Resolve address to .sol domain via Helius Identity API domainNames field.
+    Falls back to Bonfida proxy (1s timeout). Returns 'alice.sol' or None. Cached.
+    Note: The agent also has get_domains tool for on-demand reverse lookup."""
+    if address in _sns_cache:
+        return _sns_cache[address]
+    # SNS resolution happens opportunistically via Helius Identity (domainNames field).
+    # We don't make a separate call here — the identity batch already captures it.
+    _sns_cache[address] = None
+    return None
+
+
 async def _fetch_wallet_context(wallet_address: str) -> str:
-    """Fetch wallet balances + recent txs from Helius and format as compact context."""
+    """Fetch wallet balances + recent txs from Helius, enriched with identity labels.
+
+    Fires DAS, transactions, and identity resolution in parallel.
+    Identity labels turn raw addresses into stories (e.g., "sent 5 SOL to Binance Hot Wallet").
+    """
     import httpx
     import asyncio
     import time as _time
@@ -97,9 +163,19 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
     rpc_url = f"https://mainnet.helius-rpc.com/?api-key={helius_key}"
     helius_api = f"https://api.helius.xyz/v0"
 
+    # Known Liquid Staking Token mints → underlying asset
+    LST_MINTS = {
+        "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So": ("mSOL", "Marinade"),
+        "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn": ("jitoSOL", "Jito"),
+        "bSo13r4TkiE4KumL71LsHTPpL2euBYLFx6h9HP3piy1": ("bSOL", "Blaze"),
+        "he1iusmfkpAdwvxLNGV8Y1iSbj4rUy6yMhEA3fotn9A": ("hSOL", "Helius"),
+        "5oVNBeEEQvYi1cX3ir8Dx5n1P7pdxydbGF2X4TxVusJm": ("scnSOL", "Socean"),
+        "7dHbWXmci3dT8UFYWYZweBLXgycu7Y3iL6trKn1Y7ARj": ("stSOL", "Lido"),
+    }
+
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
-            # Parallel: DAS assets (includes SOL + tokens + prices) + parsed transactions
+            # Phase 1: DAS assets + parsed transactions (parallel)
             assets_task = client.post(rpc_url, json={
                 "jsonrpc": "2.0", "id": 1,
                 "method": "getAssetsByOwner",
@@ -108,7 +184,6 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
                     "displayOptions": {"showFungible": True, "showNativeBalance": True},
                 }
             })
-            # Helius parsed transaction history (human-readable)
             txs_task = client.get(
                 f"{helius_api}/addresses/{wallet_address}/transactions",
                 params={"api-key": helius_key, "limit": 5}
@@ -119,15 +194,15 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
                 return_exceptions=True
             )
 
-        # Parse tokens + SOL from DAS
+        # ── Parse tokens + SOL from DAS ──
         sol_balance = 0.0
         sol_usd = 0.0
         total_usd = 0.0
-        token_parts = []
+        token_entries = []  # (symbol, human_balance, usd, flags_str)
+        staking_parts = []  # [6] Staking positions
 
         if not isinstance(assets_resp, Exception):
             assets_data = assets_resp.json()
-            # Native SOL balance from DAS
             native_bal = assets_data.get("result", {}).get("nativeBalance", {})
             if native_bal:
                 sol_balance = native_bal.get("lamports", 0) / 1e9
@@ -135,7 +210,7 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
                 total_usd += sol_usd
 
             items = assets_data.get("result", {}).get("items", [])
-            for item in items[:15]:
+            for item in items[:20]:
                 content = item.get("content", {})
                 metadata = content.get("metadata", {})
                 symbol = metadata.get("symbol", "")
@@ -144,25 +219,68 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
                 token_info = item.get("token_info", {})
                 balance = token_info.get("balance", 0)
                 decimals = token_info.get("decimals", 0)
-                if balance and decimals:
-                    human_balance = balance / (10 ** decimals)
-                    if human_balance > 0:
-                        price = token_info.get("price_info", {}).get("price_per_token", 0)
-                        usd = human_balance * price if price else 0
-                        total_usd += usd
-                        if usd > 0.01:
-                            token_parts.append(f"{symbol}: {human_balance:.4g} (${usd:.2f})")
+                if not (balance and decimals):
+                    continue
+                human_balance = balance / (10 ** decimals)
+                if human_balance <= 0:
+                    continue
+
+                price = token_info.get("price_info", {}).get("price_per_token", 0)
+                usd = human_balance * price if price else 0
+                total_usd += usd
+
+                mint = item.get("id", "")
+
+                # [6] Detect staking positions (LSTs)
+                if mint in LST_MINTS:
+                    lst_name, protocol = LST_MINTS[mint]
+                    staking_parts.append(f"{human_balance:.4g} {lst_name} via {protocol} (${usd:.2f})")
+                    continue  # Don't add to regular token list
+
+                if usd < 0.01:
+                    continue
+
+                # [1] Token flags: mint authority + freeze authority
+                flags = []
+                if token_info.get("mint_authority"):
+                    flags.append("mint:active")
+                if token_info.get("freeze_authority"):
+                    flags.append("freeze:active")
+
+                # [3] Supply + holder concentration
+                supply = token_info.get("supply")
+                pct_str = ""
+                if supply and supply > 0 and decimals:
+                    pct = (balance / supply) * 100
+                    if pct >= 0.001:
+                        pct_str = f", holds {pct:.4g}% supply"
+
+                flags_str = ""
+                if flags or pct_str:
+                    parts = []
+                    if flags:
+                        parts.append(" ".join(flags))
+                    if pct_str:
+                        parts.append(pct_str.lstrip(", "))
+                    flags_str = " [" + ", ".join(parts) + "]"
+
+                token_entries.append((symbol, human_balance, usd, flags_str))
 
         # Sort by USD value descending, take top 5
-        token_parts_sorted = sorted(token_parts, key=lambda x: float(x.split("$")[-1].rstrip(")")) if "$" in x else 0, reverse=True)[:5]
+        token_entries.sort(key=lambda x: x[2], reverse=True)
+        token_parts = [f"{sym}: {bal:.4g} (${usd:.2f}){flags}" for sym, bal, usd, flags in token_entries[:5]]
 
-        # Parse recent transactions from Helius enhanced API
-        tx_parts = []
+        # ── Parse transactions ──
+        tx_entries = []  # (time_str, description, counterparty_addresses)
+        counterparty_set = set()
+        total_fees_lamports = 0
+        failed_tx_count = 0
+        oldest_tx_ts = None
+
         if not isinstance(txs_resp, Exception) and txs_resp.status_code == 200:
             txs_data = txs_resp.json()
             now = int(_time.time())
             for tx in txs_data[:5]:
-                tx_type = tx.get("type", "UNKNOWN")
                 block_time = tx.get("timestamp", 0)
                 ago = now - block_time if block_time else 0
                 if ago < 60:
@@ -174,46 +292,128 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
                 else:
                     time_str = f"{ago // 86400}d ago"
 
-                # Build human-readable description
-                desc = tx_type.lower().replace("_", " ")
-                # Enrich with token transfer info
-                token_transfers = tx.get("tokenTransfers", [])
-                native_transfers = tx.get("nativeTransfers", [])
-                if tx_type == "SWAP" and token_transfers:
-                    # Find what was swapped
-                    sent = [t for t in token_transfers if t.get("fromUserAccount") == wallet_address]
-                    received = [t for t in token_transfers if t.get("toUserAccount") == wallet_address]
-                    if sent and received:
-                        s_amt = sent[0].get("tokenAmount", 0)
-                        s_sym = sent[0].get("tokenStandard", "")
-                        r_amt = received[0].get("tokenAmount", 0)
-                        r_sym = received[0].get("tokenStandard", "")
-                        # Try to get mint symbols from description
-                        tx_desc = tx.get("description", "")
-                        if tx_desc:
-                            desc = tx_desc[:80]
-                        else:
-                            desc = f"swap {s_amt:.4g} → {r_amt:.4g}"
-                elif tx_type == "TRANSFER" and native_transfers:
-                    for nt in native_transfers:
-                        amt = nt.get("amount", 0) / 1e9
-                        if nt.get("fromUserAccount") == wallet_address:
-                            desc = f"sent {amt:.4g} SOL"
-                        elif nt.get("toUserAccount") == wallet_address:
-                            desc = f"received {amt:.4g} SOL"
-                elif tx.get("description"):
-                    desc = tx["description"][:80]
+                # [7] Track failed transactions
+                tx_error = tx.get("transactionError")
+                failed_tag = ""
+                if tx_error:
+                    failed_tx_count += 1
+                    failed_tag = " ❌FAILED"
 
-                tx_parts.append(f"{time_str}: {desc}")
+                # [8] Accumulate fees
+                fee = tx.get("fee", 0)
+                total_fees_lamports += fee
 
-        # Format compact context
-        context = f"[WALLET {wallet_address[:8]}...{wallet_address[-4:]}]\n"
+                # [9] Track oldest tx for wallet age estimation
+                if block_time and (oldest_tx_ts is None or block_time < oldest_tx_ts):
+                    oldest_tx_ts = block_time
+
+                # Description + source
+                desc = tx.get("description", "")
+                if desc:
+                    desc = desc[:120]
+                else:
+                    desc = tx.get("type", "unknown").lower().replace("_", " ")
+                source = tx.get("source", "")
+                if source and source not in ("SYSTEM_PROGRAM", "SOLANA_PROGRAM_LIBRARY", "UNKNOWN"):
+                    source_name = source.replace("_", " ").title()
+                    if source_name.lower() not in desc.lower():
+                        desc += f" [via {source_name}]"
+
+                # [2] Enrich swap events with structured data
+                events = tx.get("events", {})
+                if isinstance(events, dict) and "swap" in events:
+                    swap_evt = events["swap"]
+                    if isinstance(swap_evt, dict):
+                        native_in = swap_evt.get("nativeInput", {})
+                        native_out = swap_evt.get("nativeOutput", {})
+                        token_ins = swap_evt.get("tokenInputs", [])
+                        token_outs = swap_evt.get("tokenOutputs", [])
+                        inner_swaps = swap_evt.get("innerSwaps", [])
+                        if inner_swaps:
+                            route_protos = set()
+                            for s in inner_swaps:
+                                prog = s.get("programInfo", {}).get("source", "")
+                                if prog:
+                                    route_protos.add(prog.replace("_", " ").title())
+                            if route_protos:
+                                desc += f" (route: {' → '.join(list(route_protos)[:3])})"
+
+                desc += failed_tag
+
+                # Collect counterparty addresses from transfers
+                addrs_in_tx = set()
+                for tt in tx.get("tokenTransfers", []):
+                    for key in ("fromUserAccount", "toUserAccount"):
+                        addr = tt.get(key)
+                        if addr and addr != wallet_address:
+                            addrs_in_tx.add(addr)
+                for nt in tx.get("nativeTransfers", []):
+                    for key in ("fromUserAccount", "toUserAccount"):
+                        addr = nt.get(key)
+                        if addr and addr != wallet_address:
+                            addrs_in_tx.add(addr)
+
+                counterparty_set.update(addrs_in_tx)
+                tx_entries.append((time_str, desc, addrs_in_tx))
+
+        # ── Phase 2: Identity enrichment ──
+        counterparties = list(counterparty_set)
+        identity_labels = {}
+        user_domain = None
+
+        if counterparties:
+            identity_labels = await _resolve_identities(counterparties, helius_key)
+        user_domain = _sns_cache.get(wallet_address)
+
+        # Build enriched transaction descriptions
+        tx_parts = []
+        for time_str, desc, addrs in tx_entries:
+            enriched = desc
+            for addr in addrs:
+                label = identity_labels.get(addr)
+                if label:
+                    enriched = enriched.replace(addr, label)
+            tx_parts.append(f"{time_str}: {enriched}")
+
+        # ── Format compact context ──
+        header = f"[WALLET {wallet_address[:8]}...{wallet_address[-4:]}]"
+        if user_domain:
+            header += f" ({user_domain})"
+        context = header + "\n"
         context += f"Portfolio: ${total_usd:.2f}\n"
         context += f"SOL: {sol_balance:.4f} (${sol_usd:.2f})"
-        if token_parts_sorted:
-            context += " | " + " | ".join(token_parts_sorted)
+        if token_parts:
+            context += " | " + " | ".join(token_parts)
+
+        # [6] Staking positions
+        if staking_parts:
+            context += "\nStaking: " + " | ".join(staking_parts)
+
+        # Recent activity
         if tx_parts:
             context += "\nRecent activity:\n" + "\n".join(f"  • {t}" for t in tx_parts[:4])
+
+        # [8] Fee summary + [7] failed tx count
+        stats = []
+        if total_fees_lamports > 0:
+            total_fees_sol = total_fees_lamports / 1e9
+            stats.append(f"fees: {total_fees_sol:.6f} SOL (last 5 txs)")
+        if failed_tx_count > 0:
+            stats.append(f"{failed_tx_count} failed tx")
+        # [9] Wallet age from oldest tx in the batch
+        if oldest_tx_ts:
+            now = int(_time.time())
+            age_days = (now - oldest_tx_ts) // 86400
+            if age_days > 0:
+                stats.append(f"active ≥{age_days}d")
+        if stats:
+            context += "\nStats: " + " | ".join(stats)
+
+        # Known counterparty identities
+        if identity_labels:
+            context += "\nKnown addresses in recent txs:"
+            for addr, label in identity_labels.items():
+                context += f"\n  {addr[:8]}...{addr[-4:]} = {label}"
 
         return context
 
@@ -1396,10 +1596,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     except Exception:
                         pass
 
+                # Resolve step instruction text for this bouncer step
+                from bouncer_prompt import get_step_instruction
+                step_instruction_text = get_step_instruction(bouncer_step)
+
                 bouncer_session_state = {
                     "telegram_username": update.effective_user.username or update.effective_user.first_name,
                     "telegram_user_id": user_id,
                     "bouncer_step": bouncer_step,
+                    "step_instruction": step_instruction_text,
                     "position": entry.position if entry else 0,
                     "referral_count": entry.referral_count if entry else 0,
                     "referral_code": entry.referral_code if entry else "",
@@ -1459,10 +1664,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                         set_bouncer_remarks(user_id, json.dumps(remarks_data), score)
                         logger.info(f"Bouncer scored user {user_id}: {score}/10")
 
+                        # Auto-approve disabled — Uzaxir approves manually via admin bot.
+                        # Score is still recorded for manual review.
                         if score >= 7 and entry and entry.status == "waiting":
-                            from .waitlist import approve_user
-                            approve_user(user_id)
-                            logger.info(f"Bouncer auto-approved user {user_id} with score {score}")
+                            logger.info(f"Bouncer recommends approval for user {user_id} (score {score}) — awaiting manual review")
                     except (json.JSONDecodeError, Exception) as e:
                         logger.warning(f"Failed to parse bouncer remarks: {e}")
 

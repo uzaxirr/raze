@@ -94,9 +94,14 @@ class JupiterClient:
             response = await client.get(url, params=params, headers=_headers())
 
             if response.status_code != 200:
-                error_detail = response.text
+                # Extract clean error message, not the full response body
+                try:
+                    err_json = response.json()
+                    error_detail = err_json.get("errorMessage") or err_json.get("error") or err_json.get("message") or response.text[:200]
+                except Exception:
+                    error_detail = response.text[:200]
                 logger.error(f"Jupiter order error: {response.status_code} - {error_detail}")
-                raise Exception(f"Failed to get Jupiter order: {error_detail}")
+                raise Exception(f"Jupiter API error ({response.status_code}): {error_detail}")
 
             result = response.json()
 
@@ -106,7 +111,9 @@ class JupiterClient:
             out_amount = result.get("outAmount", "0")
 
             if not swap_transaction:
-                raise Exception(f"No transaction in Jupiter order response: {result}")
+                error_msg = result.get("errorMessage") or result.get("error") or "Unknown error"
+                logger.error(f"Jupiter order missing transaction: {error_msg} (requestId={request_id})")
+                raise Exception(f"Jupiter swap failed: {error_msg}")
 
             logger.info(f"Got order: {in_amount} -> {out_amount}, requestId={request_id}")
 
