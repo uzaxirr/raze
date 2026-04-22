@@ -88,54 +88,54 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
     """Fetch wallet balances + recent txs from Helius and format as compact context."""
     import httpx
     import asyncio
+    import time as _time
 
     helius_key = os.getenv("HELIUS_API_KEY", "")
     if not helius_key:
         return ""
 
     rpc_url = f"https://mainnet.helius-rpc.com/?api-key={helius_key}"
-    das_url = f"https://mainnet.helius-rpc.com/?api-key={helius_key}"
+    helius_api = f"https://api.helius.xyz/v0"
 
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
-            # Parallel: SOL balance + DAS assets + recent txs
-            sol_task = client.post(rpc_url, json={
+            # Parallel: DAS assets (includes SOL + tokens + prices) + parsed transactions
+            assets_task = client.post(rpc_url, json={
                 "jsonrpc": "2.0", "id": 1,
-                "method": "getBalance",
-                "params": [wallet_address]
-            })
-            assets_task = client.post(das_url, json={
-                "jsonrpc": "2.0", "id": 2,
                 "method": "getAssetsByOwner",
                 "params": {
                     "ownerAddress": wallet_address,
                     "displayOptions": {"showFungible": True, "showNativeBalance": True},
                 }
             })
-            txs_task = client.post(rpc_url, json={
-                "jsonrpc": "2.0", "id": 3,
-                "method": "getSignaturesForAddress",
-                "params": [wallet_address, {"limit": 3}]
-            })
+            # Helius parsed transaction history (human-readable)
+            txs_task = client.get(
+                f"{helius_api}/addresses/{wallet_address}/transactions",
+                params={"api-key": helius_key, "limit": 5}
+            )
 
-            sol_resp, assets_resp, txs_resp = await asyncio.gather(
-                sol_task, assets_task, txs_task,
+            assets_resp, txs_resp = await asyncio.gather(
+                assets_task, txs_task,
                 return_exceptions=True
             )
 
-        # Parse SOL balance
+        # Parse tokens + SOL from DAS
         sol_balance = 0.0
-        if not isinstance(sol_resp, Exception):
-            sol_data = sol_resp.json()
-            sol_balance = sol_data.get("result", {}).get("value", 0) / 1e9
+        sol_usd = 0.0
+        total_usd = 0.0
+        token_parts = []
 
-        # Parse token balances from DAS
-        tokens_str = ""
         if not isinstance(assets_resp, Exception):
             assets_data = assets_resp.json()
+            # Native SOL balance from DAS
+            native_bal = assets_data.get("result", {}).get("nativeBalance", {})
+            if native_bal:
+                sol_balance = native_bal.get("lamports", 0) / 1e9
+                sol_usd = native_bal.get("price_per_sol", 0) * sol_balance
+                total_usd += sol_usd
+
             items = assets_data.get("result", {}).get("items", [])
-            token_parts = []
-            for item in items[:10]:  # Top 10 tokens
+            for item in items[:15]:
                 content = item.get("content", {})
                 metadata = content.get("metadata", {})
                 symbol = metadata.get("symbol", "")
@@ -149,45 +149,71 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
                     if human_balance > 0:
                         price = token_info.get("price_info", {}).get("price_per_token", 0)
                         usd = human_balance * price if price else 0
+                        total_usd += usd
                         if usd > 0.01:
                             token_parts.append(f"{symbol}: {human_balance:.4g} (${usd:.2f})")
-                        elif human_balance > 0.0001:
-                            token_parts.append(f"{symbol}: {human_balance:.4g}")
-            if token_parts:
-                tokens_str = " | ".join(token_parts[:5])  # Max 5 tokens
 
-        # Parse recent transactions
-        txs_str = ""
-        if not isinstance(txs_resp, Exception):
+        # Sort by USD value descending, take top 5
+        token_parts_sorted = sorted(token_parts, key=lambda x: float(x.split("$")[-1].rstrip(")")) if "$" in x else 0, reverse=True)[:5]
+
+        # Parse recent transactions from Helius enhanced API
+        tx_parts = []
+        if not isinstance(txs_resp, Exception) and txs_resp.status_code == 200:
             txs_data = txs_resp.json()
-            sigs = txs_data.get("result", [])
-            tx_parts = []
-            import time
-            now = int(time.time())
-            for sig_info in sigs[:3]:
-                block_time = sig_info.get("blockTime", 0)
+            now = int(_time.time())
+            for tx in txs_data[:5]:
+                tx_type = tx.get("type", "UNKNOWN")
+                block_time = tx.get("timestamp", 0)
                 ago = now - block_time if block_time else 0
                 if ago < 60:
                     time_str = f"{ago}s ago"
                 elif ago < 3600:
                     time_str = f"{ago // 60}min ago"
-                else:
+                elif ago < 86400:
                     time_str = f"{ago // 3600}hr ago"
-                status = "✅" if not sig_info.get("err") else "❌"
-                sig_short = sig_info.get("signature", "")[:8]
-                tx_parts.append(f"{time_str}: {status} {sig_short}...")
-            if tx_parts:
-                txs_str = " | ".join(tx_parts)
+                else:
+                    time_str = f"{ago // 86400}d ago"
+
+                # Build human-readable description
+                desc = tx_type.lower().replace("_", " ")
+                # Enrich with token transfer info
+                token_transfers = tx.get("tokenTransfers", [])
+                native_transfers = tx.get("nativeTransfers", [])
+                if tx_type == "SWAP" and token_transfers:
+                    # Find what was swapped
+                    sent = [t for t in token_transfers if t.get("fromUserAccount") == wallet_address]
+                    received = [t for t in token_transfers if t.get("toUserAccount") == wallet_address]
+                    if sent and received:
+                        s_amt = sent[0].get("tokenAmount", 0)
+                        s_sym = sent[0].get("tokenStandard", "")
+                        r_amt = received[0].get("tokenAmount", 0)
+                        r_sym = received[0].get("tokenStandard", "")
+                        # Try to get mint symbols from description
+                        tx_desc = tx.get("description", "")
+                        if tx_desc:
+                            desc = tx_desc[:80]
+                        else:
+                            desc = f"swap {s_amt:.4g} → {r_amt:.4g}"
+                elif tx_type == "TRANSFER" and native_transfers:
+                    for nt in native_transfers:
+                        amt = nt.get("amount", 0) / 1e9
+                        if nt.get("fromUserAccount") == wallet_address:
+                            desc = f"sent {amt:.4g} SOL"
+                        elif nt.get("toUserAccount") == wallet_address:
+                            desc = f"received {amt:.4g} SOL"
+                elif tx.get("description"):
+                    desc = tx["description"][:80]
+
+                tx_parts.append(f"{time_str}: {desc}")
 
         # Format compact context
-        sol_usd = sol_balance * 86  # Rough SOL price — good enough for context
-        parts = [f"SOL: {sol_balance:.4f} (~${sol_usd:.2f})"]
-        if tokens_str:
-            parts.append(tokens_str)
-
-        context = f"[WALLET {wallet_address[:8]}...{wallet_address[-4:]}] {' | '.join(parts)}"
-        if txs_str:
-            context += f"\nRecent: {txs_str}"
+        context = f"[WALLET {wallet_address[:8]}...{wallet_address[-4:]}]\n"
+        context += f"Portfolio: ${total_usd:.2f}\n"
+        context += f"SOL: {sol_balance:.4f} (${sol_usd:.2f})"
+        if token_parts_sorted:
+            context += " | " + " | ".join(token_parts_sorted)
+        if tx_parts:
+            context += "\nRecent activity:\n" + "\n".join(f"  • {t}" for t in tx_parts[:4])
 
         return context
 
