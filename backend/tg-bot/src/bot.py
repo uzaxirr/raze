@@ -227,7 +227,7 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
             })
             txs_task = client.get(
                 f"{helius_api}/addresses/{wallet_address}/transactions",
-                params={"api-key": helius_key, "limit": 5}
+                params={"api-key": helius_key, "limit": 15}
             )
 
             assets_resp, txs_resp = await asyncio.gather(
@@ -320,8 +320,11 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
         if portfolio_mints:
             await bulk_set_mints(portfolio_mints)
 
-        # ── Parse transactions ──
-        tx_entries = []  # (time_str, description, counterparty_addresses)
+        # ── Parse transactions (separate real vs dust/spam) ──
+        DUST_THRESHOLD_SOL = 0.001  # < 0.001 SOL with no token transfers = dust
+
+        tx_entries = []  # (time_str, description, counterparty_addresses) — real txs
+        dust_groups = {}  # {sender_addr: {"count": N, "time_str": "3hr ago", "amount": 0.00001}} — condensed
         counterparty_set = set()
         total_fees_lamports = 0
         failed_tx_count = 0
@@ -330,7 +333,7 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
         if not isinstance(txs_resp, Exception) and txs_resp.status_code == 200:
             txs_data = txs_resp.json()
             now = int(_time.time())
-            for tx in txs_data[:5]:
+            for tx in txs_data[:15]:
                 block_time = tx.get("timestamp", 0)
                 ago = now - block_time if block_time else 0
                 if ago < 60:
@@ -342,13 +345,6 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
                 else:
                     time_str = f"{ago // 86400}d ago"
 
-                # [7] Track failed transactions
-                tx_error = tx.get("transactionError")
-                failed_tag = ""
-                if tx_error:
-                    failed_tx_count += 1
-                    failed_tag = " ❌FAILED"
-
                 # [8] Accumulate fees
                 fee = tx.get("fee", 0)
                 total_fees_lamports += fee
@@ -356,6 +352,38 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
                 # [9] Track oldest tx for wallet age estimation
                 if block_time and (oldest_tx_ts is None or block_time < oldest_tx_ts):
                     oldest_tx_ts = block_time
+
+                # ── Dust/spam detection ──
+                # Dust = TRANSFER type, no token transfers, total SOL < threshold
+                tx_type = tx.get("type", "")
+                token_transfers = tx.get("tokenTransfers", [])
+                native_transfers = tx.get("nativeTransfers", [])
+
+                if tx_type == "TRANSFER" and not token_transfers and native_transfers:
+                    total_sol = sum(
+                        nt.get("amount", 0) / 1e9
+                        for nt in native_transfers
+                        if nt.get("toUserAccount") == wallet_address
+                    )
+                    if 0 < total_sol < DUST_THRESHOLD_SOL:
+                        # Find the sender
+                        sender = None
+                        for nt in native_transfers:
+                            if nt.get("toUserAccount") == wallet_address:
+                                sender = nt.get("fromUserAccount", "unknown")
+                                break
+                        if sender:
+                            if sender not in dust_groups:
+                                dust_groups[sender] = {"count": 0, "time_str": time_str, "amount": total_sol}
+                            dust_groups[sender]["count"] += 1
+                            continue  # Skip — will be shown condensed
+
+                # [7] Track failed transactions
+                tx_error = tx.get("transactionError")
+                failed_tag = ""
+                if tx_error:
+                    failed_tx_count += 1
+                    failed_tag = " ❌FAILED"
 
                 # Description + source
                 desc = tx.get("description", "")
@@ -374,10 +402,6 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
                 if isinstance(events, dict) and "swap" in events:
                     swap_evt = events["swap"]
                     if isinstance(swap_evt, dict):
-                        native_in = swap_evt.get("nativeInput", {})
-                        native_out = swap_evt.get("nativeOutput", {})
-                        token_ins = swap_evt.get("tokenInputs", [])
-                        token_outs = swap_evt.get("tokenOutputs", [])
                         inner_swaps = swap_evt.get("innerSwaps", [])
                         if inner_swaps:
                             route_protos = set()
@@ -392,12 +416,12 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
 
                 # Collect counterparty addresses from transfers
                 addrs_in_tx = set()
-                for tt in tx.get("tokenTransfers", []):
+                for tt in token_transfers:
                     for key in ("fromUserAccount", "toUserAccount"):
                         addr = tt.get(key)
                         if addr and addr != wallet_address:
                             addrs_in_tx.add(addr)
-                for nt in tx.get("nativeTransfers", []):
+                for nt in native_transfers:
                     for key in ("fromUserAccount", "toUserAccount"):
                         addr = nt.get(key)
                         if addr and addr != wallet_address:
@@ -457,15 +481,21 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
         if staking_parts:
             context += "\nStaking: " + " | ".join(staking_parts)
 
-        # Recent activity
-        if tx_parts:
-            context += "\nRecent activity:\n" + "\n".join(f"  • {t}" for t in tx_parts[:4])
+        # Recent activity — real txs first, condensed dust at the bottom
+        if tx_parts or dust_groups:
+            context += "\nRecent activity:"
+            for t in tx_parts[:5]:
+                context += f"\n  • {t}"
+            # Condensed dust/spam lines
+            for sender, info in dust_groups.items():
+                sender_label = identity_labels.get(sender, f"{sender[:8]}...{sender[-4:]}")
+                context += f"\n  • {info['time_str']} [x{info['count']}]: {sender_label} sent {info['amount']:.6g} SOL each (dust/spam)"
 
         # [8] Fee summary + [7] failed tx count
         stats = []
         if total_fees_lamports > 0:
             total_fees_sol = total_fees_lamports / 1e9
-            stats.append(f"fees: {total_fees_sol:.6f} SOL (last 5 txs)")
+            stats.append(f"fees: {total_fees_sol:.6f} SOL (last {min(len(txs_data), 15)} txs)")
         if failed_tx_count > 0:
             stats.append(f"{failed_tx_count} failed tx")
         # [9] Wallet age from oldest tx in the batch
