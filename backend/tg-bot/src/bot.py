@@ -84,6 +84,118 @@ def extract_pending_swap(text: str) -> tuple[str, dict | None]:
     return text, None
 
 
+async def _fetch_wallet_context(wallet_address: str) -> str:
+    """Fetch wallet balances + recent txs from Helius and format as compact context."""
+    import httpx
+    import asyncio
+
+    helius_key = os.getenv("HELIUS_API_KEY", "")
+    if not helius_key:
+        return ""
+
+    rpc_url = f"https://mainnet.helius-rpc.com/?api-key={helius_key}"
+    das_url = f"https://mainnet.helius-rpc.com/?api-key={helius_key}"
+
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            # Parallel: SOL balance + DAS assets + recent txs
+            sol_task = client.post(rpc_url, json={
+                "jsonrpc": "2.0", "id": 1,
+                "method": "getBalance",
+                "params": [wallet_address]
+            })
+            assets_task = client.post(das_url, json={
+                "jsonrpc": "2.0", "id": 2,
+                "method": "getAssetsByOwner",
+                "params": {
+                    "ownerAddress": wallet_address,
+                    "displayOptions": {"showFungible": True, "showNativeBalance": True},
+                }
+            })
+            txs_task = client.post(rpc_url, json={
+                "jsonrpc": "2.0", "id": 3,
+                "method": "getSignaturesForAddress",
+                "params": [wallet_address, {"limit": 3}]
+            })
+
+            sol_resp, assets_resp, txs_resp = await asyncio.gather(
+                sol_task, assets_task, txs_task,
+                return_exceptions=True
+            )
+
+        # Parse SOL balance
+        sol_balance = 0.0
+        if not isinstance(sol_resp, Exception):
+            sol_data = sol_resp.json()
+            sol_balance = sol_data.get("result", {}).get("value", 0) / 1e9
+
+        # Parse token balances from DAS
+        tokens_str = ""
+        if not isinstance(assets_resp, Exception):
+            assets_data = assets_resp.json()
+            items = assets_data.get("result", {}).get("items", [])
+            token_parts = []
+            for item in items[:10]:  # Top 10 tokens
+                content = item.get("content", {})
+                metadata = content.get("metadata", {})
+                symbol = metadata.get("symbol", "")
+                if not symbol or symbol == "SOL":
+                    continue
+                token_info = item.get("token_info", {})
+                balance = token_info.get("balance", 0)
+                decimals = token_info.get("decimals", 0)
+                if balance and decimals:
+                    human_balance = balance / (10 ** decimals)
+                    if human_balance > 0:
+                        price = token_info.get("price_info", {}).get("price_per_token", 0)
+                        usd = human_balance * price if price else 0
+                        if usd > 0.01:
+                            token_parts.append(f"{symbol}: {human_balance:.4g} (${usd:.2f})")
+                        elif human_balance > 0.0001:
+                            token_parts.append(f"{symbol}: {human_balance:.4g}")
+            if token_parts:
+                tokens_str = " | ".join(token_parts[:5])  # Max 5 tokens
+
+        # Parse recent transactions
+        txs_str = ""
+        if not isinstance(txs_resp, Exception):
+            txs_data = txs_resp.json()
+            sigs = txs_data.get("result", [])
+            tx_parts = []
+            import time
+            now = int(time.time())
+            for sig_info in sigs[:3]:
+                block_time = sig_info.get("blockTime", 0)
+                ago = now - block_time if block_time else 0
+                if ago < 60:
+                    time_str = f"{ago}s ago"
+                elif ago < 3600:
+                    time_str = f"{ago // 60}min ago"
+                else:
+                    time_str = f"{ago // 3600}hr ago"
+                status = "✅" if not sig_info.get("err") else "❌"
+                sig_short = sig_info.get("signature", "")[:8]
+                tx_parts.append(f"{time_str}: {status} {sig_short}...")
+            if tx_parts:
+                txs_str = " | ".join(tx_parts)
+
+        # Format compact context
+        sol_usd = sol_balance * 86  # Rough SOL price — good enough for context
+        parts = [f"SOL: {sol_balance:.4f} (~${sol_usd:.2f})"]
+        if tokens_str:
+            parts.append(tokens_str)
+
+        context = f"[WALLET {wallet_address[:8]}...{wallet_address[-4:]}] {' | '.join(parts)}"
+        if txs_str:
+            context += f"\nRecent: {txs_str}"
+
+        return context
+
+    except Exception as e:
+        logger.warning(f"Wallet context fetch failed: {e}")
+        return ""
+
+
 async def create_signing_session(
     swap_params: dict,
     session_state: dict | None,
@@ -1508,6 +1620,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     # Get message timestamp from Telegram (UTC)
     msg_time = update.message.date.strftime("%Y-%m-%d %H:%M:%S UTC") if update.message.date else None
 
+    # Fetch wallet context (balances + recent txs) for agent awareness
+    wallet_context = ""
+    try:
+        active_wallet = user_profile.external_wallet_address or user_profile.wallet_address
+        if active_wallet:
+            wallet_context = await _fetch_wallet_context(active_wallet)
+    except Exception as e:
+        logger.warning(f"Failed to fetch wallet context: {e}")
+
     session_state = {
         "wallet_address": user_profile.wallet_address,
         "wallet_id": user_profile.wallet_id,
@@ -1518,6 +1639,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         "external_wallet_address": user_profile.external_wallet_address,
         "preferred_wallet_app": user_profile.preferred_wallet_app or "phantom",
         "message_sent_at": msg_time,
+        "wallet_context": wallet_context,
     }
 
     try:
