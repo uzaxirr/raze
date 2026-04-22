@@ -329,13 +329,28 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
         total_fees_lamports = 0
         failed_tx_count = 0
         oldest_tx_ts = None
+        txs_count = 0  # Track how many txs we processed (for stats line)
 
         if not isinstance(txs_resp, Exception) and txs_resp.status_code == 200:
-            txs_data = txs_resp.json()
+            txs_raw = txs_resp.json()
+            # Guard: API could return an error object instead of a list
+            txs_data = txs_raw if isinstance(txs_raw, list) else []
+            txs_count = len(txs_data)
             now = int(_time.time())
+
             for tx in txs_data[:15]:
-                block_time = tx.get("timestamp", 0)
-                ago = now - block_time if block_time else 0
+                if not isinstance(tx, dict):
+                    continue  # Skip malformed entries
+
+                # ── Timestamp → relative time string ──
+                block_time = tx.get("timestamp") or 0
+                if not isinstance(block_time, (int, float)):
+                    try:
+                        block_time = int(block_time)
+                    except (ValueError, TypeError):
+                        block_time = 0
+
+                ago = max(0, now - block_time) if block_time else 0  # Clamp negative (clock skew)
                 if ago < 60:
                     time_str = f"{ago}s ago"
                 elif ago < 3600:
@@ -345,8 +360,13 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
                 else:
                     time_str = f"{ago // 86400}d ago"
 
-                # [8] Accumulate fees
-                fee = tx.get("fee", 0)
+                # [8] Accumulate fees (guard: could be string or None)
+                fee = tx.get("fee") or 0
+                if not isinstance(fee, (int, float)):
+                    try:
+                        fee = int(fee)
+                    except (ValueError, TypeError):
+                        fee = 0
                 total_fees_lamports += fee
 
                 # [9] Track oldest tx for wallet age estimation
@@ -354,61 +374,94 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
                     oldest_tx_ts = block_time
 
                 # ── Dust/spam detection ──
-                # Dust = TRANSFER type, no token transfers, total SOL < threshold
+                # Dust = TRANSFER type, INBOUND, no token transfers, total SOL < threshold
                 tx_type = tx.get("type", "")
-                token_transfers = tx.get("tokenTransfers", [])
-                native_transfers = tx.get("nativeTransfers", [])
+                token_transfers = tx.get("tokenTransfers") or []  # Guard: could be None
+                native_transfers = tx.get("nativeTransfers") or []  # Guard: could be None
 
+                is_dust = False
                 if tx_type == "TRANSFER" and not token_transfers and native_transfers:
-                    total_sol = sum(
-                        nt.get("amount", 0) / 1e9
-                        for nt in native_transfers
-                        if nt.get("toUserAccount") == wallet_address
-                    )
-                    if 0 < total_sol < DUST_THRESHOLD_SOL:
+                    # Sum only inbound SOL to this wallet
+                    inbound_sol = 0.0
+                    outbound_sol = 0.0
+                    for nt in native_transfers:
+                        # Guard: amount could be string, None, or missing
+                        raw_amt = nt.get("amount") or 0
+                        try:
+                            amt_lamports = float(raw_amt)
+                        except (ValueError, TypeError):
+                            amt_lamports = 0
+                        amt_sol = amt_lamports / 1e9
+
+                        if nt.get("toUserAccount") == wallet_address:
+                            inbound_sol += amt_sol
+                        if nt.get("fromUserAccount") == wallet_address:
+                            outbound_sol += amt_sol
+
+                    # Only classify as dust if it's INBOUND and tiny
+                    # Outbound transfers (user sending) are never dust — they're intentional
+                    if inbound_sol > 0 and outbound_sol == 0 and inbound_sol < DUST_THRESHOLD_SOL:
                         # Find the sender
                         sender = None
                         for nt in native_transfers:
                             if nt.get("toUserAccount") == wallet_address:
-                                sender = nt.get("fromUserAccount", "unknown")
-                                break
+                                sender = nt.get("fromUserAccount")
+                                if sender and sender != wallet_address:  # Not a self-transfer
+                                    break
+                                sender = None
+
                         if sender:
                             if sender not in dust_groups:
-                                dust_groups[sender] = {"count": 0, "time_str": time_str, "amount": total_sol}
+                                dust_groups[sender] = {"count": 0, "time_str": time_str, "amount": inbound_sol}
                             dust_groups[sender]["count"] += 1
-                            continue  # Skip — will be shown condensed
+                            is_dust = True
+
+                    # Self-transfer of dust — still dust but label differently
+                    elif inbound_sol > 0 and outbound_sol > 0 and inbound_sol < DUST_THRESHOLD_SOL and outbound_sol < DUST_THRESHOLD_SOL:
+                        self_key = "__self__"
+                        if self_key not in dust_groups:
+                            dust_groups[self_key] = {"count": 0, "time_str": time_str, "amount": inbound_sol}
+                        dust_groups[self_key]["count"] += 1
+                        is_dust = True
+
+                if is_dust:
+                    continue  # Skip — will be shown condensed
 
                 # [7] Track failed transactions
                 tx_error = tx.get("transactionError")
                 failed_tag = ""
                 if tx_error:
                     failed_tx_count += 1
-                    failed_tag = " ❌FAILED"
+                    failed_tag = " FAILED"
 
-                # Description + source
-                desc = tx.get("description", "")
+                # ── Description + source ──
+                desc = tx.get("description") or ""
+                if not isinstance(desc, str):
+                    desc = str(desc)
                 if desc:
                     desc = desc[:120]
                 else:
-                    desc = tx.get("type", "unknown").lower().replace("_", " ")
-                source = tx.get("source", "")
+                    desc = (tx.get("type") or "unknown").lower().replace("_", " ")
+
+                source = tx.get("source") or ""
                 if source and source not in ("SYSTEM_PROGRAM", "SOLANA_PROGRAM_LIBRARY", "UNKNOWN"):
                     source_name = source.replace("_", " ").title()
                     if source_name.lower() not in desc.lower():
                         desc += f" [via {source_name}]"
 
                 # [2] Enrich swap events with structured data
-                events = tx.get("events", {})
+                events = tx.get("events") or {}
                 if isinstance(events, dict) and "swap" in events:
                     swap_evt = events["swap"]
                     if isinstance(swap_evt, dict):
-                        inner_swaps = swap_evt.get("innerSwaps", [])
-                        if inner_swaps:
+                        inner_swaps = swap_evt.get("innerSwaps") or []
+                        if inner_swaps and isinstance(inner_swaps, list):
                             route_protos = set()
                             for s in inner_swaps:
-                                prog = s.get("programInfo", {}).get("source", "")
-                                if prog:
-                                    route_protos.add(prog.replace("_", " ").title())
+                                if isinstance(s, dict):
+                                    prog = (s.get("programInfo") or {}).get("source", "")
+                                    if prog:
+                                        route_protos.add(prog.replace("_", " ").title())
                             if route_protos:
                                 desc += f" (route: {' → '.join(list(route_protos)[:3])})"
 
@@ -417,14 +470,18 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
                 # Collect counterparty addresses from transfers
                 addrs_in_tx = set()
                 for tt in token_transfers:
+                    if not isinstance(tt, dict):
+                        continue
                     for key in ("fromUserAccount", "toUserAccount"):
                         addr = tt.get(key)
-                        if addr and addr != wallet_address:
+                        if addr and isinstance(addr, str) and addr != wallet_address:
                             addrs_in_tx.add(addr)
                 for nt in native_transfers:
+                    if not isinstance(nt, dict):
+                        continue
                     for key in ("fromUserAccount", "toUserAccount"):
                         addr = nt.get(key)
-                        if addr and addr != wallet_address:
+                        if addr and isinstance(addr, str) and addr != wallet_address:
                             addrs_in_tx.add(addr)
 
                 counterparty_set.update(addrs_in_tx)
@@ -440,12 +497,14 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
         user_domain = await get_sns(wallet_address)
 
         # Collect unknown mints from tx descriptions and resolve via DAS getAsset
+        # Filter out known counterparty addresses to avoid wasting API calls on wallet lookups
         import re as _re_mod
         _mint_pattern = _re_mod.compile(r'[1-9A-HJ-NP-Za-km-z]{32,44}')
+        all_known_addrs = counterparty_set | {wallet_address}
         unknown_mints = set()
         for _, desc, _ in tx_entries:
             for match in _mint_pattern.findall(desc):
-                if match not in mem_mint and match != wallet_address:
+                if match not in mem_mint and match not in all_known_addrs:
                     unknown_mints.add(match)
 
         # Resolve unknown mints in parallel (max 5 to bound latency)
@@ -488,14 +547,17 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
                 context += f"\n  • {t}"
             # Condensed dust/spam lines
             for sender, info in dust_groups.items():
-                sender_label = identity_labels.get(sender, f"{sender[:8]}...{sender[-4:]}")
+                if sender == "__self__":
+                    sender_label = "self-transfer"
+                else:
+                    sender_label = identity_labels.get(sender, f"{sender[:8]}...{sender[-4:]}")
                 context += f"\n  • {info['time_str']} [x{info['count']}]: {sender_label} sent {info['amount']:.6g} SOL each (dust/spam)"
 
         # [8] Fee summary + [7] failed tx count
         stats = []
         if total_fees_lamports > 0:
             total_fees_sol = total_fees_lamports / 1e9
-            stats.append(f"fees: {total_fees_sol:.6f} SOL (last {min(len(txs_data), 15)} txs)")
+            stats.append(f"fees: {total_fees_sol:.6f} SOL (last {min(txs_count, 15)} txs)")
         if failed_tx_count > 0:
             stats.append(f"{failed_tx_count} failed tx")
         # [9] Wallet age from oldest tx in the batch
