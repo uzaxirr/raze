@@ -15,6 +15,13 @@ WELL_KNOWN_TOKENS = {
     "WSOL": "So11111111111111111111111111111111111111112",
     "USDC": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
     "USDT": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+    "USDG": "2u1tszSeqZ3qBWF3uNGPFc8TzMk2tdiwknnRMWGWjGWH",
+    "BONK": "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+    "JUP": "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN",
+    "JLP": "27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4",
+    "WIF": "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm",
+    "PYUSD": "2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo",
+    "USDS": "USDSwr9ApdHk5bvJKMjzff41FfuX8bSxdKcR81vTwcA",
 }
 
 # Well-known decimals
@@ -23,6 +30,13 @@ WELL_KNOWN_DECIMALS = {
     "WSOL": 9,
     "USDC": 6,
     "USDT": 6,
+    "USDG": 6,
+    "BONK": 5,
+    "JUP": 6,
+    "JLP": 6,
+    "WIF": 6,
+    "PYUSD": 6,
+    "USDS": 6,
 }
 
 DEFAULT_DECIMALS = 9

@@ -615,24 +615,29 @@ async def swap_tokens(
                 "message": "Your wallet has 0 SOL. Fund it first before swapping.",
             }
 
+        # Fee estimates: base tx fee (5000 lamports) + priority fee + possible ATA creation
+        MIN_FEE_LAMPORTS = 1_000_000  # ~0.001 SOL — conservative minimum for any tx
+        SWAP_FEE_LAMPORTS = 3_000_000  # ~0.003 SOL — typical swap with priority fee
+
         if is_sol_input:
             # Swapping SOL - need amount + fees
-            required = input_amount + 5_000_000  # amount + ~0.005 SOL for swap fees
+            required = input_amount + SWAP_FEE_LAMPORTS
             if sol_balance < required:
                 available_sol = sol_balance / LAMPORTS_PER_SOL
+                max_swappable = max(0, (sol_balance - SWAP_FEE_LAMPORTS)) / LAMPORTS_PER_SOL
                 return {
                     "status": "error",
                     "error": "insufficient_balance",
-                    "message": f"Not enough SOL. You have {available_sol:.4f} SOL but need {amount} + fees.",
+                    "message": f"Not enough SOL. You have {available_sol:.4f} SOL but need {amount} SOL + ~0.003 SOL for fees. Max you can swap: {max_swappable:.4f} SOL.",
                 }
         else:
             # Swapping tokens - just need SOL for fees
-            if sol_balance < 5_000_000:  # ~0.005 SOL for fees
+            if sol_balance < MIN_FEE_LAMPORTS:
                 available_sol = sol_balance / LAMPORTS_PER_SOL
                 return {
                     "status": "error",
                     "error": "insufficient_sol_for_fees",
-                    "message": f"Need ~0.005 SOL for fees. You only have {available_sol:.4f} SOL.",
+                    "message": f"Need at least 0.001 SOL for transaction fees. You only have {available_sol:.6f} SOL. Deposit some SOL first.",
                 }
 
         logger.info(f"Getting Jupiter quote: {amount} {from_symbol} -> {to_symbol} on {network}")
