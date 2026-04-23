@@ -1720,18 +1720,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             from .waitlist import get_waitlist_entry, set_bouncer_remarks
             entry = get_waitlist_entry(user_id)
 
-            await update.message.chat.send_action(ChatAction.TYPING)
-            bot_message = await update.message.reply_text("Thinking...")
-
             try:
                 import re as _re
+                import time as _time
+                import asyncio as _aio
                 client, _ = await get_client_and_agent()
                 bouncer_session_id = f"bouncer_{user_id}"
                 msg_time = update.message.date.strftime("%Y-%m-%d %H:%M:%S UTC") if update.message.date else None
-
-                accumulated_text = ""
-                import time as _time
-                last_update_time = _time.time()
+                chat_id = update.message.chat.id
 
                 # Track bouncer conversation step
                 bouncer_step = context.user_data.get("bouncer_step", 0)
@@ -1741,7 +1737,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 if _re.match(r'^[1-9A-HJ-NP-Za-km-z]{32,44}$', message_text.strip()) and not has_wallet:
                     context.user_data["bouncer_has_wallet"] = True
                     context.user_data["bouncer_wallet_address"] = message_text.strip()
-                    context.user_data["bouncer_step"] = 1  # wallet just shared, start sequence
+                    context.user_data["bouncer_step"] = 1
                     bouncer_step = 1
                 elif has_wallet and bouncer_step > 0:
                     bouncer_step = context.user_data.get("bouncer_step", 1)
@@ -1774,43 +1770,83 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     "wallet_context": bouncer_wallet_ctx,
                 }
 
-                async for event in client.run_agent_stream(
-                    agent_id="bouncer",
-                    message=message_text,
-                    user_id=str(user_id),
-                    session_id=bouncer_session_id,
-                    session_state=bouncer_session_state,
-                ):
-                    if isinstance(event, RunContentEvent) and event.content:
-                        accumulated_text += event.content
-                        current_time = _time.time()
-                        if current_time - last_update_time >= config.MESSAGE_UPDATE_INTERVAL:
-                            # Strip [THINK] blocks during streaming so user never sees them
-                            display_text = _re.sub(r'\[THINK\].*?\[/THINK\]', '', accumulated_text, flags=_re.DOTALL).strip()
-                            display_text = _re.sub(r'\[THINK\].*$', '', display_text, flags=_re.DOTALL).strip()
-                            if display_text:
-                                await safe_edit_message(bot_message, display_text + " ...")
-                            last_update_time = current_time
-                    elif isinstance(event, ToolCallCompletedEvent) and event.tool:
-                        tool_result = event.tool.result or ""
-                        tool_name = event.tool.tool_name or ""
-                        if "pending_signature" in tool_result and tool_name in ("swap_tokens", "send_sol", "send_token"):
-                            try:
-                                import json as _json
-                                result_data = _json.loads(tool_result)
-                                if result_data.get("status") == "pending_signature":
-                                    pending_swap_data = result_data
-                                    logger.info(f"Bouncer: captured pending_signature from {tool_name}")
-                            except Exception as e:
-                                logger.warning(f"Bouncer: failed to parse tool result: {e}")
-                    elif isinstance(event, RunCompletedEvent):
-                        break
+                # ── Stream with sendMessageDraft (native Telegram streaming) ──
+                accumulated_text = ""
+                draft_id = int(_time.time() * 1000) % (2**31 - 1)  # Unique non-zero draft ID
+                last_draft_time = 0.0
+                DRAFT_THROTTLE = 0.3  # Min seconds between draft updates
+                bot = update.message.get_bot()
+
+                # Background typing indicator (keeps "typing..." alive every 4s)
+                typing_active = True
+                async def _keep_typing():
+                    while typing_active:
+                        try:
+                            await update.message.chat.send_action(ChatAction.TYPING)
+                        except Exception:
+                            pass
+                        await _aio.sleep(4)
+                typing_task = _aio.create_task(_keep_typing())
+
+                try:
+                    async for event in client.run_agent_stream(
+                        agent_id="bouncer",
+                        message=message_text,
+                        user_id=str(user_id),
+                        session_id=bouncer_session_id,
+                        session_state=bouncer_session_state,
+                    ):
+                        if isinstance(event, RunContentEvent) and event.content:
+                            accumulated_text += event.content
+                            current_time = _time.time()
+
+                            # Throttle draft updates to avoid rate limits
+                            if current_time - last_draft_time >= DRAFT_THROTTLE:
+                                # Strip [THINK] and [BOUNCER_REMARKS] during streaming
+                                display_text = _re.sub(r'\[THINK\].*?\[/THINK\]', '', accumulated_text, flags=_re.DOTALL).strip()
+                                display_text = _re.sub(r'\[THINK\].*$', '', display_text, flags=_re.DOTALL).strip()
+                                display_text = _re.sub(r'\[BOUNCER_REMARKS\].*?\[/BOUNCER_REMARKS\]', '', display_text, flags=_re.DOTALL).strip()
+                                display_text = _re.sub(r'\[BOUNCER_REMARKS\].*$', '', display_text, flags=_re.DOTALL).strip()
+
+                                if display_text:
+                                    try:
+                                        await bot.send_message_draft(
+                                            chat_id=chat_id,
+                                            draft_id=draft_id,
+                                            text=display_text[:4096],
+                                        )
+                                    except Exception as e:
+                                        logger.debug(f"Draft update failed (non-critical): {e}")
+                                last_draft_time = current_time
+
+                        elif isinstance(event, ToolCallCompletedEvent) and event.tool:
+                            tool_result = event.tool.result or ""
+                            tool_name = event.tool.tool_name or ""
+                            if "pending_signature" in tool_result and tool_name in ("swap_tokens", "send_sol", "send_token"):
+                                try:
+                                    import json as _json
+                                    result_data = _json.loads(tool_result)
+                                    if result_data.get("status") == "pending_signature":
+                                        pending_swap_data = result_data
+                                        logger.info(f"Bouncer: captured pending_signature from {tool_name}")
+                                except Exception as e:
+                                    logger.warning(f"Bouncer: failed to parse tool result: {e}")
+                        elif isinstance(event, RunCompletedEvent):
+                            break
+                finally:
+                    # Stop typing indicator
+                    typing_active = False
+                    typing_task.cancel()
+                    try:
+                        await typing_task
+                    except _aio.CancelledError:
+                        pass
 
                 # Increment bouncer step after each exchange
                 if context.user_data.get("bouncer_has_wallet") and bouncer_step > 0:
                     context.user_data["bouncer_step"] = bouncer_step + 1
 
-                # Strip hidden thought blocks
+                # Strip hidden blocks from final text
                 accumulated_text = _re.sub(r'\[THINK\].*?\[/THINK\]', '', accumulated_text, flags=_re.DOTALL).strip()
 
                 # Extract bouncer remarks
@@ -1825,37 +1861,41 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                         logger.info(f"Bouncer scored user {user_id}: {score}/10")
 
                         # Auto-approve disabled — Uzaxir approves manually via admin bot.
-                        # Score is still recorded for manual review.
                         if score >= 7 and entry and entry.status == "waiting":
                             logger.info(f"Bouncer recommends approval for user {user_id} (score {score}) — awaiting manual review")
                     except (json.JSONDecodeError, Exception) as e:
                         logger.warning(f"Failed to parse bouncer remarks: {e}")
 
+                # ── Send final formatted message (draft disappears, permanent message appears) ──
                 if accumulated_text:
-                    # Check for TMA signing flow
-                    tma_url = await create_signing_session(pending_swap_data, bouncer_session_state, telegram_chat_id=update.message.chat.id) if pending_swap_data else None
+                    tma_url = await create_signing_session(pending_swap_data, bouncer_session_state, telegram_chat_id=chat_id) if pending_swap_data else None
+                    reply_markup = None
                     if tma_url:
                         keyboard = [[InlineKeyboardButton(
                             "\U0001f510 Sign Transaction",
                             url=tma_url,
                         )]]
                         reply_markup = InlineKeyboardMarkup(keyboard)
-                        try:
-                            parsed = parse_markdown_to_entities(truncate_message(accumulated_text))
-                            if parsed.entities:
-                                await bot_message.edit_text(parsed.text, entities=parsed.entities, reply_markup=reply_markup)
-                            else:
-                                await bot_message.edit_text(parsed.text, reply_markup=reply_markup)
-                        except BadRequest:
-                            await safe_edit_message(bot_message, accumulated_text)
-                    else:
-                        await safe_edit_message(bot_message, accumulated_text)
+
+                    try:
+                        parsed = parse_markdown_to_entities(truncate_message(accumulated_text))
+                        await update.message.reply_text(
+                            parsed.text,
+                            entities=parsed.entities if parsed.entities else None,
+                            reply_markup=reply_markup,
+                        )
+                    except Exception:
+                        # Fallback: send as plain text
+                        await update.message.reply_text(
+                            accumulated_text[:4096],
+                            reply_markup=reply_markup,
+                        )
                 else:
-                    await bot_message.edit_text("hmm. try again.")
+                    await update.message.reply_text("hmm. try again.")
 
             except Exception as e:
                 logger.exception(f"Bouncer agent error: {e}")
-                await bot_message.edit_text("something went wrong. try again.")
+                await update.message.reply_text("something went wrong. try again.")
             return
 
         # access["access"] == "full" — fall through to normal flow
@@ -2076,18 +2116,30 @@ async def stream_response(
     session_id: str,
     session_state: dict | None = None,
 ) -> None:
-    """Stream agent response with periodic message updates."""
+    """Stream agent response using sendMessageDraft for smooth live typing.
+
+    Flow: send_message_draft (live typing bubble) → send_message (final formatted message).
+    Falls back to edit-message pattern if draft fails (e.g., group chats).
+    """
+    import asyncio as _aio
+
     accumulated_text = ""
-    pending_swap_data = None  # Captured from ToolCallCompletedEvent
-    last_update_time = time.time()
-    update_interval = config.MESSAGE_UPDATE_INTERVAL
+    pending_swap_data = None
+    chat_id = update.message.chat.id
+    bot = update.message.get_bot()
+
+    # Draft streaming config
+    draft_id = int(time.time() * 1000) % (2**31 - 1)  # Unique non-zero ID
+    DRAFT_THROTTLE = 0.3  # Min seconds between draft updates
+    last_draft_time = 0.0
+    draft_supported = True  # Will be set to False if draft fails (e.g., group chat)
 
     # Track the API call
     tracker = APICallTracker("run_agent_stream", user_id)
     tracker.start_time = time.time()
     tracker.set_request(
         agent_id=agent_id,
-        message=message[:100] if message else None,  # Truncate long messages
+        message=message[:100] if message else None,
         session_id=session_id,
         has_session_state=session_state is not None
     )
@@ -2095,6 +2147,17 @@ async def stream_response(
     chunk_count = 0
     first_chunk_time = None
     error_occurred = False
+
+    # Background typing indicator (keeps "typing..." alive every 4s)
+    typing_active = True
+    async def _keep_typing():
+        while typing_active:
+            try:
+                await update.message.chat.send_action(ChatAction.TYPING)
+            except Exception:
+                pass
+            await _aio.sleep(4)
+    typing_task = _aio.create_task(_keep_typing())
 
     try:
         async for event in client.run_agent_stream(
@@ -2106,23 +2169,35 @@ async def stream_response(
         ):
             chunk_count += 1
 
-            # Track time to first chunk
             if first_chunk_time is None:
                 first_chunk_time = time.time()
-                time_to_first = first_chunk_time - tracker.start_time
-                logger.debug(f"First chunk for user {user_id} after {time_to_first:.2f}s")
+                logger.debug(f"First chunk for user {user_id} after {first_chunk_time - tracker.start_time:.2f}s")
 
             if isinstance(event, RunContentEvent) and event.content:
                 accumulated_text += event.content
 
                 current_time = time.time()
-                if current_time - last_update_time >= update_interval:
-                    await safe_edit_message(bot_message, accumulated_text + " ...")
-                    last_update_time = current_time
-                    await update.message.chat.send_action(ChatAction.TYPING)
+                if current_time - last_draft_time >= DRAFT_THROTTLE:
+                    display_text = accumulated_text[:4096]
+                    if display_text.strip():
+                        if draft_supported:
+                            try:
+                                await bot.send_message_draft(
+                                    chat_id=chat_id,
+                                    draft_id=draft_id,
+                                    text=display_text,
+                                )
+                            except Exception as e:
+                                # Draft not supported (group chat or API issue) — fall back to edit
+                                logger.debug(f"Draft failed, falling back to edit: {e}")
+                                draft_supported = False
+                                await safe_edit_message(bot_message, display_text + " ...")
+                        else:
+                            # Fallback: edit-message pattern
+                            await safe_edit_message(bot_message, display_text + " ...")
+                    last_draft_time = current_time
 
             elif isinstance(event, ToolCallCompletedEvent) and event.tool:
-                # Intercept tool results to detect pending_signature for TMA signing
                 tool_result = event.tool.result or ""
                 tool_name = event.tool.tool_name or ""
                 if "pending_signature" in tool_result and tool_name in ("swap_tokens", "send_sol", "send_token"):
@@ -2148,101 +2223,113 @@ async def stream_response(
             "total_duration": duration
         })
 
-        # Log the completed API call
         from .api_logger import api_logger
-        log_data = {
-            "api_data": {
-                "operation": "run_agent_stream",
-                "user_id": user_id,
-                "duration_seconds": round(duration, 3),
-                "success": True,
-                "request": tracker.request_data,
-                "response": tracker.response_data,
-            }
-        }
-
-        if duration > 10:
-            api_logger.warning(
-                f"Slow streaming response for user {user_id}: {duration:.2f}s",
-                extra=log_data
-            )
-        else:
-            api_logger.info(
-                f"Streaming completed for user {user_id}: {duration:.2f}s, {chunk_count} chunks",
-                extra=log_data
-            )
+        log_level = api_logger.warning if duration > 10 else api_logger.info
+        log_level(
+            f"Streaming {'slow ' if duration > 10 else ''}completed for user {user_id}: {duration:.2f}s, {chunk_count} chunks",
+            extra={"api_data": {
+                "operation": "run_agent_stream", "user_id": user_id,
+                "duration_seconds": round(duration, 3), "success": True,
+                "request": tracker.request_data, "response": tracker.response_data,
+            }}
+        )
 
     except Exception as e:
         error_occurred = True
         duration = time.time() - tracker.start_time
-
-        # Log the error
         from .api_logger import api_logger
-        log_data = {
-            "api_data": {
-                "operation": "run_agent_stream",
-                "user_id": user_id,
-                "duration_seconds": round(duration, 3),
-                "success": False,
-                "request": tracker.request_data,
-                "error": {
-                    "type": type(e).__name__,
-                    "message": str(e),
-                    "chunks_before_error": chunk_count
-                }
-            }
-        }
         api_logger.error(
             f"Streaming failed for user {user_id} after {chunk_count} chunks",
-            extra=log_data
+            extra={"api_data": {
+                "operation": "run_agent_stream", "user_id": user_id,
+                "duration_seconds": round(duration, 3), "success": False,
+                "request": tracker.request_data,
+                "error": {"type": type(e).__name__, "message": str(e), "chunks_before_error": chunk_count},
+            }}
         )
         raise
 
     finally:
+        # Stop typing indicator
+        typing_active = False
+        typing_task.cancel()
+        try:
+            await typing_task
+        except _aio.CancelledError:
+            pass
+
         if accumulated_text:
             # Check for embedded chart image
             clean_text, chart_base64 = extract_chart_image(accumulated_text)
 
             if chart_base64:
-                # Send chart as photo
                 try:
                     import base64
                     image_bytes = base64.b64decode(chart_base64)
                     await update.message.chat.send_photo(
                         photo=image_bytes,
-                        caption=clean_text[:1024] if clean_text else None  # Caption limit is 1024
+                        caption=clean_text[:1024] if clean_text else None
                     )
-                    # Delete the "Thinking..." message
-                    await bot_message.delete()
+                    # Delete the "Thinking..." placeholder if we used fallback mode
+                    if not draft_supported:
+                        await bot_message.delete()
                 except Exception as e:
                     logger.warning(f"Failed to send chart image: {e}")
-                    # Fallback to text
                     await safe_edit_message(bot_message, clean_text or "couldn't load chart")
             else:
-                # Check for pending swap from tool results (TMA signing flow)
                 clean_text = strip_sign_tx_tags(accumulated_text)
-                clean_text, _ = extract_pending_swap(clean_text)  # Strip any PENDING_SWAP tags too
-                tma_url = await create_signing_session(pending_swap_data, session_state, telegram_chat_id=update.message.chat.id) if pending_swap_data else None
+                clean_text, _ = extract_pending_swap(clean_text)
+                tma_url = await create_signing_session(pending_swap_data, session_state, telegram_chat_id=chat_id) if pending_swap_data else None
 
+                reply_markup = None
                 if tma_url:
                     keyboard = [[InlineKeyboardButton(
                         "\U0001f510 Sign Transaction",
                         url=tma_url,
                     )]]
                     reply_markup = InlineKeyboardMarkup(keyboard)
+
+                if draft_supported:
+                    # Draft mode: send final formatted message (draft auto-disappears)
                     try:
                         parsed = parse_markdown_to_entities(truncate_message(clean_text))
-                        if parsed.entities:
-                            await bot_message.edit_text(parsed.text, entities=parsed.entities, reply_markup=reply_markup)
-                        else:
-                            await bot_message.edit_text(parsed.text, reply_markup=reply_markup)
-                    except BadRequest as e:
-                        logger.warning(f"TMA button formatting failed: {e}")
-                        await bot_message.edit_text(truncate_message(clean_text), reply_markup=reply_markup)
+                        await update.message.reply_text(
+                            parsed.text,
+                            entities=parsed.entities if parsed.entities else None,
+                            reply_markup=reply_markup,
+                        )
+                        # Delete the "Thinking..." placeholder since we never used it
+                        try:
+                            await bot_message.delete()
+                        except Exception:
+                            pass
+                    except Exception:
+                        await update.message.reply_text(
+                            clean_text[:4096],
+                            reply_markup=reply_markup,
+                        )
                 else:
-                    await safe_edit_message(bot_message, clean_text)
+                    # Fallback mode: edit the existing message
+                    if tma_url:
+                        try:
+                            parsed = parse_markdown_to_entities(truncate_message(clean_text))
+                            if parsed.entities:
+                                await bot_message.edit_text(parsed.text, entities=parsed.entities, reply_markup=reply_markup)
+                            else:
+                                await bot_message.edit_text(parsed.text, reply_markup=reply_markup)
+                        except BadRequest:
+                            await bot_message.edit_text(truncate_message(clean_text), reply_markup=reply_markup)
+                    else:
+                        await safe_edit_message(bot_message, clean_text)
         elif not error_occurred:
-            await bot_message.edit_text("I couldn't generate a response. Please try again.")
+            if draft_supported:
+                await update.message.reply_text("hmm. try again.")
+                try:
+                    await bot_message.delete()
+                except Exception:
+                    pass
+            else:
+                await bot_message.edit_text("I couldn't generate a response. Please try again.")
 
 
 async def safe_edit_message(bot_message, text: str) -> None:
