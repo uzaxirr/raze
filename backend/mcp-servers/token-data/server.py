@@ -704,9 +704,10 @@ async def get_token_security(
                             human_supply = supply / (10 ** decimals)
                             result["supply"] = human_supply
 
-                        # Check if token is mutable (metadata can be changed)
-                        if asset.get("mutable"):
-                            flags.append("token metadata is mutable — name/symbol can be changed")
+                        # Only flag mutable metadata if combined with other red flags
+                        # (mutable alone is normal for legit projects updating branding)
+                        if asset.get("mutable") and (mint_auth or freeze_auth):
+                            flags.append("token metadata is mutable + mint/freeze authority active — higher risk")
 
                 except Exception as e:
                     logger.warning(f"DAS getAsset failed for {address}: {e}")
