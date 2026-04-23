@@ -26,6 +26,9 @@ CONFIG = {
     'debug': os.getenv('DEBUG', 'false').lower() == 'true'
 }
 
+HELIUS_API_KEY = os.getenv('HELIUS_API_KEY', '')
+HELIUS_RPC_URL = f"https://mainnet.helius-rpc.com/?api-key={HELIUS_API_KEY}" if HELIUS_API_KEY else ""
+
 if not CONFIG['api_key']:
     raise ValueError("BIRDEYE_API_KEY is required. Set it in .env file")
 
@@ -641,84 +644,135 @@ async def get_token_security(
                      f"Active mint authority is expected and normal for {known['type']}s.",
         }
 
-    # ── Unknown token: check via Birdeye ──
+    # ── Unknown token: check via Helius DAS (free) + Jupiter sell quote (free) ──
     result = {
         "status": "success",
         "token": address,
         "known_token": False,
         "risk_level": "unknown",
+        "symbol": None,
+        "name": None,
         "mint_authority": None,
-        "top_holder_pct": None,
+        "freeze_authority": None,
+        "supply": None,
+        "can_sell": None,
         "notes": "",
     }
 
     flags = []
+    _das_decimals = 6  # Default; updated from DAS if available
 
     try:
-        async with httpx.AsyncClient() as client:
-            # Check 1: Mint authority via Birdeye token_security
-            security_response = await client.get(
-                f"{CONFIG['api_url']}/defi/token_security",
-                headers={
-                    "X-API-KEY": CONFIG['api_key'],
-                    "accept": "application/json",
-                    "x-chain": "solana"
-                },
-                params={"address": address},
-                timeout=CONFIG['timeout']
-            )
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            # ── Check 1: Helius DAS getAsset — mint authority, freeze authority, supply, metadata ──
+            if HELIUS_RPC_URL:
+                try:
+                    das_resp = await client.post(HELIUS_RPC_URL, json={
+                        "jsonrpc": "2.0", "id": 1,
+                        "method": "getAsset",
+                        "params": {"id": address},
+                    })
+                    if das_resp.status_code == 200:
+                        asset = das_resp.json().get("result", {})
 
-            if security_response.status_code == 200:
-                security_data = security_response.json().get("data", {})
-                mint_authority = security_data.get("mintAuthority")
-                if mint_authority is None or mint_authority == "":
-                    result["mint_authority"] = "revoked"
+                        # Metadata
+                        metadata = asset.get("content", {}).get("metadata", {})
+                        result["symbol"] = metadata.get("symbol") or None
+                        result["name"] = metadata.get("name") or None
+
+                        # Token info — mint authority, freeze authority, supply
+                        token_info = asset.get("token_info", {})
+                        mint_auth = token_info.get("mint_authority")
+                        freeze_auth = token_info.get("freeze_authority")
+                        supply = token_info.get("supply")
+                        decimals = token_info.get("decimals", 0)
+                        _das_decimals = decimals or 6
+
+                        if mint_auth:
+                            result["mint_authority"] = "active"
+                            flags.append("mint authority is active — issuer can mint more tokens")
+                        else:
+                            result["mint_authority"] = "revoked"
+
+                        if freeze_auth:
+                            result["freeze_authority"] = "active"
+                            flags.append("freeze authority is active — issuer can freeze token accounts")
+                        else:
+                            result["freeze_authority"] = "revoked"
+
+                        if supply is not None and decimals:
+                            human_supply = supply / (10 ** decimals)
+                            result["supply"] = human_supply
+
+                        # Check if token is mutable (metadata can be changed)
+                        if asset.get("mutable"):
+                            flags.append("token metadata is mutable — name/symbol can be changed")
+
+                except Exception as e:
+                    logger.warning(f"DAS getAsset failed for {address}: {e}")
+
+            # ── Check 2: Jupiter sell quote — can this token actually be sold? ──
+            SOL_MINT = "So11111111111111111111111111111111111111112"
+            try:
+                # Use 1 token as test amount
+                test_amount = 10 ** _das_decimals  # 1 whole token
+
+                quote_resp = await client.get(
+                    "https://lite-api.jup.ag/swap/v1/quote",
+                    params={
+                        "inputMint": address,
+                        "outputMint": SOL_MINT,
+                        "amount": str(test_amount),
+                        "slippageBps": "500",
+                    },
+                    timeout=5.0,
+                )
+
+                if quote_resp.status_code == 200:
+                    quote = quote_resp.json()
+                    out_amount = int(quote.get("outAmount", 0))
+                    result["can_sell"] = out_amount > 0
+                    if out_amount == 0:
+                        flags.append("jupiter returned 0 output — token may be illiquid or a honeypot")
+                    # Check price impact
+                    price_impact = quote.get("priceImpactPct")
+                    if price_impact:
+                        try:
+                            impact = abs(float(price_impact))
+                            if impact > 10:
+                                flags.append(f"high price impact ({impact:.1f}%) — very low liquidity")
+                            elif impact > 5:
+                                flags.append(f"moderate price impact ({impact:.1f}%) — low liquidity")
+                        except (ValueError, TypeError):
+                            pass
                 else:
-                    result["mint_authority"] = "active"
-                    flags.append("mint authority is active — issuer can mint more tokens")
+                    result["can_sell"] = False
+                    flags.append("no jupiter sell route found — token may be unsellable")
 
-            # Check 2: Top holder concentration
-            holders_response = await client.get(
-                f"{CONFIG['api_url']}/defi/v3/token/holder",
-                headers={
-                    "X-API-KEY": CONFIG['api_key'],
-                    "accept": "application/json",
-                    "x-chain": "solana"
-                },
-                params={"address": address, "limit": 1},
-                timeout=CONFIG['timeout']
-            )
+            except Exception as e:
+                logger.debug(f"Jupiter sell quote failed for {address}: {e}")
+                # Not critical — just means we can't verify sellability
 
-            if holders_response.status_code == 200:
-                holders_data = holders_response.json().get("data", {})
-                items = holders_data.get("items", [])
-                if items:
-                    top_holder_pct = items[0].get("percentage", 0)
-                    if isinstance(top_holder_pct, str):
-                        top_holder_pct = float(top_holder_pct.replace("%", ""))
-                    result["top_holder_pct"] = top_holder_pct
-                    if top_holder_pct > 50:
-                        flags.append(f"top holder owns {top_holder_pct:.1f}% of supply — highly concentrated")
-                    elif top_holder_pct > 25:
-                        flags.append(f"top holder owns {top_holder_pct:.1f}% of supply — moderately concentrated")
-
-            # Determine risk level from flags + data availability
+            # ── Determine risk level ──
             has_mint_data = result["mint_authority"] is not None
-            has_holder_data = result["top_holder_pct"] is not None
+            has_sell_data = result["can_sell"] is not None
 
-            if not has_mint_data and not has_holder_data:
+            if not has_mint_data and not has_sell_data:
                 result["risk_level"] = "unknown"
-                result["notes"] = "Could not verify — Birdeye returned no security data for this token. Proceed with caution."
+                result["notes"] = "Could not verify — no data available. Proceed with caution."
                 flags.append("no security data available")
-            elif not flags:
-                result["risk_level"] = "low"
-                result["notes"] = "Mint authority revoked, holder distribution looks normal."
-            elif len(flags) == 1:
+            elif result["can_sell"] is False:
+                result["risk_level"] = "high"
+                result["notes"] = " | ".join(flags)
+            elif len(flags) >= 3:
+                result["risk_level"] = "high"
+                result["notes"] = " | ".join(flags)
+            elif len(flags) >= 1:
                 result["risk_level"] = "medium"
                 result["notes"] = " | ".join(flags)
             else:
-                result["risk_level"] = "high"
-                result["notes"] = " | ".join(flags)
+                result["risk_level"] = "low"
+                result["notes"] = "Mint authority revoked, freeze authority revoked, token is sellable on Jupiter."
 
             result["flags"] = flags
             return result
