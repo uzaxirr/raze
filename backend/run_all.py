@@ -169,7 +169,7 @@ async def run_all():
     base_path = Path(__file__).parent
 
     # Run migrations first
-    run_migrations()
+    # run_migrations()
 
     print("\n" + "=" * 60)
     print("Starting all services...")
@@ -196,14 +196,8 @@ async def run_all():
     # Start agent
     agent_task = asyncio.create_task(start_service(AGENT, base_path))
 
-    # Start price monitor service
-    price_monitor_task = asyncio.create_task(start_service(PRICE_MONITOR, base_path))
-
-    # Start webhook receiver (for Helius transaction alerts)
-    webhook_receiver_task = asyncio.create_task(start_service(WEBHOOK_RECEIVER, base_path))
-
     # Wait for all tasks
-    await asyncio.gather(*mcp_tasks, agent_task, price_monitor_task, webhook_receiver_task)
+    await asyncio.gather(*mcp_tasks, agent_task)
 
 
 def shutdown(signum, frame):

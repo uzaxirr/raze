@@ -1770,14 +1770,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     "wallet_context": bouncer_wallet_ctx,
                 }
 
-                # ── Stream with sendMessageDraft (native Telegram streaming) ──
-                accumulated_text = ""
-                draft_id = int(_time.time() * 1000) % (2**31 - 1)  # Unique non-zero draft ID
+                # ── Stream with sendMessageDraft + multi-bubble splitting on ||| ──
+                accumulated_text = ""       # Full response (for remarks extraction)
+                current_bubble = ""         # Current bubble being streamed
+                sent_bubbles = []           # Already sent bubble texts
+                draft_id = int(_time.time() * 1000) % (2**31 - 1)
                 last_draft_time = 0.0
-                DRAFT_THROTTLE = 0.3  # Min seconds between draft updates
+                DRAFT_THROTTLE = 0.3
+                BUBBLE_SEPARATOR = "|||"
                 bot = update.message.get_bot()
 
-                # Background typing indicator (keeps "typing..." alive every 4s)
+                # Background typing indicator
                 typing_active = True
                 async def _keep_typing():
                     while typing_active:
@@ -1787,6 +1790,28 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                             pass
                         await _aio.sleep(4)
                 typing_task = _aio.create_task(_keep_typing())
+
+                async def _clean_text(text):
+                    """Strip internal tags from display text."""
+                    text = _re.sub(r'\[THINK\].*?\[/THINK\]', '', text, flags=_re.DOTALL).strip()
+                    text = _re.sub(r'\[THINK\].*$', '', text, flags=_re.DOTALL).strip()
+                    text = _re.sub(r'\[BOUNCER_REMARKS\].*?\[/BOUNCER_REMARKS\]', '', text, flags=_re.DOTALL).strip()
+                    text = _re.sub(r'\[BOUNCER_REMARKS\].*$', '', text, flags=_re.DOTALL).strip()
+                    return text
+
+                async def _send_bubble(text):
+                    """Send a finalized bubble as a permanent message."""
+                    text = text.strip()
+                    if not text:
+                        return
+                    try:
+                        parsed = parse_markdown_to_entities(truncate_message(text))
+                        await update.message.reply_text(
+                            parsed.text,
+                            entities=parsed.entities if parsed.entities else None,
+                        )
+                    except Exception:
+                        await update.message.reply_text(text[:4096])
 
                 try:
                     async for event in client.run_agent_stream(
@@ -1798,16 +1823,31 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     ):
                         if isinstance(event, RunContentEvent) and event.content:
                             accumulated_text += event.content
+                            current_bubble += event.content
                             current_time = _time.time()
 
-                            # Throttle draft updates to avoid rate limits
-                            if current_time - last_draft_time >= DRAFT_THROTTLE:
-                                # Strip [THINK] and [BOUNCER_REMARKS] during streaming
-                                display_text = _re.sub(r'\[THINK\].*?\[/THINK\]', '', accumulated_text, flags=_re.DOTALL).strip()
-                                display_text = _re.sub(r'\[THINK\].*$', '', display_text, flags=_re.DOTALL).strip()
-                                display_text = _re.sub(r'\[BOUNCER_REMARKS\].*?\[/BOUNCER_REMARKS\]', '', display_text, flags=_re.DOTALL).strip()
-                                display_text = _re.sub(r'\[BOUNCER_REMARKS\].*$', '', display_text, flags=_re.DOTALL).strip()
+                            # Check for bubble separator mid-stream
+                            if BUBBLE_SEPARATOR in current_bubble:
+                                parts = current_bubble.split(BUBBLE_SEPARATOR, 1)
+                                finished_bubble = await _clean_text(parts[0])
 
+                                if finished_bubble:
+                                    # Send the completed bubble as a permanent message
+                                    await _send_bubble(finished_bubble)
+                                    sent_bubbles.append(finished_bubble)
+
+                                    # Brief pause + typing indicator for natural feel
+                                    await _aio.sleep(0.8)
+                                    await update.message.chat.send_action(ChatAction.TYPING)
+
+                                # Start streaming the next bubble
+                                current_bubble = parts[1]
+                                draft_id = int(_time.time() * 1000) % (2**31 - 1)  # New draft ID
+                                last_draft_time = 0  # Reset throttle
+
+                            # Stream current bubble as draft
+                            elif current_time - last_draft_time >= DRAFT_THROTTLE:
+                                display_text = await _clean_text(current_bubble)
                                 if display_text:
                                     try:
                                         await bot.send_message_draft(
@@ -1866,7 +1906,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     except (json.JSONDecodeError, Exception) as e:
                         logger.warning(f"Failed to parse bouncer remarks: {e}")
 
-                # ── Send final formatted message (draft disappears, permanent message appears) ──
+                # ── Send final bubble (whatever's left after streaming) ──
                 if accumulated_text:
                     tma_url = await create_signing_session(pending_swap_data, bouncer_session_state, telegram_chat_id=chat_id) if pending_swap_data else None
                     reply_markup = None
@@ -1877,19 +1917,27 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                         )]]
                         reply_markup = InlineKeyboardMarkup(keyboard)
 
-                    try:
-                        parsed = parse_markdown_to_entities(truncate_message(accumulated_text))
-                        await update.message.reply_text(
-                            parsed.text,
-                            entities=parsed.entities if parsed.entities else None,
-                            reply_markup=reply_markup,
-                        )
-                    except Exception:
-                        # Fallback: send as plain text
-                        await update.message.reply_text(
-                            accumulated_text[:4096],
-                            reply_markup=reply_markup,
-                        )
+                    # Send the last bubble (with sign button if any)
+                    last_bubble = await _clean_text(current_bubble)
+                    # Remove any leftover ||| separators
+                    last_bubble = last_bubble.replace(BUBBLE_SEPARATOR, "").strip()
+
+                    if last_bubble:
+                        try:
+                            parsed = parse_markdown_to_entities(truncate_message(last_bubble))
+                            await update.message.reply_text(
+                                parsed.text,
+                                entities=parsed.entities if parsed.entities else None,
+                                reply_markup=reply_markup,
+                            )
+                        except Exception:
+                            await update.message.reply_text(
+                                last_bubble[:4096],
+                                reply_markup=reply_markup,
+                            )
+                    elif not sent_bubbles:
+                        # Nothing was sent at all
+                        await update.message.reply_text("hmm. try again.")
                 else:
                     await update.message.reply_text("hmm. try again.")
 

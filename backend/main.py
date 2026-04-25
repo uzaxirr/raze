@@ -141,7 +141,7 @@ agent = Agent(
 bouncer_agent = Agent(
     name="Bouncer",
     model=Claude(
-        id="claude-opus-4-20250514",
+        id="claude-sonnet-4-20250514",
         cache_system_prompt=True,
     ),
     debug_mode=True,
@@ -149,8 +149,8 @@ bouncer_agent = Agent(
         read_mcp, sns_resolver, token_data, transaction_executor, market_research,
     ],
     db=db,
-    enable_user_memories=False,
-    add_memories_to_context=False,
+    enable_user_memories=True,
+    add_memories_to_context=True,
     add_history_to_context=True,
     add_session_summary_to_context=True,
     store_history_messages=True,
@@ -182,7 +182,7 @@ app = agent_os.get_app()
 from fastapi.middleware.cors import CORSMiddleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://raze.fun", "http://localhost:3000", "http://localhost:3004"],
+    allow_origins=["https://raze.fun", "http://localhost:3000", "http://localhost:3004", "https://os.agno.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
