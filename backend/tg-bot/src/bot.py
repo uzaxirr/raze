@@ -187,6 +187,71 @@ def _replace_mints_with_symbols(text: str) -> str:
     return text
 
 
+async def _detect_address_type(address: str) -> dict:
+    """Detect if a Solana address is a wallet or a token mint via Helius DAS getAsset.
+
+    Returns {"type": "token", "symbol": "JUP", "name": "Jupiter", ...}
+    or {"type": "wallet"} if it's not a known token.
+    """
+    import httpx
+
+    helius_key = os.getenv("HELIUS_API_KEY", "")
+    if not helius_key:
+        return {"type": "wallet"}
+
+    try:
+        rpc_url = f"https://mainnet.helius-rpc.com/?api-key={helius_key}"
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            resp = await client.post(rpc_url, json={
+                "jsonrpc": "2.0", "id": 1,
+                "method": "getAsset",
+                "params": {"id": address},
+            })
+            if resp.status_code != 200:
+                return {"type": "wallet"}
+
+            data = resp.json().get("result", {})
+            interface = data.get("interface", "")
+            token_info = data.get("token_info", {})
+            metadata = data.get("content", {}).get("metadata", {})
+
+            # Fungible tokens have interface "FungibleToken" or "FungibleAsset"
+            if interface in ("FungibleToken", "FungibleAsset"):
+                return {
+                    "type": "token",
+                    "symbol": metadata.get("symbol", "UNKNOWN"),
+                    "name": metadata.get("name", ""),
+                    "decimals": token_info.get("decimals", 0),
+                    "supply": token_info.get("supply"),
+                    "mint": address,
+                }
+
+            # NFTs / compressed NFTs
+            if interface in ("V1_NFT", "V2_NFT", "ProgrammableNFT", "MplCoreAsset"):
+                return {
+                    "type": "nft",
+                    "name": metadata.get("name", ""),
+                    "collection": data.get("grouping", [{}])[0].get("group_value", ""),
+                }
+
+            # If getAsset returns valid data with token_info, it's likely a token
+            if token_info.get("decimals") is not None and token_info.get("supply"):
+                return {
+                    "type": "token",
+                    "symbol": metadata.get("symbol", "UNKNOWN"),
+                    "name": metadata.get("name", ""),
+                    "decimals": token_info.get("decimals", 0),
+                    "supply": token_info.get("supply"),
+                    "mint": address,
+                }
+
+    except Exception:
+        pass
+
+    # Default: treat as wallet
+    return {"type": "wallet"}
+
+
 async def _fetch_wallet_context(wallet_address: str) -> str:
     """Fetch wallet balances + recent txs from Helius, enriched with identity labels.
 
@@ -1733,12 +1798,33 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 bouncer_step = context.user_data.get("bouncer_step", 0)
                 has_wallet = context.user_data.get("bouncer_has_wallet", False)
 
-                # Detect if user just shared a wallet address (32-44 base58 chars)
+                # Detect if user just shared a wallet address or token CA (32-44 base58 chars)
                 if _re.match(r'^[1-9A-HJ-NP-Za-km-z]{32,44}$', message_text.strip()) and not has_wallet:
-                    context.user_data["bouncer_has_wallet"] = True
-                    context.user_data["bouncer_wallet_address"] = message_text.strip()
-                    context.user_data["bouncer_step"] = 1
-                    bouncer_step = 1
+                    addr_info = await _detect_address_type(message_text.strip())
+                    if addr_info["type"] == "token":
+                        # It's a token CA — pass token context to agent instead of wallet scan
+                        token_ctx = (
+                            f"[TOKEN DETECTED] User pasted a token address, NOT a wallet.\n"
+                            f"Token: {addr_info.get('name', 'Unknown')} ({addr_info.get('symbol', '?')})\n"
+                            f"Mint: {addr_info.get('mint', message_text.strip())}\n"
+                            f"Decimals: {addr_info.get('decimals', '?')}\n"
+                            f"Action: Call get_token_overview and get_token_security on this mint. Do NOT call get_wallet_balance."
+                        )
+                        context.user_data["bouncer_token_context"] = token_ctx
+                        # Don't set bouncer_has_wallet — this isn't a wallet
+                    elif addr_info["type"] == "nft":
+                        context.user_data["bouncer_token_context"] = (
+                            f"[NFT DETECTED] User pasted an NFT address, NOT a wallet.\n"
+                            f"NFT: {addr_info.get('name', 'Unknown')}\n"
+                            f"Collection: {addr_info.get('collection', 'Unknown')}\n"
+                            f"Action: Tell the user this is an NFT, not a wallet or token. Offer to scan their wallet instead."
+                        )
+                    else:
+                        # It's a wallet address
+                        context.user_data["bouncer_has_wallet"] = True
+                        context.user_data["bouncer_wallet_address"] = message_text.strip()
+                        context.user_data["bouncer_step"] = 1
+                        bouncer_step = 1
                 elif has_wallet and bouncer_step > 0:
                     bouncer_step = context.user_data.get("bouncer_step", 1)
 
@@ -1746,11 +1832,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 # Fetch wallet context for bouncer if wallet shared
                 bouncer_wallet_ctx = ""
                 bouncer_wallet_addr = context.user_data.get("bouncer_wallet_address")
+                bouncer_token_ctx = context.user_data.pop("bouncer_token_context", "")
                 if bouncer_wallet_addr:
                     try:
                         bouncer_wallet_ctx = await _fetch_wallet_context(bouncer_wallet_addr)
                     except Exception:
                         pass
+
+                # Combine wallet context with any token detection context
+                combined_context = bouncer_wallet_ctx
+                if bouncer_token_ctx:
+                    combined_context = f"{bouncer_token_ctx}\n\n{bouncer_wallet_ctx}" if bouncer_wallet_ctx else bouncer_token_ctx
 
                 # Resolve step instruction text for this bouncer step
                 from bouncer_prompt import get_step_instruction
@@ -1767,7 +1859,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     "message_sent_at": msg_time,
                     "signing_mode": "external",
                     "external_wallet_address": bouncer_wallet_addr,
-                    "wallet_context": bouncer_wallet_ctx,
+                    "wallet_context": combined_context,
                 }
 
                 # ── Stream with sendMessageDraft + multi-bubble splitting on ||| ──
