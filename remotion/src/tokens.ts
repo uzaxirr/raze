@@ -62,6 +62,7 @@ export const camera = {
   END_START: 610,
 };
 
+import {staticFile} from 'remotion';
+
 // Remotion serves everything in `remotion/public/` at the site root.
-// We copied the mascot to public/mascot.png so this works at render time.
-export const mascotSrc = 'mascot.png';
+export const mascotSrc = staticFile('mascot.png');
