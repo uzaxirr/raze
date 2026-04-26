@@ -1739,7 +1739,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             await _aio.sleep(1.5)
 
             await update.message.reply_text(
-                "also drop your wallet address and watch the magic. or don't. your call 👀"
+                "also drop your wallet, lemme see if you are worth anything or just here to waste tokens"
             )
             context.user_data["awaiting_email_or_wallet"] = True
             return
@@ -1826,7 +1826,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                         context.user_data["bouncer_step"] = 1
                         bouncer_step = 1
                 elif has_wallet and bouncer_step > 0:
-                    bouncer_step = context.user_data.get("bouncer_step", 1)
+                    # Auto-advance step on each exchange (steps 1-7+)
+                    bouncer_step = context.user_data.get("bouncer_step", 1) + 1
+                    context.user_data["bouncer_step"] = bouncer_step
 
                 pending_swap_data = None
                 # Fetch wallet context for bouncer if wallet shared
