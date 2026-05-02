@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Raze — Pre-Seed Pitch Deck 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=Inter:wght@400;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: #000;
+    font-family: "Inter", sans-serif;
+  }
+
+  /* Deck container — always 16:9, scaled to fill viewport */
+  #deck {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  #scaler {
+    position: relative;
+    width: 1920px; height: 1080px;
+    transform-origin: top left;
+    /* JS sets transform: scale() */
+  }
+
+  /* ---- Slides ---- */
+  .slide {
+    position: absolute; inset: 0;
+    background: #FAFAFE;
+    display: none;
+    flex-direction: column;
+    padding: 64px 80px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .slide.active {
+    display: flex;
+    opacity: 1;
+  }
+  .slide.fade-out { opacity: 0; }
+  .slide.fade-in  { opacity: 1; }
+
+  /* ---- Shared chrome ---- */
+  .slide-logo {
+    display: flex; align-items: center; gap: 12px;
+    position: absolute; top: 48px; left: 80px;
+  }
+  .slide-logo img { width: 40px; height: 40px; object-fit: contain; }
+  .slide-logo span {
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 700; font-size: 20px; color: #1A1A1A;
+  }
+
+  .slide-tag {
+    position: absolute; top: 52px; right: 80px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 14px; color: #9945FF;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .slide-label {
+    position: absolute; bottom: 40px; left: 80px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px; color: #CCC; letter-spacing: 0.08em;
+  }
+  .slide-num {
+    position: absolute; bottom: 40px; right: 80px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px; color: #CCC; letter-spacing: 0.08em;
+  }
+
+  /* ---- Dot indicators ---- */
+  #dots {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 8px; z-index: 100;
+  }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: rgba(0,0,0,0.2); transition: background 0.3s;
+    cursor: pointer;
+  }
+  .dot.active { background: #9945FF; }
+
+  /* ---- Typography helpers ---- */
+  .sg { font-family: "Space Grotesk", sans-serif; font-weight: 700; color: #1A1A1A; }
+  .sg-purple { font-family: "Space Grotesk", sans-serif; font-weight: 700; color: #9945FF; }
+  .inter { font-family: "Inter", sans-serif; }
+  .mono { font-family: "JetBrains Mono", monospace; }
+  .purple { color: #9945FF; }
+  .grey { color: #888; }
+  .dimmed { color: #AAA; }
+
+  /* ============================================================
+     SLIDE 1 — COVER
+  ============================================================ */
+  #s1 .logo-cover {
+    display: flex; align-items: center; gap: 14px;
+    position: absolute; top: 48px; left: 80px;
+  }
+  #s1 .logo-cover img { width: 60px; height: 60px; object-fit: contain; }
+  #s1 .logo-cover span {
+    font-family: "Space Grotesk", sans-serif; font-weight: 700;
+    font-size: 28px; color: #1A1A1A;
+  }
+  #s1 .cover-center {
+    position: absolute; top: 50%; left: 80px;
+    transform: translateY(-50%);
+  }
+  #s1 .cover-line1 { font-size: 120px; line-height: 1.05; color: #1A1A1A; }
+  #s1 .cover-line2 { font-size: 120px; line-height: 1.05; color: #9945FF; }
+  #s1 .cover-foot-left {
+    position: absolute; bottom: 40px; left: 80px;
+    font-family: "JetBrains Mono", monospace; font-size: 14px; color: #CCC;
+  }
+  #s1 .cover-foot-right {
+    position: absolute; bottom: 40px; right: 80px;
+    font-family: "JetBrains Mono", monospace; font-size: 14px; color: #CCC;
+  }
+
+  /* ============================================================
+     SLIDE 2 — PROBLEM
+  ============================================================ */
+  #s2 .problem-headline {
+    position: absolute; top: 40%; left: 80px;
+    transform: translateY(-50%);
+  }
+  #s2 .problem-h1 { font-size: 90px; line-height: 1.05; color: #1A1A1A; }
+  #s2 .problem-h2 { font-size: 90px; line-height: 1.05; color: #AAA; }
+  #s2 .problem-body {
+    position: absolute; top: calc(40% + 230px); left: 80px;
+    max-width: 700px; font-size: 18px; color: #888;
+    line-height: 1.6;
+  }
+
+  /* ============================================================
+     SLIDE 3 — PIPELINE
+  ============================================================ */
+  #s3 .pipe-head {
+    position: absolute; top: 140px; left: 80px;
+  }
+  #s3 .pipe-h1 { font-size: 64px; color: #1A1A1A; line-height: 1.1; }
+  #s3 .pipe-h2 { font-size: 64px; color: #AAA; line-height: 1.1; }
+
+  #s3 .pipe-cards {
+    position: absolute; top: 360px; left: 80px; right: 80px;
+    display: flex; gap: 12px;
+  }
+  .pipe-card {
+    flex: 1; background: #fff; border-radius: 12px;
+    border: 1px solid #eee; padding: 20px;
+  }
+  .pipe-card-num {
+    font-family: "JetBrains Mono", monospace; font-size: 12px; color: #CCC;
+    margin-bottom: 8px;
+  }
+  .pipe-card-name {
+    font-family: "Inter", sans-serif; font-weight: 600; font-size: 16px;
+    color: #1A1A1A; margin-bottom: 6px;
+  }
+  .pipe-card-desc {
+    font-family: "Inter", sans-serif; font-size: 13px; color: #888;
+  }
+
+  #s3 .pipe-compare {
+    position: absolute; top: 620px; left: 80px; right: 80px;
+    display: flex; gap: 20px;
+  }
+  .compare-box {
+    flex: 1; border-radius: 16px; padding: 28px 32px;
+  }
+  .compare-box.manual {
+    background: #fff; border: 1px solid #eee;
+  }
+  .compare-box.raze-box {
+    background: #F0EDFF; border: 1px solid #9945FF;
+  }
+  .compare-big {
+    font-family: "Space Grotesk", sans-serif; font-weight: 700;
+    font-size: 48px; margin-bottom: 8px;
+  }
+  .compare-sub {
+    font-family: "Inter", sans-serif; font-size: 16px; color: #888;
+  }
+  .compare-box.raze-box .compare-big { color: #9945FF; }
+  .compare-box.raze-box .compare-sub { color: #1A1A1A; }
+
+  /* ============================================================
+     SLIDE 4 — SOLUTION
+  ============================================================ */
+  #s4 .sol-headline {
+    position: absolute; top: 40%; left: 80px;
+    transform: translateY(-50%);
+  }
+  #s4 .sol-h1 { font-size: 100px; color: #1A1A1A; line-height: 1.05; }
+  #s4 .sol-h2 { font-size: 100px; color: #9945FF; line-height: 1.05; }
+  #s4 .sol-body {
+    position: absolute; top: calc(40% + 240px); left: 80px;
+    max-width: 650px; font-size: 18px; color: #888; line-height: 1.6;
+  }
+  #s4 .sol-pills {
+    position: absolute; top: calc(40% + 370px); left: 80px;
+    display: flex; gap: 12px; flex-wrap: wrap;
+  }
+  .query-pill {
+    background: #F8F6FF; border: 1px solid #E8E0FF;
+    border-radius: 12px; padding: 14px 20px;
+    font-family: "JetBrains Mono", monospace; font-size: 14px; color: #9945FF;
+  }
+
+  /* ============================================================
+     SLIDE 5 — PRODUCT
+  ============================================================ */
+  #s5 .prod-headline {
+    position: absolute; top: 60px; left: 80px;
+  }
+  #s5 .prod-h1 { font-size: 48px; color: #1A1A1A; line-height: 1.1; }
+  #s5 .prod-h2 { font-size: 48px; color: #9945FF; line-height: 1.1; }
+
+  #s5 .chat-cards {
+    position: absolute; top: 200px; left: 80px; right: 80px; bottom: 80px;
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;
+  }
+  .chat-card {
+    background: #fff; border-radius: 14px;
+    border: 1px solid #eee; padding: 18px;
+    display: flex; flex-direction: column; gap: 10px;
+    overflow: hidden;
+  }
+  .chat-card-label {
+    font-family: "JetBrains Mono", monospace; font-size: 10px;
+    color: #BBB; text-transform: uppercase; letter-spacing: 0.1em;
+  }
+  .chat-pill {
+    align-self: flex-end;
+    background: #9945FF; color: #fff;
+    border-radius: 16px; padding: 6px 14px;
+    font-family: "Inter", sans-serif; font-weight: 600; font-size: 12px;
+    white-space: nowrap;
+  }
+  .chat-response {
+    font-family: "Inter", sans-serif; font-size: 11.5px;
+    color: #1A1A1A; line-height: 1.55; white-space: pre-line;
+  }
+
+  /* ============================================================
+     SLIDE 6 — CAPABILITIES
+  ============================================================ */
+  #s6 .cap-headline {
+    position: absolute; top: 120px; left: 80px;
+  }
+  #s6 .cap-h1 { font-size: 64px; color: #1A1A1A; line-height: 1.1; }
+  #s6 .cap-h2 { font-size: 64px; color: #9945FF; line-height: 1.1; }
+
+  #s6 .cap-grid {
+    position: absolute; top: 290px; left: 80px; right: 80px;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  }
+  .cap-card {
+    background: #fff; border-radius: 12px;
+    border: 1px solid #eee; padding: 16px 20px;
+    font-family: "Inter", sans-serif; font-weight: 600;
+    font-size: 16px; color: #1A1A1A;
+  }
+  .cap-card.special {
+    background: #F8F6FF; border-color: #9945FF;
+  }
+  .cap-card-sub {
+    font-family: "JetBrains Mono", monospace; font-size: 12px;
+    color: #9945FF; margin-top: 4px; font-weight: 400;
+  }
+
+  #s6 .cap-note {
+    position: absolute; bottom: 80px; left: 80px; right: 80px;
+    font-family: "Inter", sans-serif; font-size: 15px; color: #888;
+  }
+
+  /* ============================================================
+     SLIDE 7 — TRACTION
+  ============================================================ */
+  #s7 .trac-headline {
+    position: absolute; top: 120px; left: 80px;
+  }
+  #s7 .trac-h1 { font-size: 80px; color: #1A1A1A; line-height: 1.05; }
+  #s7 .trac-h2 { font-size: 80px; color: #9945FF; line-height: 1.05; }
+  #s7 .trac-body {
+    position: absolute; top: 390px; left: 80px;
+    font-size: 18px; color: #888; max-width: 740px; line-height: 1.6;
+  }
+
+  #s7 .trac-cards {
+    position: absolute; top: 480px; left: 80px; right: 80px;
+    display: flex; gap: 16px;
+  }
+  .trac-card {
+    flex: 1; background: #fff; border-radius: 16px;
+    border: 1px solid #eee; padding: 28px;
+  }
+  .trac-card.highlight {
+    background: #F8F6FF; border-color: #9945FF;
+  }
+  .trac-label {
+    font-family: "JetBrains Mono", monospace; font-size: 12px;
+    color: #9945FF; letter-spacing: 0.1em; margin-bottom: 10px;
+  }
+  .trac-number {
+    font-family: "Space Grotesk", sans-serif; font-weight: 700;
+    font-size: 56px; margin-bottom: 8px;
+  }
+  .trac-desc {
+    font-family: "Inter", sans-serif; font-size: 14px;
+    color: #888; line-height: 1.5;
+  }
+
+  #s7 .trac-live {
+    position: absolute; bottom: 80px; left: 80px;
+    font-family: "JetBrains Mono", monospace; font-size: 14px; color: #888;
+    display: flex; align-items: center; gap: 8px;
+  }
+  #s7 .trac-live .green-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: #22C55E; flex-shrink: 0;
+  }
+
+  /* ============================================================
+     SLIDE 8 — VISION
+  ============================================================ */
+  #s8 .vis-headline {
+    position: absolute; top: 120px; left: 80px;
+  }
+  #s8 .vis-h1 { font-size: 64px; color: #1A1A1A; line-height: 1.1; }
+  #s8 .vis-h2 { font-size: 64px; color: #9945FF; line-height: 1.1; }
+
+  #s8 .vis-bars {
+    position: absolute; top: 330px; left: 80px; right: 80px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .vis-bar {
+    border-radius: 16px; padding: 22px 28px;
+    display: flex; align-items: center; gap: 32px;
+  }
+  .vis-bar.now { background: #fff; border: 1px solid #eee; }
+  .vis-bar.next { background: #F8F6FF; border: 1px solid #E8E0FF; }
+  .vis-bar.later { background: #F0EDFF; border: 1px solid #D4C4FF; }
+  .vis-bar-label {
+    font-family: "JetBrains Mono", monospace; font-size: 13px;
+    font-weight: 700; color: #9945FF; width: 60px; flex-shrink: 0;
+    letter-spacing: 0.06em;
+  }
+  .vis-bar-content {
+    font-family: "Inter", sans-serif; font-size: 16px; color: #1A1A1A;
+    line-height: 1.4;
+  }
+
+  #s8 .vis-tagline {
+    position: absolute; bottom: 100px; left: 80px;
+  }
+  #s8 .vis-tag1 {
+    font-family: "Inter", sans-serif; font-size: 18px;
+    font-weight: 600; color: #1A1A1A;
+  }
+  #s8 .vis-tag2 {
+    font-family: "Inter", sans-serif; font-size: 18px;
+    font-weight: 600; color: #9945FF;
+  }
+
+  /* ============================================================
+     SLIDE 9 — CTA
+  ============================================================ */
+  #s9 .cta-logo {
+    position: absolute; top: 48px; left: 80px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  #s9 .cta-logo img { width: 80px; height: 80px; object-fit: contain; }
+  #s9 .cta-logo span {
+    font-family: "Space Grotesk", sans-serif; font-weight: 700;
+    font-size: 32px; color: #1A1A1A;
+  }
+  #s9 .cta-tag {
+    position: absolute; top: 52px; right: 80px;
+    font-family: "JetBrains Mono", monospace; font-size: 14px;
+    color: #9945FF; letter-spacing: 0.12em;
+  }
+
+  #s9 .cta-headline {
+    position: absolute; top: 50%; left: 80px; right: 80px;
+    transform: translateY(-50%); text-align: left;
+  }
+  #s9 .cta-big {
+    font-family: "Space Grotesk", sans-serif; font-weight: 700;
+    font-size: 120px; color: #1A1A1A; line-height: 1.0;
+    margin-bottom: 40px;
+  }
+  #s9 .cta-row {
+    display: flex; align-items: center; gap: 40px;
+  }
+  #s9 .cta-btn {
+    background: #9945FF; border-radius: 16px;
+    padding: 20px 40px; cursor: pointer; border: none;
+    flex-shrink: 0;
+    text-decoration: none; display: block;
+  }
+  #s9 .cta-btn span {
+    font-family: "Space Grotesk", sans-serif; font-weight: 700;
+    font-size: 28px; color: #fff;
+  }
+  #s9 .cta-sub {
+    font-family: "Inter", sans-serif; font-size: 18px;
+    color: #888; line-height: 1.5; max-width: 500px;
+  }
+
+  #s9 .cta-foot-left {
+    position: absolute; bottom: 40px; left: 80px;
+    font-family: "JetBrains Mono", monospace; font-size: 14px; color: #CCC;
+    letter-spacing: 0.08em;
+  }
+  #s9 .cta-foot-right {
+    position: absolute; bottom: 40px; right: 80px;
+    font-family: "JetBrains Mono", monospace; font-size: 14px; color: #CCC;
+  }
+</style>
+</head>
+<body>
+
+<div id="deck">
+  <div id="scaler">
+
+    <!-- ═══════════════════════════════════════════════════
+         SLIDE 1 — COVER
+    ═══════════════════════════════════════════════════ -->
+    <div class="slide" id="s1">
+      <div class="logo-cover">
+        <img src="../frontend/public/assets/imp-expressions/waving.png" alt="Raze mascot" />
+        <span>raze.fun</span>
+      </div>
+      <div class="cover-center">
+        <div class="sg cover-line1">Everything Solana,</div>
+        <div class="sg-purple cover-line2">one chat away.</div>
+      </div>
+      <div class="cover-foot-left">PRE-SEED · 2026</div>
+      <div class="cover-foot-right">Uzair Ali · uzair@raze.fun</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         SLIDE 2 — PROBLEM
+    ═══════════════════════════════════════════════════ -->
+    <div class="slide" id="s2">
+      <div class="slide-logo">
+        <img src="../frontend/public/assets/imp-expressions/waving.png" alt="Raze mascot" />
+        <span>raze</span>
+      </div>
+      <div class="slide-tag">PROBLEM</div>
+      <div class="problem-headline">
+        <div class="sg problem-h1">Crypto works.</div>
+        <div class="sg problem-h2">Using it doesn't.</div>
+      </div>
+      <div class="problem-body inter">
+        Every action is a different app, a different interface, a different vocabulary. No normie makes it past day one. The ecosystem is leaking users faster than it onboards them.
+      </div>
+      <div class="slide-label">02 · PROBLEM</div>
+      <div class="slide-num">02 / 09</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         SLIDE 3 — THE PIPELINE
+    ═══════════════════════════════════════════════════ -->
+    <div class="slide" id="s3">
+      <div class="slide-logo">
+        <img src="../frontend/public/assets/imp-expressions/waving.png" alt="Raze mascot" />
+        <span>raze</span>
+      </div>
+      <div class="slide-tag">THE SHILL PIPELINE</div>
+      <div class="pipe-head">
+        <div class="sg pipe-h1">Someone shills you a token.</div>
+        <div class="sg pipe-h2">Here's what happens next.</div>
+      </div>
+      <div class="pipe-cards">
+        <div class="pipe-card">
+          <div class="pipe-card-num">01</div>
+          <div class="pipe-card-name">DexScreener</div>
+          <div class="pipe-card-desc">Contract, price, volume, mcap.</div>
+        </div>
+        <div class="pipe-card">
+          <div class="pipe-card-num">02</div>
+          <div class="pipe-card-name">Birdeye</div>
+          <div class="pipe-card-desc">Liquidity, FDV, 24h tx count.</div>
+        </div>
+        <div class="pipe-card">
+          <div class="pipe-card-num">03</div>
+          <div class="pipe-card-name">RugCheck</div>
+          <div class="pipe-card-desc">Mint revoked? LP locked? Insiders?</div>
+        </div>
+        <div class="pipe-card">
+          <div class="pipe-card-num">04</div>
+          <div class="pipe-card-name">Solscan</div>
+          <div class="pipe-card-desc">Top holders. Transfers. Creator.</div>
+        </div>
+        <div class="pipe-card">
+          <div class="pipe-card-num">05</div>
+          <div class="pipe-card-name">BubbleMaps</div>
+          <div class="pipe-card-desc">Wallet clusters. Bundles.</div>
+        </div>
+        <div class="pipe-card">
+          <div class="pipe-card-num">06</div>
+          <div class="pipe-card-name">Twitter / X</div>
+          <div class="pipe-card-desc">Real hype or bot farm?</div>
+        </div>
+        <div class="pipe-card">
+          <div class="pipe-card-num">07</div>
+          <div class="pipe-card-name">Jupiter</div>
+          <div class="pipe-card-desc">Swap — still not 100% sure.</div>
+        </div>
+      </div>
+      <div class="pipe-compare">
+        <div class="compare-box manual">
+          <div class="compare-big">~10 min</div>
+          <div class="compare-sub">manually — and you're still the integration layer.</div>
+        </div>
+        <div class="compare-box raze-box">
+          <div class="compare-big">0:04 sec</div>
+          <div class="compare-sub">with Raze — one message, one answer.</div>
+        </div>
+      </div>
+      <div class="slide-label">03 · THE PIPELINE</div>
+      <div class="slide-num">03 / 09</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         SLIDE 4 — SOLUTION
+    ═══════════════════════════════════════════════════ -->
+    <div class="slide" id="s4">
+      <div class="slide-logo">
+        <img src="../frontend/public/assets/imp-expressions/waving.png" alt="Raze mascot" />
+        <span>raze</span>
+      </div>
+      <div class="slide-tag">SOLUTION</div>
+      <div class="sol-headline">
+        <div class="sg sol-h1">Not a bot.</div>
+        <div class="sg-purple sol-h2">An agent.</div>
+      </div>
+      <div class="sol-body inter">
+        Raze thinks before it speaks. It cross-references security, momentum, holders, and sentiment before giving you an opinion — not just data, an actual take.
+      </div>
+      <div class="sol-pills">
+        <div class="query-pill">decode this tx</div>
+        <div class="query-pill">who holds BONK?</div>
+        <div class="query-pill">why is this dumping?</div>
+        <div class="query-pill">watch this wallet</div>
+        <div class="query-pill">sentiment on JUP?</div>
+      </div>
+      <div class="slide-label">04 · SOLUTION</div>
+      <div class="slide-num">04 / 09</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         SLIDE 5 — PRODUCT
+    ═══════════════════════════════════════════════════ -->
+    <div class="slide" id="s5">
+      <div class="slide-logo">
+        <img src="../frontend/public/assets/imp-expressions/waving.png" alt="Raze mascot" />
+        <span>raze</span>
+      </div>
+      <div class="slide-tag">PRODUCT · LIVE</div>
+      <div class="prod-headline">
+        <div class="sg prod-h1">Real conversations,</div>
+        <div class="sg-purple prod-h2">real on-chain actions.</div>
+      </div>
+      <div class="chat-cards">
+        <div class="chat-card">
+          <div class="chat-card-label">cross-data intelligence</div>
+          <div class="chat-pill">full dyor on $POPCAT</div>
+          <div class="chat-response">mint: REVOKED ✅ lp: burned. top 10: 14.7% (clean). bundles: 2 at launch, both exited. dev wallet: holding, no sells. sentiment: 87/100 bullish. whale alert: toly.sol bought 420 SOL worth 6h ago.
+
+verdict: cleaner than most. not financial advice but i'd watch that toly position closely.</div>
+        </div>
+        <div class="chat-card">
+          <div class="chat-card-label">smart money convergence</div>
+          <div class="chat-pill">3 watched wallets bought the same token</div>
+          <div class="chat-response">CONVERGENCE ALERT 🔥
+3/5 watched wallets bought $SHARK within 47 min.
+toly.sol: 200 SOL ($28K)
+whale2.sol: 150 SOL ($21K)
+whale3.sol: 500 SOL ($70K)
+
+total smart money inflow: $119K. token is 12 min old, $340K mcap. security: clean.
+
+this is the kind of signal people pay $500/mo alpha groups for. you're welcome.</div>
+        </div>
+        <div class="chat-card">
+          <div class="chat-card-label">personality as product</div>
+          <div class="chat-pill">check my balance</div>
+          <div class="chat-response">0.03 SOL. one failed tx from broke. want me to find a cardboard box too?
+
+oh btw your bonk is up 35% since you bought last tuesday. first W in a while 🎉</div>
+        </div>
+        <div class="chat-card">
+          <div class="chat-card-label">emergency response</div>
+          <div class="chat-pill">HELP — someone is draining my wallet</div>
+          <div class="chat-response">EMERGENCY MODE ACTIVATED.
+
+scanning... unauthorized transfer 2 min ago: 12 SOL sent to unknown address. remaining: 34 SOL, $2,100 in tokens, 3 NFTs.
+
+sweeping ALL assets to new wallet NOW...
+all assets evacuated in 18 seconds.
+
+you still have $7,200. breathe.</div>
+        </div>
+        <div class="chat-card">
+          <div class="chat-card-label">rug prevention</div>
+          <div class="chat-pill">check the deployer of $LUNA2</div>
+          <div class="chat-response">deployer wallet: 7xKp...3mNq
+
+previous launches:
+1. $FAKEMOON — LP pulled after 4h, -94%
+2. $SAFERUG — minted 400M tokens
+
+this deployer has a 100% rug rate. mint authority STILL ENABLED on $LUNA2.
+
+run. don't walk. run. 💀</div>
+        </div>
+        <div class="chat-card">
+          <div class="chat-card-label">contrarian alpha</div>
+          <div class="chat-pill">tokens where CT is bearish but whales accumulate</div>
+          <div class="chat-response">found 3 divergence plays:
+
+$BONK — sentiment 32/100 (fear), but 4 wallets with 10K+ SOL accumulated $1.2M in 48h.
+$PYTH — sentiment dropped after unlock FUD. insiders haven't sold a single token.
+
+contrarian plays are how you make money when everyone else is crying.</div>
+        </div>
+      </div>
+      <div class="slide-label">05 · PRODUCT</div>
+      <div class="slide-num">05 / 09</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         SLIDE 6 — CAPABILITIES
+    ═══════════════════════════════════════════════════ -->
+    <div class="slide" id="s6">
+      <div class="slide-logo">
+        <img src="../frontend/public/assets/imp-expressions/waving.png" alt="Raze mascot" />
+        <span>raze</span>
+      </div>
+      <div class="slide-tag">WHAT RAZE DOES TODAY</div>
+      <div class="cap-headline">
+        <div class="sg cap-h1">Everything Solana</div>
+        <div class="sg-purple cap-h2">in one chat.</div>
+      </div>
+      <div class="cap-grid">
+        <div class="cap-card">Token Swaps</div>
+        <div class="cap-card">Token Research</div>
+        <div class="cap-card">Security Scanning</div>
+        <div class="cap-card">Wallet Analytics</div>
+        <div class="cap-card">Tx Decoding</div>
+        <div class="cap-card">Whale Tracking</div>
+        <div class="cap-card">Price Alerts</div>
+        <div class="cap-card">Self-Custody Signing</div>
+        <div class="cap-card">Token Sniping</div>
+        <div class="cap-card">Sentiment Analysis</div>
+        <div class="cap-card">Bundle Detection</div>
+        <div class="cap-card">Copy Trading</div>
+        <div class="cap-card">PnL Tracking</div>
+        <div class="cap-card">Send Crypto</div>
+        <div class="cap-card">.sol Domains</div>
+        <div class="cap-card special">BYOMCP
+          <div class="cap-card-sub">custom tools</div>
+        </div>
+      </div>
+      <div class="cap-note">
+        ↑ Any time someone builds a new protocol on Solana, Raze can talk to it. The interface never needs to change.
+      </div>
+      <div class="slide-label">06 · CAPABILITIES</div>
+      <div class="slide-num">06 / 09</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         SLIDE 7 — TRACTION
+    ═══════════════════════════════════════════════════ -->
+    <div class="slide" id="s7">
+      <div class="slide-logo">
+        <img src="../frontend/public/assets/imp-expressions/waving.png" alt="Raze mascot" />
+        <span>raze</span>
+      </div>
+      <div class="slide-tag">TRACTION</div>
+      <div class="trac-headline">
+        <div class="sg trac-h1">Beta is live</div>
+        <div class="sg-purple trac-h2">and growing.</div>
+      </div>
+      <div class="trac-body inter">
+        Launched April 20th. Real users, real swaps, real revenue from day one — without paid acquisition.
+      </div>
+      <div class="trac-cards">
+        <div class="trac-card">
+          <div class="trac-label">WAITLIST</div>
+          <div class="trac-number purple">200+</div>
+          <div class="trac-desc">signups in the first weeks. Organic only.</div>
+        </div>
+        <div class="trac-card">
+          <div class="trac-label">BOT INTERACTIONS</div>
+          <div class="trac-number purple">3K+</div>
+          <div class="trac-desc">messages processed. Real conversations, real intents.</div>
+        </div>
+        <div class="trac-card">
+          <div class="trac-label">SWAPS EXECUTED</div>
+          <div class="trac-number" style="color:#1A1A1A">20</div>
+          <div class="trac-desc">trades through Jupiter, fully natural-language.</div>
+        </div>
+        <div class="trac-card highlight">
+          <div class="trac-label">REVENUE</div>
+          <div class="trac-number purple">~$100</div>
+          <div class="trac-desc">earned. 2% swap + 1% transfer fees. Day one revenue.</div>
+        </div>
+      </div>
+      <div class="trac-live">
+        <div class="green-dot"></div>
+        <span>Beta launched 20 April 2026 · live now at @razeaii_bot</span>
+      </div>
+      <div class="slide-label">07 · TRACTION</div>
+      <div class="slide-num">07 / 09</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         SLIDE 8 — VISION
+    ═══════════════════════════════════════════════════ -->
+    <div class="slide" id="s8">
+      <div class="slide-logo">
+        <img src="../frontend/public/assets/imp-expressions/waving.png" alt="Raze mascot" />
+        <span>raze</span>
+      </div>
+      <div class="slide-tag">VISION · THE ROADMAP</div>
+      <div class="vis-headline">
+        <div class="sg vis-h1">From a trading bot to</div>
+        <div class="sg-purple vis-h2">the OS for your crypto life.</div>
+      </div>
+      <div class="vis-bars">
+        <div class="vis-bar now">
+          <div class="vis-bar-label">NOW</div>
+          <div class="vis-bar-content">DYOR + swaps · security · whale tracking · alerts · sentiment · .sol domains</div>
+        </div>
+        <div class="vis-bar next">
+          <div class="vis-bar-label">NEXT</div>
+          <div class="vis-bar-content">Alpha Relay · active risk · group intelligence · multi-wallet brain</div>
+        </div>
+        <div class="vis-bar later">
+          <div class="vis-bar-label">LATER</div>
+          <div class="vis-bar-content">Connect X + Gmail · multi-chain · emergency response · portfolio AI · governance · airdrop intel</div>
+        </div>
+      </div>
+      <div class="vis-tagline">
+        <div class="vis-tag1">Every feature generates transactions.</div>
+        <div class="vis-tag2">Every transaction generates revenue.</div>
+      </div>
+      <div class="slide-label">08 · VISION</div>
+      <div class="slide-num">08 / 09</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         SLIDE 9 — CTA
+    ═══════════════════════════════════════════════════ -->
+    <div class="slide" id="s9">
+      <div class="cta-logo">
+        <img src="../frontend/public/assets/imp-expressions/waving.png" alt="Raze mascot" />
+        <span>raze.fun</span>
+      </div>
+      <div class="cta-tag">PRIVATE BETA · OUT NOW</div>
+      <div class="cta-headline">
+        <div class="cta-big sg">Try it right now.</div>
+        <div class="cta-row">
+          <a class="cta-btn" href="https://t.me/razeaii_bot" target="_blank">
+            <span>raze.fun</span>
+          </a>
+          <div class="cta-sub inter">
+            Private beta is live. Open Telegram, message @razeaii_bot, and ask it anything.
+          </div>
+        </div>
+      </div>
+      <div class="cta-foot-left">EVERYTHING SOLANA · ONE CHAT</div>
+      <div class="cta-foot-right">09 / 09</div>
+    </div>
+
+  </div><!-- /scaler -->
+</div><!-- /deck -->
+
+<!-- Dot indicators -->
+<div id="dots"></div>
+
+<script>
+(function () {
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const dotsEl = document.getElementById('dots');
+  const scaler = document.getElementById('scaler');
+  let current = 0;
+  let animating = false;
+
+  // Build dots
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.addEventListener('click', (e) => { e.stopPropagation(); goTo(i); });
+    dotsEl.appendChild(d);
+  });
+  const dots = Array.from(dotsEl.querySelectorAll('.dot'));
+
+  // Scale scaler to fill viewport
+  function scaleSlides() {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const scale = Math.min(vw / 1920, vh / 1080);
+    const scaledW = 1920 * scale;
+    const scaledH = 1080 * scale;
+    const offsetX = (vw - scaledW) / 2;
+    const offsetY = (vh - scaledH) / 2;
+    scaler.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+  }
+  window.addEventListener('resize', scaleSlides);
+  scaleSlides();
+
+  // Show first slide
+  slides[0].classList.add('active');
+
+  function goTo(idx) {
+    if (idx === current || animating) return;
+    if (idx < 0 || idx >= slides.length) return;
+    animating = true;
+
+    const outSlide = slides[current];
+    const inSlide = slides[idx];
+
+    // Fade out current
+    outSlide.style.opacity = '0';
+    setTimeout(() => {
+      outSlide.classList.remove('active');
+      outSlide.style.opacity = '';
+      inSlide.style.opacity = '0';
+      inSlide.classList.add('active');
+      // Force reflow
+      void inSlide.offsetHeight;
+      inSlide.style.opacity = '';
+      current = idx;
+      dots.forEach((d, i) => d.classList.toggle('active', i === current));
+      setTimeout(() => { animating = false; }, 310);
+    }, 300);
+  }
+
+  function next() { goTo(current + 1); }
+  function prev() { goTo(current - 1); }
+
+  // Keyboard
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+      e.preventDefault(); next();
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault(); prev();
+    }
+  });
+
+  // Click to advance (but not on links/buttons)
+  document.getElementById('deck').addEventListener('click', (e) => {
+    if (e.target.closest('a, button')) return;
+    next();
+  });
+})();
+</script>
+</body>
+</html>
