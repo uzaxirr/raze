@@ -902,14 +902,24 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
                 entry = get_waitlist_entry(user.id)
 
             total = get_waitlist_count()
+            import asyncio as _aio
+
             await update.message.reply_text(
                 f"yo. raze here — your future crypto assistant. brutally honest, actually useful.\n\n"
                 f"you're on the waitlist — #{entry.position} of {total}\n\n"
                 f"share your link to move up:\n"
                 f"raze.fun/ref/{entry.referral_code}\n\n"
-                f"5 referrals = instant access. every referral = +50 spots.\n\n"
-                f"you can chat with me while you wait — 5 free msgs/day 🫡"
+                f"5 referrals = instant access. every referral = +50 spots."
             )
+
+            await _aio.sleep(1.5)
+            await update.message.chat.send_action(ChatAction.TYPING)
+            await _aio.sleep(1.5)
+
+            await update.message.reply_text(
+                "but you don't have to wait to try me out — drop your wallet address or any .sol and i'll show you what i can do 👇"
+            )
+            context.user_data["awaiting_email_or_wallet"] = True
             return
 
         if access["access"] == "banned":
@@ -1715,7 +1725,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             )
             total = get_waitlist_count()
             approved = get_approved_count()
-            # Multi-bubble onboarding — feels like a real conversation
+            # Two-bubble onboarding — referral info then wallet prompt
             import asyncio as _aio
 
             await update.message.reply_text(
@@ -1731,15 +1741,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             await _aio.sleep(1.5)
 
             await update.message.reply_text(
-                "oh btw drop your email so i can ping you when you're off the waitlist. telegram notifs are mid"
-            )
-
-            await _aio.sleep(1.5)
-            await update.message.chat.send_action(ChatAction.TYPING)
-            await _aio.sleep(1.5)
-
-            await update.message.reply_text(
-                "also drop your wallet, lemme see if you are worth anything or just here to waste tokens"
+                "but you don't have to wait to try me out — drop your wallet address or any .sol and i'll show you what i can do 👇"
             )
             context.user_data["awaiting_email_or_wallet"] = True
             return
