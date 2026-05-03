@@ -262,6 +262,116 @@ async def get_token_balances(wallet_address: str, network: str = "mainnet") -> D
 
 
 @mcp.tool()
+async def get_wallet_nfts(wallet_address: str, network: str = "mainnet") -> Dict[str, Any]:
+    """
+    Get all NFTs (regular and compressed/cNFTs) in a wallet using Helius DAS API.
+
+    Args:
+        wallet_address: Solana wallet address
+        network: Solana network ("mainnet" or "devnet"). Defaults to "mainnet".
+
+    Returns:
+        List of NFTs with name, collection, image, freeze status, and compression info
+    """
+    try:
+        rpc_url = get_rpc_url(network)
+        all_nfts = []
+        page = 1
+
+        async with httpx.AsyncClient(timeout=RPC_TIMEOUT) as client:
+            # Paginate — DAS returns max 1000 per page
+            while True:
+                resp = await client.post(rpc_url, json={
+                    "jsonrpc": "2.0", "id": 1,
+                    "method": "getAssetsByOwner",
+                    "params": {
+                        "ownerAddress": wallet_address,
+                        "displayOptions": {
+                            "showFungible": False,
+                            "showNativeBalance": False,
+                            "showCollectionMetadata": True,
+                        },
+                        "page": page,
+                        "limit": 100,
+                    }
+                })
+
+                data = resp.json().get("result", {})
+                items = data.get("items", [])
+                if not items:
+                    break
+
+                for item in items:
+                    interface = item.get("interface", "")
+                    # Skip fungible tokens — we only want NFTs
+                    if interface in ("FungibleToken", "FungibleAsset"):
+                        continue
+
+                    content = item.get("content", {})
+                    metadata = content.get("metadata", {})
+                    files = content.get("files", [])
+                    image = content.get("links", {}).get("image", "")
+                    if not image and files:
+                        image = files[0].get("uri", "")
+
+                    compression = item.get("compression", {})
+                    is_compressed = compression.get("compressed", False)
+
+                    ownership = item.get("ownership", {})
+                    is_frozen = ownership.get("frozen", False)
+
+                    grouping = item.get("grouping", [])
+                    collection = ""
+                    for g in grouping:
+                        if g.get("group_key") == "collection":
+                            col_meta = g.get("collection_metadata", {})
+                            collection = col_meta.get("name", "") or g.get("group_value", "")
+
+                    all_nfts.append({
+                        "mint": item.get("id", ""),
+                        "name": metadata.get("name", "Unknown"),
+                        "symbol": metadata.get("symbol", ""),
+                        "collection": collection,
+                        "image": image,
+                        "compressed": is_compressed,
+                        "frozen": is_frozen,
+                        "interface": interface,
+                    })
+
+                # Check if more pages
+                total = data.get("total", 0)
+                if page * 100 >= total:
+                    break
+                page += 1
+
+        # Group by collection
+        collections: Dict[str, list] = {}
+        standalone = []
+        for nft in all_nfts:
+            col = nft.get("collection", "")
+            if col:
+                collections.setdefault(col, []).append(nft)
+            else:
+                standalone.append(nft)
+
+        frozen_count = sum(1 for n in all_nfts if n.get("frozen"))
+        compressed_count = sum(1 for n in all_nfts if n.get("compressed"))
+
+        return {
+            "wallet": wallet_address,
+            "network": network,
+            "total_nfts": len(all_nfts),
+            "compressed_nfts": compressed_count,
+            "frozen_nfts": frozen_count,
+            "collections": {name: len(items) for name, items in collections.items()},
+            "nfts": all_nfts[:50],  # Cap at 50 to avoid token overflow
+            "note": f"Showing {min(50, len(all_nfts))} of {len(all_nfts)} NFTs" if len(all_nfts) > 50 else None,
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@mcp.tool()
 async def get_recent_transactions(
     wallet_address: str,
     limit: int = 10,

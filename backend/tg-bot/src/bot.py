@@ -281,7 +281,7 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
 
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
-            # Phase 1: DAS assets + parsed transactions (parallel)
+            # Phase 1: DAS assets + parsed transactions + NFTs (parallel)
             assets_task = client.post(rpc_url, json={
                 "jsonrpc": "2.0", "id": 1,
                 "method": "getAssetsByOwner",
@@ -290,13 +290,22 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
                     "displayOptions": {"showFungible": True, "showNativeBalance": True},
                 }
             })
+            nfts_task = client.post(rpc_url, json={
+                "jsonrpc": "2.0", "id": 2,
+                "method": "getAssetsByOwner",
+                "params": {
+                    "ownerAddress": wallet_address,
+                    "displayOptions": {"showFungible": False, "showNativeBalance": False, "showCollectionMetadata": True},
+                    "limit": 50,
+                }
+            })
             txs_task = client.get(
                 f"{helius_api}/addresses/{wallet_address}/transactions",
                 params={"api-key": helius_key, "limit": 15}
             )
 
-            assets_resp, txs_resp = await asyncio.gather(
-                assets_task, txs_task,
+            assets_resp, nfts_resp, txs_resp = await asyncio.gather(
+                assets_task, nfts_task, txs_task,
                 return_exceptions=True
             )
 
@@ -639,6 +648,44 @@ async def _fetch_wallet_context(wallet_address: str) -> str:
             context += "\nKnown addresses in recent txs:"
             for addr, label in identity_labels.items():
                 context += f"\n  {addr[:8]}...{addr[-4:]} = {label}"
+
+        # ── NFTs (regular + compressed) ──
+        if not isinstance(nfts_resp, Exception):
+            nfts_data = nfts_resp.json().get("result", {})
+            nft_items = nfts_data.get("items", [])
+            nft_total = nfts_data.get("total", 0)
+            # Filter to actual NFTs (skip fungibles that might sneak in)
+            nfts = []
+            for nft in nft_items:
+                iface = nft.get("interface", "")
+                if iface in ("FungibleToken", "FungibleAsset"):
+                    continue
+                meta = nft.get("content", {}).get("metadata", {})
+                name = meta.get("name", "Unknown")
+                compressed = nft.get("compression", {}).get("compressed", False)
+                frozen = nft.get("ownership", {}).get("frozen", False)
+                groups = nft.get("grouping", [])
+                collection = ""
+                for g in groups:
+                    if g.get("group_key") == "collection":
+                        cm = g.get("collection_metadata", {})
+                        collection = cm.get("name", "") or g.get("group_value", "")[:20]
+                tag = ""
+                if compressed:
+                    tag += " [cNFT]"
+                if frozen:
+                    tag += " [FROZEN]"
+                if collection:
+                    nfts.append(f"{name} ({collection}){tag}")
+                else:
+                    nfts.append(f"{name}{tag}")
+
+            if nfts:
+                context += f"\nNFTs ({nft_total} total):"
+                for n in nfts[:10]:
+                    context += f"\n  • {n}"
+                if nft_total > 10:
+                    context += f"\n  ... and {nft_total - 10} more"
 
         return context
 
