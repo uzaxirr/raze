@@ -1936,10 +1936,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
                 async def _clean_text(text):
                     """Strip internal tags from display text."""
-                    text = _re.sub(r'\[THINK\].*?\[/THINK\]', '', text, flags=_re.DOTALL).strip()
-                    text = _re.sub(r'\[THINK\].*$', '', text, flags=_re.DOTALL).strip()
+                    # Match [THINK], [THINKING], or any [THINK*] variant
+                    text = _re.sub(r'\[THINK\w*\].*?\[/THINK\w*\]', '', text, flags=_re.DOTALL).strip()
+                    text = _re.sub(r'\[THINK\w*\].*$', '', text, flags=_re.DOTALL).strip()
+                    # Match [BOUNCER_REMARKS] and truncated variants like [BOUNCER_REMA
                     text = _re.sub(r'\[BOUNCER_REMARKS\].*?\[/BOUNCER_REMARKS\]', '', text, flags=_re.DOTALL).strip()
-                    text = _re.sub(r'\[BOUNCER_REMARKS\].*$', '', text, flags=_re.DOTALL).strip()
+                    text = _re.sub(r'\[BOUNCER_\w*\].*$', '', text, flags=_re.DOTALL).strip()
+                    text = _re.sub(r'\[BOUNCER_\w*$', '', text, flags=_re.DOTALL).strip()
                     return text
 
                 async def _send_bubble(text):
@@ -2030,7 +2033,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     context.user_data["bouncer_step"] = bouncer_step + 1
 
                 # Strip hidden blocks from final text
-                accumulated_text = _re.sub(r'\[THINK\].*?\[/THINK\]', '', accumulated_text, flags=_re.DOTALL).strip()
+                accumulated_text = _re.sub(r'\[THINK\w*\].*?\[/THINK\w*\]', '', accumulated_text, flags=_re.DOTALL).strip()
 
                 # Extract bouncer remarks
                 remarks_match = _re.search(r'\[BOUNCER_REMARKS\](.*?)\[/BOUNCER_REMARKS\]', accumulated_text, _re.DOTALL)
