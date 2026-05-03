@@ -1959,11 +1959,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     except Exception:
                         await update.message.reply_text(text[:4096])
 
+                tg_username = update.effective_user.username or update.effective_user.first_name or ""
+                bouncer_user_id = f"{user_id}:{tg_username}" if tg_username else str(user_id)
+
                 try:
                     async for event in client.run_agent_stream(
                         agent_id="bouncer",
                         message=message_text,
-                        user_id=str(user_id),
+                        user_id=bouncer_user_id,
                         session_id=bouncer_session_id,
                         session_state=bouncer_session_state,
                     ):
