@@ -115,15 +115,19 @@ class JupiterClient:
                 logger.error(f"Jupiter order missing transaction: {error_msg} (requestId={request_id})")
                 raise Exception(f"Jupiter swap failed: {error_msg}")
 
-            logger.info(f"Got order: {in_amount} -> {out_amount}, requestId={request_id}")
+            is_gasless = result.get("gasless", False)
+            router = result.get("router", "unknown")
+            logger.info(f"Got order: {in_amount} -> {out_amount}, requestId={request_id}, router={router}, gasless={is_gasless}")
 
             return {
                 "quote": result,
                 "input_amount": int(in_amount),
                 "output_amount": int(out_amount),
-                "price_impact_pct": result.get("priceImpactPct"),
+                "price_impact_pct": result.get("priceImpactPct") or result.get("priceImpact"),
                 "swap_transaction": swap_transaction,
                 "request_id": request_id,
+                "gasless": is_gasless,
+                "router": router,
             }
 
     async def execute_signed_transaction(

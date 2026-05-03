@@ -604,23 +604,22 @@ async def swap_tokens(
                     "message": f"Wallet address mismatch. Please contact support.",
                 }
 
-        # Check SOL balance for fees (and for SOL swaps, the full amount)
+        # Check SOL balance for SOL-input swaps only.
+        # For token-input swaps (USDC->SOL, etc.), Jupiter Swap V2 handles gasless
+        # routing automatically when the taker has <0.01 SOL and trade is >$10.
         sol_balance = await get_sol_balance(wallet_address, network)
         is_sol_input = input_mint == "So11111111111111111111111111111111111111112"
 
-        if sol_balance == 0:
-            return {
-                "status": "error",
-                "error": "wallet_empty",
-                "message": "Your wallet has 0 SOL. Fund it first before swapping.",
-            }
-
-        # Fee estimates: base tx fee (5000 lamports) + priority fee + possible ATA creation
-        MIN_FEE_LAMPORTS = 1_000_000  # ~0.001 SOL — conservative minimum for any tx
         SWAP_FEE_LAMPORTS = 3_000_000  # ~0.003 SOL — typical swap with priority fee
 
         if is_sol_input:
-            # Swapping SOL - need amount + fees
+            # Swapping SOL — need the actual amount + fees
+            if sol_balance == 0:
+                return {
+                    "status": "error",
+                    "error": "wallet_empty",
+                    "message": "Your wallet has 0 SOL. Can't swap SOL you don't have.",
+                }
             required = input_amount + SWAP_FEE_LAMPORTS
             if sol_balance < required:
                 available_sol = sol_balance / LAMPORTS_PER_SOL
@@ -630,15 +629,8 @@ async def swap_tokens(
                     "error": "insufficient_balance",
                     "message": f"Not enough SOL. You have {available_sol:.4f} SOL but need {amount} SOL + ~0.003 SOL for fees. Max you can swap: {max_swappable:.4f} SOL.",
                 }
-        else:
-            # Swapping tokens - just need SOL for fees
-            if sol_balance < MIN_FEE_LAMPORTS:
-                available_sol = sol_balance / LAMPORTS_PER_SOL
-                return {
-                    "status": "error",
-                    "error": "insufficient_sol_for_fees",
-                    "message": f"Need at least 0.001 SOL for transaction fees. You only have {available_sol:.6f} SOL. Deposit some SOL first.",
-                }
+        # For token-input swaps: let Jupiter handle gas via gasless routing.
+        # No SOL balance check needed — Jupiter V2 covers fees automatically.
 
         logger.info(f"Getting Jupiter quote: {amount} {from_symbol} -> {to_symbol} on {network}")
 
