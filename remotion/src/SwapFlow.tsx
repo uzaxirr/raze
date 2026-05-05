@@ -1,12 +1,11 @@
-import {Audio, Sequence, interpolate, staticFile, useCurrentFrame} from 'remotion';
-import {BackgroundScene} from './BackgroundScene';
+import {Audio, interpolate, staticFile, useCurrentFrame} from 'remotion';
 import {FilmGrain} from './FilmGrain';
 import {UserBubble, RazeBubble} from './Bubbles';
 import {StatusBar, ChatHeader, Composer} from './PhoneChrome';
-import {colors, mascotSrc, phone, typography} from './tokens';
+import {colors, phone, typography, mascotSrc} from './tokens';
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Easing / interpolation helpers
 // ---------------------------------------------------------------------------
 
 function clamp(frame: number, a: number, b: number, from: number, to: number) {
@@ -16,7 +15,7 @@ function clamp(frame: number, a: number, b: number, from: number, to: number) {
   });
 }
 
-function spring(frame: number, start: number, duration: number) {
+function springProgress(frame: number, start: number, duration: number): number {
   const t = Math.min(1, Math.max(0, (frame - start) / duration));
   return t < 1
     ? 1 - Math.pow(1 - t, 3) + Math.sin(t * Math.PI * 1.5) * 0.15 * (1 - t)
@@ -24,64 +23,41 @@ function spring(frame: number, start: number, duration: number) {
 }
 
 // ---------------------------------------------------------------------------
-// Scene 1 — HOOK  (frames 0-60)
+// Shared light lavender background
 // ---------------------------------------------------------------------------
 
-const Hook: React.FC<{frame: number}> = ({frame}) => {
-  const lines: {text: string; color: string; start: number}[] = [
-    {text: 'your keys.', color: '#ffffff', start: 0},
-    {text: 'your wallet.', color: '#ffffff', start: 15},
-    {text: 'one message.', color: colors.purple, start: 30},
-  ];
-
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        background: '#0D0B14',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 12,
-        fontFamily: '"Space Grotesk", ' + typography.stack,
-      }}
-    >
-      {lines.map((ln, i) => {
-        const op = clamp(frame, ln.start, ln.start + 15, 0, 1);
-        const ty = clamp(frame, ln.start, ln.start + 15, 20, 0);
-        return (
-          <div
-            key={i}
-            style={{
-              fontSize: 64,
-              fontWeight: 700,
-              color: ln.color,
-              opacity: op,
-              transform: `translateY(${ty}px)`,
-              letterSpacing: '-0.02em',
-            }}
-          >
-            {ln.text}
-          </div>
-        );
-      })}
-    </div>
-  );
-};
+const LavenderBg: React.FC = () => (
+  <div
+    style={{
+      position: 'absolute',
+      inset: 0,
+      background: 'linear-gradient(180deg, #FAFAFE 0%, #F0EDFF 60%, #E4DCFF 100%)',
+    }}
+  />
+);
 
 // ---------------------------------------------------------------------------
-// Scene 2 — TELEGRAM CHAT  (frames 60-210)
+// Phone frame — mirrors RazeVideo's approach exactly
+// baseScale fits the phone into the 1080×1920 viewport at ~80% height
 // ---------------------------------------------------------------------------
 
-const PHONE_SCALE = 1920 / phone.H; // ~2.274 — fills height
-const PHONE_SCALE_CHAT = 1.78;
+const VIEWPORT_W = 1080;
+const VIEWPORT_H = 1920;
 
-const PhoneWrap: React.FC<{children: React.ReactNode; scale?: number}> = ({
-  children,
-  scale = PHONE_SCALE_CHAT,
-}) => (
+// Scale so phone fits 80% of viewport height (matches ~RazeVideo baseScale math)
+const BASE_SCALE = Math.min(
+  (VIEWPORT_W * 0.82) / phone.W,
+  (VIEWPORT_H * 0.82) / phone.H,
+);
+
+interface PhoneProps {
+  children: React.ReactNode;
+  /** Extra transform applied to the phone wrapper (camera zoom etc.) */
+  extraTransform?: string;
+  opacity?: number;
+}
+
+const PhoneFrame: React.FC<PhoneProps> = ({children, extraTransform = '', opacity = 1}) => (
   <div
     style={{
       position: 'absolute',
@@ -89,37 +65,190 @@ const PhoneWrap: React.FC<{children: React.ReactNode; scale?: number}> = ({
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
+      opacity,
     }}
   >
     <div
       style={{
         width: phone.W,
         height: phone.H,
-        transform: `scale(${scale})`,
-        transformOrigin: 'center center',
         position: 'relative',
-        borderRadius: phone.CORNER_OUTER,
-        background: colors.phoneFrame,
-        boxShadow: '0 40px 120px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.08)',
-        overflow: 'hidden',
+        transform: `scale(${BASE_SCALE}) ${extraTransform}`,
+        transformOrigin: '50% 50%',
       }}
     >
-      {/* Screen area */}
+      {/* Outer bezel */}
       <div
         style={{
           position: 'absolute',
-          inset: phone.BEZEL,
+          inset: 0,
+          background: colors.phoneFrame,
+          borderRadius: phone.CORNER_OUTER,
+          boxShadow: `0 0 0 1px ${colors.phoneFrameEdge}, 0 40px 100px rgba(0,0,0,0.55)`,
+        }}
+      />
+
+      {/* Side buttons */}
+      <div style={{position: 'absolute', left: -2, top: 140, width: 4, height: 32, background: colors.phoneFrame, borderRadius: 2}} />
+      <div style={{position: 'absolute', left: -2, top: 190, width: 4, height: 36, background: colors.phoneFrame, borderRadius: 2}} />
+      <div style={{position: 'absolute', left: -2, top: 265, width: 4, height: 36, background: colors.phoneFrame, borderRadius: 2}} />
+      <div style={{position: 'absolute', right: -2, top: 190, width: 4, height: 90, background: colors.phoneFrame, borderRadius: 2}} />
+
+      {/* Screen */}
+      <div
+        style={{
+          position: 'absolute',
+          top: phone.BEZEL,
+          left: phone.BEZEL,
+          right: phone.BEZEL,
+          bottom: phone.BEZEL,
           borderRadius: phone.CORNER_SCREEN,
-          background: colors.chatBg,
+          background: colors.phoneScreen,
           overflow: 'hidden',
         }}
       >
+        {/* Dynamic Island */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 10,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 126,
+            height: 37,
+            background: '#000',
+            borderRadius: 20,
+            zIndex: 20,
+          }}
+        />
+
+        {/* Screen content */}
         {children}
       </div>
     </div>
   </div>
 );
 
+// ---------------------------------------------------------------------------
+// Scene 1 — HOOK  (frames 0–60)
+// Light lavender bg, dark text
+// ---------------------------------------------------------------------------
+
+const Hook: React.FC<{frame: number}> = ({frame}) => {
+  const lines: {text: string; color: string; start: number}[] = [
+    {text: 'your keys.', color: '#1A1A1A', start: 0},
+    {text: 'your wallet.', color: '#1A1A1A', start: 15},
+    {text: 'one message.', color: colors.purple, start: 30},
+  ];
+
+  return (
+    <div style={{position: 'absolute', inset: 0}}>
+      <LavenderBg />
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 16,
+          fontFamily: `'Space Grotesk', ${typography.stack}`,
+        }}
+      >
+        {lines.map((ln, i) => {
+          const op = clamp(frame, ln.start, ln.start + 15, 0, 1);
+          const ty = clamp(frame, ln.start, ln.start + 15, 20, 0);
+          return (
+            <div
+              key={i}
+              style={{
+                fontSize: 64,
+                fontWeight: 700,
+                color: ln.color,
+                opacity: op,
+                transform: `translateY(${ty}px)`,
+                letterSpacing: '-0.02em',
+              }}
+            >
+              {ln.text}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// Telegram chat: user bubble override — Telegram green #EEFFDE, dark text
+// ---------------------------------------------------------------------------
+
+/** Green Telegram-style user bubble. Replaces the purple one from Bubbles.tsx */
+const GreenUserBubble: React.FC<{
+  text: string;
+  startFrame: number;
+  cpf: number;
+  timestamp?: string;
+  frame: number;
+}> = ({text, startFrame, cpf, timestamp = '9:41', frame}) => {
+  if (frame < startFrame) return null;
+
+  const elapsed = frame - startFrame;
+  const typedLen = Math.max(0, Math.floor(elapsed * cpf));
+  const displayed = text.substring(0, typedLen);
+  const fullyTyped = typedLen >= text.length;
+  const cursorOn = !fullyTyped && Math.floor(frame / 8) % 2 === 0;
+
+  const opacity = clamp(frame, startFrame, startFrame + 6, 0, 1);
+  const s1 = clamp(frame, startFrame, startFrame + 9, 0.88, 1.03);
+  const s2 = clamp(frame, startFrame + 9, startFrame + 15, 1.03, 1.0);
+  const scale = elapsed < 9 ? s1 : s2;
+
+  return (
+    <div style={{display: 'flex', justifyContent: 'flex-end', padding: '0 12px', marginBottom: 4}}>
+      <div
+        style={{
+          opacity,
+          transform: `scale(${scale})`,
+          transformOrigin: 'bottom right',
+          background: '#EEFFDE',
+          color: '#111',
+          borderRadius: '18px 18px 4px 18px',
+          padding: '9px 13px 6px',
+          fontSize: 14,
+          fontFamily: typography.stack,
+          maxWidth: '78%',
+          lineHeight: 1.4,
+          boxShadow: '0 1px 2px rgba(0,0,0,0.08)',
+        }}
+      >
+        <div>
+          {displayed}
+          {cursorOn && <span style={{opacity: 0.6}}>|</span>}
+        </div>
+        {fullyTyped && (
+          <div
+            style={{
+              marginTop: 2,
+              display: 'flex',
+              justifyContent: 'flex-end',
+              alignItems: 'center',
+              gap: 3,
+              color: 'rgba(0,0,0,0.4)',
+              fontSize: 10,
+            }}
+          >
+            <span>{timestamp}</span>
+            <span>✓✓</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Sign transaction button bubble
 const SignBubble: React.FC<{frame: number; startFrame: number}> = ({frame, startFrame}) => {
   if (frame < startFrame) return null;
   const op = clamp(frame, startFrame, startFrame + 10, 0, 1);
@@ -130,14 +259,14 @@ const SignBubble: React.FC<{frame: number; startFrame: number}> = ({frame, start
         style={{
           opacity: op,
           transform: `scale(${scale})`,
-          background: '#2A2540',
+          background: colors.purple,
           borderRadius: 14,
-          padding: '10px 20px',
+          padding: '10px 24px',
           fontSize: 14,
           fontWeight: 600,
           color: '#ffffff',
           fontFamily: typography.stack,
-          boxShadow: '0 0 24px rgba(153,69,255,0.35)',
+          boxShadow: `0 0 20px ${colors.purpleGlow}`,
           letterSpacing: '0.01em',
         }}
       >
@@ -147,64 +276,107 @@ const SignBubble: React.FC<{frame: number; startFrame: number}> = ({frame, start
   );
 };
 
-const TelegramChat: React.FC<{frame: number}> = ({frame}) => {
-  const chatFrame = frame - 60;
+// Confirm bubble (scene 7)
+const ConfirmBubble: React.FC<{frame: number; startFrame: number}> = ({frame, startFrame}) => {
+  if (frame < startFrame) return null;
+  const op = clamp(frame, startFrame, startFrame + 10, 0, 1);
+  const s1 = clamp(frame, startFrame, startFrame + 8, 0.9, 1.03);
+  const s2 = clamp(frame, startFrame + 8, startFrame + 14, 1.03, 1.0);
+  const sc = frame < startFrame + 8 ? s1 : s2;
 
   return (
-    <PhoneWrap>
-      <StatusBar opacity={1} />
-      <ChatHeader mascotSrc={mascotSrc} />
-
-      {/* Chat messages */}
+    <div style={{display: 'flex', gap: 6, padding: '0 12px', marginBottom: 6, alignItems: 'flex-end', opacity: op}}>
       <div
         style={{
-          position: 'absolute',
-          top: phone.TOTAL_HEADER,
-          bottom: phone.COMPOSER_H,
-          left: 0,
-          right: 0,
-          overflowY: 'hidden',
-          paddingTop: 10,
+          width: 32,
+          height: 32,
+          borderRadius: 16,
+          background: '#F0EDFF',
+          overflow: 'hidden',
           display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'flex-end',
-          gap: 2,
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
         }}
       >
-        <UserBubble
-          text="swap 1 usdc to sol"
-          startFrame={70}
-          cpf={0.9}
-          timestamp="9:41"
-          frame={frame}
-        />
-        <RazeBubble
-          lines={[
-            {text: '1 USDC → 0.0114 SOL via jupiter.', frame: 110},
-            {text: 'ready to sign.', frame: 122},
-          ]}
-          mascotSrc={mascotSrc}
-          timestamp="9:41"
-          frame={frame}
-        />
-        <SignBubble frame={frame} startFrame={150} />
+        <img src={mascotSrc} alt="" style={{width: '100%', height: '100%', objectFit: 'contain'}} />
       </div>
-
-      <Composer />
-    </PhoneWrap>
+      <div
+        style={{
+          background: '#FFFFFF',
+          color: colors.textPrimary,
+          borderRadius: '18px 18px 18px 4px',
+          padding: '9px 13px 6px',
+          fontSize: 13,
+          lineHeight: 1.6,
+          fontFamily: typography.stack,
+          maxWidth: '78%',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+          transform: `scale(${sc})`,
+          transformOrigin: 'bottom left',
+        }}
+      >
+        <div>✅ Swap confirmed!</div>
+        <div>1.0 USDC → 0.011410901 SOL</div>
+        <div style={{color: colors.purple, textDecoration: 'underline'}}>View on Solscan</div>
+        <div style={{marginTop: 2, fontSize: 10, color: 'rgba(0,0,0,0.3)'}}>9:41</div>
+      </div>
+    </div>
   );
 };
 
 // ---------------------------------------------------------------------------
-// Slide transition helper
+// Telegram chat area (used by scenes 2 and 7)
 // ---------------------------------------------------------------------------
 
-function slideX(frame: number, start: number, end: number, fromPx: number, toPx: number) {
-  return clamp(frame, start, end, fromPx, toPx);
-}
+const TelegramChatContent: React.FC<{frame: number; showConfirm?: boolean}> = ({
+  frame,
+  showConfirm = false,
+}) => (
+  <>
+    <StatusBar opacity={1} />
+    <ChatHeader mascotSrc={mascotSrc} />
+    <div
+      style={{
+        position: 'absolute',
+        top: phone.TOTAL_HEADER,
+        bottom: phone.COMPOSER_H,
+        left: 0,
+        right: 0,
+        background: colors.chatBg,
+        overflowY: 'hidden',
+        paddingTop: 10,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'flex-end',
+        gap: 2,
+      }}
+    >
+      <GreenUserBubble
+        text="swap 1 usdc to sol"
+        startFrame={showConfirm ? -999 : 75}
+        cpf={showConfirm ? 99 : 0.9}
+        timestamp="9:41"
+        frame={frame}
+      />
+      <RazeBubble
+        lines={[
+          {text: '1 USDC → 0.0114 SOL via jupiter.', frame: showConfirm ? -999 : 110},
+          {text: 'ready to sign.', frame: showConfirm ? -999 : 122},
+        ]}
+        mascotSrc={mascotSrc}
+        timestamp="9:41"
+        frame={frame}
+      />
+      <SignBubble frame={frame} startFrame={showConfirm ? -999 : 150} />
+      {showConfirm && <ConfirmBubble frame={frame} startFrame={570} />}
+    </div>
+    <Composer />
+  </>
+);
 
 // ---------------------------------------------------------------------------
-// Scene 3 — TMA SIGNING PAGE — CONNECT  (frames 210-300)
+// TMA screen content (scenes 3, 5, 6)
 // ---------------------------------------------------------------------------
 
 const TimerCircle: React.FC = () => (
@@ -228,82 +400,95 @@ const TimerCircle: React.FC = () => (
   </div>
 );
 
-const SwapDetailsBox: React.FC<{showExact?: boolean}> = ({showExact = false}) => (
+// TMA top bar inside the phone screen
+const TmaTopBar: React.FC = () => (
   <div
     style={{
-      background: '#F8F6FF',
-      borderRadius: 12,
-      padding: '12px 16px',
+      position: 'absolute',
+      top: phone.STATUS_H,
+      left: 0,
+      right: 0,
+      height: phone.HEADER_H,
+      background: 'rgba(255,255,255,0.85)',
+      borderBottom: `1px solid ${colors.divider}`,
       display: 'flex',
       alignItems: 'center',
-      gap: 12,
-      marginBottom: 10,
+      padding: '0 12px',
+      gap: 8,
+      fontFamily: typography.stack,
+      zIndex: 4,
     }}
   >
-    {/* Pay side */}
-    <div style={{flex: 1, textAlign: 'left'}}>
-      <div style={{fontSize: 10, color: '#999', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2}}>
-        YOU PAY
-      </div>
-      <div style={{fontSize: 24, fontWeight: 700, color: '#111', lineHeight: 1}}>1</div>
-      <div style={{fontSize: 11, color: '#555', marginTop: 2}}>USDG</div>
-    </div>
-    {/* Arrow */}
-    <div style={{fontSize: 18, color: colors.purple, fontWeight: 700}}>→</div>
-    {/* Get side */}
-    <div style={{flex: 1, textAlign: 'right'}}>
-      <div style={{fontSize: 10, color: '#999', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2}}>
-        YOU GET
-      </div>
-      <div style={{fontSize: 24, fontWeight: 700, color: '#111', lineHeight: 1}}>
-        {showExact ? '0.01141' : '~'}
-      </div>
-      <div style={{fontSize: 11, color: '#555', marginTop: 2}}>SOL</div>
+    {/* Back arrow */}
+    <svg width="10" height="18" viewBox="0 0 10 18" fill="none">
+      <path d="M8 2L2 9L8 16" stroke={colors.purple} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+    <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: 1}}>
+      <span style={{fontSize: 13, fontWeight: 600, color: '#111'}}>Raze — Sign Transaction</span>
+      <span style={{fontSize: 10, color: '#aaa'}}>raze.fun</span>
     </div>
   </div>
 );
 
-const TmaCard: React.FC<{
+interface TmaContentProps {
   frame: number;
   showWallet?: boolean;
   showSubmitting?: boolean;
   showSuccess?: boolean;
-}> = ({frame, showWallet = false, showSubmitting = false, showSuccess = false}) => {
-  // Pulse glow on "sign & send" button
+}
+
+const TmaScreenContent: React.FC<TmaContentProps> = ({
+  frame,
+  showWallet = false,
+  showSubmitting = false,
+  showSuccess = false,
+}) => {
+  // Pulsing glow when wallet connected
   const glowPulse = showWallet
     ? (Math.sin(((frame - 300) / 45) * Math.PI * 2) + 1) / 2
     : 0;
-  const glowPx = glowPulse * 12;
+  const glowPx = glowPulse * 14;
 
-  // Bounce dots for submitting
-  const dot1 = showSubmitting ? Math.sin(((frame - 480) / 9) * Math.PI * 2) * 8 : 0;
-  const dot2 = showSubmitting ? Math.sin(((frame - 480) / 9) * Math.PI * 2 + Math.PI * 0.45) * 8 : 0;
-  const dot3 = showSubmitting ? Math.sin(((frame - 480) / 9) * Math.PI * 2 + Math.PI * 0.9) * 8 : 0;
+  // Bouncing dots
+  const dot1 = showSubmitting ? Math.sin(((frame - 480) / 9) * Math.PI * 2) * 6 : 0;
+  const dot2 = showSubmitting ? Math.sin(((frame - 480) / 9) * Math.PI * 2 + Math.PI * 0.45) * 6 : 0;
+  const dot3 = showSubmitting ? Math.sin(((frame - 480) / 9) * Math.PI * 2 + Math.PI * 0.9) * 6 : 0;
 
   // Checkmark spring
-  const checkScale = showSuccess ? spring(frame, 540, 15) * 1.1 : 0;
-  const finalCheck = showSuccess ? (checkScale > 1.05 ? clamp(frame, 555, 560, 1.1, 1) : checkScale) : 0;
-  const checkOp = showSuccess ? clamp(frame, 540, 548, 0, 1) : 0;
-  const txHashOp = showSuccess ? clamp(frame, 560, 572, 0, 1) : 0;
-  const solscanOp = showSuccess ? clamp(frame, 572, 584, 0, 1) : 0;
-  const backOp = showSuccess ? clamp(frame, 584, 596, 0, 1) : 0;
+  const checkSpring = showSuccess ? springProgress(frame, 480, 18) : 0;
+  const checkScale = showSuccess ? (checkSpring > 1.0 ? Math.min(checkSpring, 1.1) : checkSpring) : 0;
+  const checkOp = showSuccess ? clamp(frame, 480, 492, 0, 1) : 0;
+  const txHashOp = showSuccess ? clamp(frame, 500, 512, 0, 1) : 0;
+  const solscanOp = showSuccess ? clamp(frame, 512, 524, 0, 1) : 0;
+  const backOp = showSuccess ? clamp(frame, 524, 536, 0, 1) : 0;
 
   return (
-    <div
-      style={{
-        background: '#ffffff',
-        borderRadius: 20,
-        padding: '20px 18px 18px',
-        width: 300,
-        position: 'relative',
-        boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
-        fontFamily: typography.stack,
-      }}
-    >
-      <TimerCircle />
+    <>
+      <StatusBar opacity={1} />
+      <TmaTopBar />
 
-      {/* Header */}
-      <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 14}}>
+      {/* Scrollable TMA body */}
+      <div
+        style={{
+          position: 'absolute',
+          top: phone.TOTAL_HEADER,
+          bottom: 0,
+          left: 0,
+          right: 0,
+          background: 'linear-gradient(180deg, #F8F6FF 0%, #EDE8FF 100%)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          padding: '18px 16px 20px',
+          overflowY: 'hidden',
+        }}
+      >
+        {/* Timer circle */}
+        <div style={{position: 'relative', width: '100%'}}>
+          <TimerCircle />
+        </div>
+
+        {/* Mascot + title */}
         <div
           style={{
             width: 52,
@@ -319,284 +504,261 @@ const TmaCard: React.FC<{
         >
           <img src={mascotSrc} alt="" style={{width: '90%', height: '90%', objectFit: 'contain'}} />
         </div>
-        <div style={{fontSize: 14, fontWeight: 700, color: '#111', marginBottom: 4}}>raze</div>
-        <div style={{fontSize: 20, fontWeight: 700, color: '#111', marginBottom: 6}}>Swap</div>
-        {/* Mainnet badge */}
+        <div style={{fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 2, fontFamily: typography.stack}}>raze</div>
+        <div style={{fontSize: 18, fontWeight: 700, color: '#111', marginBottom: 6, fontFamily: typography.stack}}>Swap</div>
         <div
           style={{
             background: '#14F195',
             color: '#000',
             borderRadius: 20,
             padding: '2px 10px',
-            fontSize: 10,
+            fontSize: 9,
             fontWeight: 700,
             letterSpacing: '0.06em',
+            marginBottom: 14,
+            fontFamily: typography.stack,
           }}
         >
           MAINNET
         </div>
-      </div>
 
-      {/* Swap details */}
-      <SwapDetailsBox showExact={showSubmitting || showSuccess} />
-
-      {/* Tx address */}
-      <div
-        style={{
-          fontSize: 11,
-          color: '#999',
-          fontFamily: 'monospace',
-          marginBottom: 12,
-          textAlign: 'center',
-        }}
-      >
-        transaction for: D4M5c6...YgpJ
-      </div>
-
-      {/* Wallet indicator (scene 4+) */}
-      {showWallet && (
+        {/* Swap box */}
         <div
           style={{
+            background: 'rgba(255,255,255,0.7)',
+            borderRadius: 12,
+            padding: '10px 14px',
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
-            background: '#F0FFF8',
-            borderRadius: 8,
-            padding: '6px 10px',
-            marginBottom: 10,
-            fontSize: 11,
-            color: '#333',
+            gap: 10,
+            marginBottom: 8,
+            width: '100%',
+            boxSizing: 'border-box',
+          }}
+        >
+          <div style={{flex: 1, textAlign: 'left'}}>
+            <div style={{fontSize: 9, color: '#999', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2, fontFamily: typography.stack}}>YOU PAY</div>
+            <div style={{fontSize: 20, fontWeight: 700, color: '#111', lineHeight: 1, fontFamily: typography.stack}}>1</div>
+            <div style={{fontSize: 10, color: '#555', marginTop: 2, fontFamily: typography.stack}}>USDG</div>
+          </div>
+          <div style={{fontSize: 16, color: colors.purple, fontWeight: 700}}>→</div>
+          <div style={{flex: 1, textAlign: 'right'}}>
+            <div style={{fontSize: 9, color: '#999', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2, fontFamily: typography.stack}}>YOU GET</div>
+            <div style={{fontSize: 20, fontWeight: 700, color: '#111', lineHeight: 1, fontFamily: typography.stack}}>
+              {showSubmitting || showSuccess ? '0.01141' : '~'}
+            </div>
+            <div style={{fontSize: 10, color: '#555', marginTop: 2, fontFamily: typography.stack}}>SOL</div>
+          </div>
+        </div>
+
+        {/* Tx address */}
+        <div
+          style={{
+            fontSize: 10,
+            color: '#999',
             fontFamily: 'monospace',
-          }}
-        >
-          <div style={{width: 8, height: 8, borderRadius: 4, background: '#14F195', flexShrink: 0}} />
-          <span>GfM3...xQ7z connected</span>
-        </div>
-      )}
-
-      {/* Submitting state */}
-      {showSubmitting && !showSuccess && (
-        <div style={{textAlign: 'center', marginBottom: 10}}>
-          <div style={{fontSize: 12, color: '#777', marginBottom: 8}}>
-            price impact: -0.019%
-          </div>
-          <div style={{fontSize: 13, color: '#555', marginBottom: 10}}>
-            submitting transaction...
-          </div>
-          <div style={{display: 'flex', justifyContent: 'center', gap: 6}}>
-            {[dot1, dot2, dot3].map((dy, i) => (
-              <div
-                key={i}
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: 3,
-                  background: colors.purple,
-                  transform: `translateY(${dy}px)`,
-                }}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Success state */}
-      {showSuccess && (
-        <div
-          style={{
-            textAlign: 'center',
             marginBottom: 10,
-            opacity: checkOp,
-          }}
-        >
-          <div
-            style={{
-              fontSize: 52,
-              color: '#14F195',
-              transform: `scale(${finalCheck})`,
-              display: 'inline-block',
-              marginBottom: 6,
-            }}
-          >
-            ✓
-          </div>
-          <div style={{fontSize: 16, fontWeight: 700, color: '#14F195', marginBottom: 6}}>
-            transaction sent
-          </div>
-          <div
-            style={{
-              fontSize: 11,
-              fontFamily: 'monospace',
-              color: '#777',
-              marginBottom: 10,
-              opacity: txHashOp,
-            }}
-          >
-            BZQs2Uez1v...QmyZz2
-          </div>
-          <div
-            style={{
-              border: `1px solid ${colors.purple}`,
-              borderRadius: 20,
-              padding: '6px 16px',
-              fontSize: 12,
-              color: colors.purple,
-              display: 'inline-block',
-              marginBottom: 8,
-              opacity: solscanOp,
-            }}
-          >
-            view on solscan
-          </div>
-          <div style={{fontSize: 12, color: '#aaa', opacity: backOp}}>back to telegram</div>
-        </div>
-      )}
-
-      {/* Buttons — connect state */}
-      {!showWallet && !showSubmitting && !showSuccess && (
-        <div style={{display: 'flex', gap: 8, marginBottom: 12}}>
-          <button
-            style={{
-              flex: 1,
-              border: `1.5px solid #ddd`,
-              borderRadius: 10,
-              background: 'transparent',
-              padding: '9px 0',
-              fontSize: 13,
-              color: '#555',
-              cursor: 'pointer',
-              fontFamily: typography.stack,
-            }}
-          >
-            scan QR
-          </button>
-          <button
-            style={{
-              flex: 1,
-              border: `1.5px solid #ddd`,
-              borderRadius: 10,
-              background: 'transparent',
-              padding: '9px 0',
-              fontSize: 13,
-              color: '#555',
-              cursor: 'pointer',
-              fontFamily: typography.stack,
-            }}
-          >
-            connect wallet
-          </button>
-        </div>
-      )}
-
-      {/* Primary CTA */}
-      {!showSubmitting && !showSuccess && (
-        <div
-          style={{
-            background: colors.purple,
-            borderRadius: 12,
-            padding: '13px 0',
             textAlign: 'center',
-            fontSize: 15,
-            fontWeight: 700,
-            color: '#fff',
-            boxShadow: showWallet
-              ? `0 0 ${glowPx}px ${colors.purpleGlow}, 0 0 ${glowPx * 2}px rgba(153,69,255,0.2)`
-              : 'none',
           }}
         >
-          {showWallet ? 'sign & send' : 'Connect Wallet'}
+          transaction for: D4M5c6...YgpJ
         </div>
-      )}
 
-      {/* Footer */}
-      <div style={{textAlign: 'center', marginTop: 12, fontSize: 11, color: '#bbb'}}>
-        raze.fun · @raze_aii
+        {/* Connected wallet indicator */}
+        {showWallet && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              background: '#F0FFF8',
+              borderRadius: 8,
+              padding: '5px 10px',
+              marginBottom: 8,
+              fontSize: 10,
+              color: '#333',
+              fontFamily: 'monospace',
+              width: '100%',
+              boxSizing: 'border-box',
+            }}
+          >
+            <div style={{width: 7, height: 7, borderRadius: 4, background: '#14F195', flexShrink: 0}} />
+            <span>GfM3...xQ7z connected</span>
+          </div>
+        )}
+
+        {/* Submitting state */}
+        {showSubmitting && !showSuccess && (
+          <div style={{textAlign: 'center', marginBottom: 8}}>
+            <div style={{fontSize: 11, color: '#555', marginBottom: 8, fontFamily: typography.stack}}>
+              submitting transaction...
+            </div>
+            <div style={{display: 'flex', justifyContent: 'center', gap: 6}}>
+              {[dot1, dot2, dot3].map((dy, i) => (
+                <div
+                  key={i}
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: 3,
+                    background: colors.purple,
+                    transform: `translateY(${dy}px)`,
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Success state */}
+        {showSuccess && (
+          <div style={{textAlign: 'center', marginBottom: 8, opacity: checkOp}}>
+            <div
+              style={{
+                fontSize: 44,
+                color: '#14F195',
+                transform: `scale(${checkScale})`,
+                display: 'inline-block',
+                marginBottom: 4,
+              }}
+            >
+              ✓
+            </div>
+            <div style={{fontSize: 14, fontWeight: 700, color: '#14F195', marginBottom: 4, fontFamily: typography.stack}}>
+              transaction sent
+            </div>
+            <div
+              style={{
+                fontSize: 10,
+                fontFamily: 'monospace',
+                color: '#777',
+                marginBottom: 8,
+                opacity: txHashOp,
+              }}
+            >
+              BZQs2Uez1v...QmyZz2
+            </div>
+            <div
+              style={{
+                border: `1px solid ${colors.purple}`,
+                borderRadius: 20,
+                padding: '5px 14px',
+                fontSize: 11,
+                color: colors.purple,
+                display: 'inline-block',
+                marginBottom: 6,
+                opacity: solscanOp,
+                fontFamily: typography.stack,
+              }}
+            >
+              view on solscan
+            </div>
+            <div style={{fontSize: 11, color: '#aaa', opacity: backOp, fontFamily: typography.stack}}>
+              back to telegram
+            </div>
+          </div>
+        )}
+
+        {/* Buttons — connect state */}
+        {!showWallet && !showSubmitting && !showSuccess && (
+          <div style={{display: 'flex', gap: 8, marginBottom: 10, width: '100%', boxSizing: 'border-box'}}>
+            <div
+              style={{
+                flex: 1,
+                border: `1.5px solid #ddd`,
+                borderRadius: 10,
+                background: 'transparent',
+                padding: '8px 0',
+                fontSize: 12,
+                color: '#555',
+                textAlign: 'center',
+                fontFamily: typography.stack,
+              }}
+            >
+              scan QR
+            </div>
+            <div
+              style={{
+                flex: 1,
+                border: `1.5px solid #ddd`,
+                borderRadius: 10,
+                background: 'transparent',
+                padding: '8px 0',
+                fontSize: 12,
+                color: '#555',
+                textAlign: 'center',
+                fontFamily: typography.stack,
+              }}
+            >
+              connect wallet
+            </div>
+          </div>
+        )}
+
+        {/* Primary CTA button */}
+        {!showSubmitting && !showSuccess && (
+          <div
+            style={{
+              background: colors.purple,
+              borderRadius: 12,
+              padding: '11px 0',
+              textAlign: 'center',
+              fontSize: 14,
+              fontWeight: 700,
+              color: '#fff',
+              width: '100%',
+              boxSizing: 'border-box',
+              fontFamily: typography.stack,
+              boxShadow: showWallet
+                ? `0 0 ${glowPx}px ${colors.purpleGlow}, 0 0 ${glowPx * 2}px rgba(153,69,255,0.2)`
+                : 'none',
+            }}
+          >
+            {showWallet ? 'sign & send' : 'Connect Wallet'}
+          </div>
+        )}
+
+        {/* Footer */}
+        <div style={{marginTop: 10, fontSize: 10, color: '#bbb', fontFamily: typography.stack, textAlign: 'center'}}>
+          raze.fun · @raze_aii
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
-const TmaPageConnect: React.FC<{frame: number; slideOffsetX?: number}> = ({
-  frame,
-  slideOffsetX = 0,
-}) => {
-  const op = clamp(frame, 210, 222, 0, 1);
+// ---------------------------------------------------------------------------
+// Phantom screen content (scene 4)
+// ---------------------------------------------------------------------------
+
+const PhantomScreenContent: React.FC<{frame: number}> = ({frame}) => {
+  const confirmTapScale =
+    frame >= 400 && frame < 412
+      ? clamp(frame, 400, 406, 1, 0.92)
+      : frame >= 406
+      ? clamp(frame, 406, 414, 0.92, 1)
+      : 1;
 
   return (
     <div
       style={{
         position: 'absolute',
         inset: 0,
-        background: 'linear-gradient(180deg, #F0EDFF 0%, #E4DCFF 100%)',
+        background: '#1a1a1a',
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        opacity: op,
-        transform: `translateX(${slideOffsetX}px)`,
-      }}
-    >
-      <TmaCard frame={frame} />
-    </div>
-  );
-};
-
-// ---------------------------------------------------------------------------
-// Scene 4 — WALLET CONNECTED  (frames 300-390)
-// ---------------------------------------------------------------------------
-
-const TmaPageConnected: React.FC<{frame: number; slideOffsetX?: number}> = ({
-  frame,
-  slideOffsetX = 0,
-}) => {
-  const op = clamp(frame, 300, 312, 0, 1);
-
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        background: 'linear-gradient(180deg, #F0EDFF 0%, #E4DCFF 100%)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        opacity: op,
-        transform: `translateX(${slideOffsetX}px)`,
-      }}
-    >
-      <TmaCard frame={frame} showWallet />
-    </div>
-  );
-};
-
-// ---------------------------------------------------------------------------
-// Scene 5 — PHANTOM CONFIRMATION  (frames 390-480)
-// ---------------------------------------------------------------------------
-
-const PhantomCard: React.FC<{frame: number}> = ({frame}) => {
-  const confirmTap = clamp(frame, 460, 468, 1, 0.95);
-  const confirmScale = frame > 468 ? clamp(frame, 468, 476, 0.95, 1) : confirmTap;
-  const finalScale = frame > 460 ? confirmScale : 1;
-
-  return (
-    <div
-      style={{
-        background: '#2a2a2a',
-        borderRadius: 20,
-        padding: '20px 18px 18px',
-        width: 300,
+        padding: '60px 20px 20px',
         fontFamily: typography.stack,
-        boxShadow: '0 8px 40px rgba(0,0,0,0.6)',
+        overflowY: 'hidden',
       }}
     >
       {/* Header */}
-      <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14}}>
+      <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12}}>
         <div
           style={{
-            width: 32,
-            height: 32,
-            borderRadius: 16,
+            width: 30,
+            height: 30,
+            borderRadius: 15,
             background: '#F0EDFF',
             display: 'flex',
             alignItems: 'center',
@@ -606,26 +768,26 @@ const PhantomCard: React.FC<{frame: number}> = ({frame}) => {
         >
           <img src={mascotSrc} alt="" style={{width: '90%', height: '90%', objectFit: 'contain'}} />
         </div>
-        <span style={{fontSize: 14, color: '#fff', fontWeight: 600}}>raze.fun</span>
+        <span style={{fontSize: 13, color: '#fff', fontWeight: 600}}>raze.fun</span>
       </div>
 
-      <div style={{fontSize: 18, fontWeight: 700, color: '#fff', marginBottom: 4}}>
+      <div style={{fontSize: 17, fontWeight: 700, color: '#fff', marginBottom: 2}}>
         Confirm transaction
       </div>
-      <div style={{fontSize: 12, color: '#888', marginBottom: 12}}>
+      <div style={{fontSize: 11, color: '#888', marginBottom: 10}}>
         Balance changes are estimated...
       </div>
 
-      {/* Warning box */}
+      {/* Warning */}
       <div
         style={{
           background: 'rgba(255, 180, 0, 0.12)',
           border: '1px solid rgba(255, 180, 0, 0.4)',
           borderRadius: 10,
-          padding: '8px 12px',
-          fontSize: 12,
+          padding: '7px 10px',
+          fontSize: 11,
           color: '#FFB400',
-          marginBottom: 14,
+          marginBottom: 12,
           lineHeight: 1.4,
         }}
       >
@@ -633,14 +795,13 @@ const PhantomCard: React.FC<{frame: number}> = ({frame}) => {
       </div>
 
       {/* Token rows */}
-      <div style={{display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14}}>
-        {/* USDC row */}
-        <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
+      <div style={{display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
           <div
             style={{
-              width: 28,
-              height: 28,
-              borderRadius: 14,
+              width: 26,
+              height: 26,
+              borderRadius: 13,
               background: '#2775CA',
               display: 'flex',
               alignItems: 'center',
@@ -648,22 +809,21 @@ const PhantomCard: React.FC<{frame: number}> = ({frame}) => {
               flexShrink: 0,
             }}
           >
-            <span style={{fontSize: 11, fontWeight: 700, color: '#fff'}}>$</span>
+            <span style={{fontSize: 10, fontWeight: 700, color: '#fff'}}>$</span>
           </div>
           <div style={{flex: 1}}>
-            <div style={{fontSize: 13, color: '#fff', fontWeight: 500}}>USD Coin</div>
-            <div style={{fontSize: 11, color: '#888'}}>USDC</div>
+            <div style={{fontSize: 12, color: '#fff', fontWeight: 500}}>USD Coin</div>
+            <div style={{fontSize: 10, color: '#888'}}>USDC</div>
           </div>
-          <div style={{fontSize: 14, fontWeight: 700, color: '#CC4444'}}>-1 USDC</div>
+          <div style={{fontSize: 13, fontWeight: 700, color: '#CC4444'}}>-1 USDC</div>
         </div>
 
-        {/* SOL row */}
-        <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
           <div
             style={{
-              width: 28,
-              height: 28,
-              borderRadius: 14,
+              width: 26,
+              height: 26,
+              borderRadius: 13,
               background: 'linear-gradient(135deg, #9945FF, #14F195)',
               display: 'flex',
               alignItems: 'center',
@@ -671,17 +831,17 @@ const PhantomCard: React.FC<{frame: number}> = ({frame}) => {
               flexShrink: 0,
             }}
           >
-            <span style={{fontSize: 11, fontWeight: 700, color: '#fff'}}>◎</span>
+            <span style={{fontSize: 10, fontWeight: 700, color: '#fff'}}>◎</span>
           </div>
           <div style={{flex: 1}}>
-            <div style={{fontSize: 13, color: '#fff', fontWeight: 500}}>Solana</div>
-            <div style={{fontSize: 11, color: '#888'}}>SOL</div>
+            <div style={{fontSize: 12, color: '#fff', fontWeight: 500}}>Solana</div>
+            <div style={{fontSize: 10, color: '#888'}}>SOL</div>
           </div>
-          <div style={{fontSize: 14, fontWeight: 700, color: '#14F195'}}>+0.011414 SOL</div>
+          <div style={{fontSize: 13, fontWeight: 700, color: '#14F195'}}>+0.011414 SOL</div>
         </div>
       </div>
 
-      {/* Details rows */}
+      {/* Details */}
       {[
         {label: 'Account', value: 'GfM3...xQ7z'},
         {label: 'Network', value: 'Mainnet'},
@@ -692,9 +852,9 @@ const PhantomCard: React.FC<{frame: number}> = ({frame}) => {
           style={{
             display: 'flex',
             justifyContent: 'space-between',
-            fontSize: 12,
+            fontSize: 11,
             color: '#888',
-            marginBottom: 6,
+            marginBottom: 5,
           }}
         >
           <span>{row.label}</span>
@@ -703,15 +863,15 @@ const PhantomCard: React.FC<{frame: number}> = ({frame}) => {
       ))}
 
       {/* Buttons */}
-      <div style={{display: 'flex', gap: 10, marginTop: 14}}>
+      <div style={{display: 'flex', gap: 8, marginTop: 14}}>
         <div
           style={{
             flex: 1,
             background: '#3a3a3a',
             borderRadius: 10,
-            padding: '11px 0',
+            padding: '10px 0',
             textAlign: 'center',
-            fontSize: 14,
+            fontSize: 13,
             color: '#ccc',
             fontWeight: 600,
           }}
@@ -723,12 +883,12 @@ const PhantomCard: React.FC<{frame: number}> = ({frame}) => {
             flex: 1,
             background: colors.purple,
             borderRadius: 10,
-            padding: '11px 0',
+            padding: '10px 0',
             textAlign: 'center',
-            fontSize: 14,
+            fontSize: 13,
             color: '#fff',
             fontWeight: 700,
-            transform: `scale(${finalScale})`,
+            transform: `scale(${confirmTapScale})`,
           }}
         >
           Confirm
@@ -738,187 +898,38 @@ const PhantomCard: React.FC<{frame: number}> = ({frame}) => {
   );
 };
 
-const PhantomScene: React.FC<{frame: number; slideOffsetX?: number}> = ({
-  frame,
-  slideOffsetX = 0,
-}) => {
-  const op = clamp(frame, 390, 402, 0, 1);
-
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        background: '#1a1a1a',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        opacity: op,
-        transform: `translateX(${slideOffsetX}px)`,
-      }}
-    >
-      <PhantomCard frame={frame} />
-    </div>
-  );
-};
-
 // ---------------------------------------------------------------------------
-// Scene 6 — SUBMITTING  (frames 480-540)
-// ---------------------------------------------------------------------------
-
-const TmaPageSubmitting: React.FC<{frame: number; slideOffsetX?: number}> = ({
-  frame,
-  slideOffsetX = 0,
-}) => {
-  const op = clamp(frame, 480, 492, 0, 1);
-
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        background: 'linear-gradient(180deg, #F0EDFF 0%, #E4DCFF 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        opacity: op,
-        transform: `translateX(${slideOffsetX}px)`,
-      }}
-    >
-      <TmaCard frame={frame} showWallet showSubmitting />
-    </div>
-  );
-};
-
-// ---------------------------------------------------------------------------
-// Scene 7 — TRANSACTION SENT  (frames 540-630)
-// ---------------------------------------------------------------------------
-
-const TmaPageSuccess: React.FC<{frame: number; slideOffsetX?: number}> = ({
-  frame,
-  slideOffsetX = 0,
-}) => {
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        background: 'linear-gradient(180deg, #F0EDFF 0%, #E4DCFF 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        transform: `translateX(${slideOffsetX}px)`,
-      }}
-    >
-      <TmaCard frame={frame} showWallet showSuccess />
-    </div>
-  );
-};
-
-// ---------------------------------------------------------------------------
-// Scene 8 — BACK TO TELEGRAM  (frames 630-690)
-// ---------------------------------------------------------------------------
-
-const ConfirmBubble: React.FC<{frame: number; startFrame: number}> = ({frame, startFrame}) => {
-  if (frame < startFrame) return null;
-  const op = clamp(frame, startFrame, startFrame + 10, 0, 1);
-  const s1 = clamp(frame, startFrame, startFrame + 8, 0.9, 1.03);
-  const s2 = clamp(frame, startFrame + 8, startFrame + 14, 1.03, 1);
-  const sc = frame < startFrame + 8 ? s1 : s2;
-
-  return (
-    <div style={{display: 'flex', gap: 6, padding: '0 12px', marginBottom: 6, alignItems: 'flex-end', opacity: op}}>
-      <div
-        style={{
-          width: 32, height: 32, borderRadius: 16,
-          background: '#F0EDFF', overflow: 'hidden',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-        }}
-      >
-        <img src={mascotSrc} alt="" style={{width: '100%', height: '100%', objectFit: 'contain'}} />
-      </div>
-      <div
-        style={{
-          background: colors.bubbleBot,
-          color: colors.textPrimary,
-          borderRadius: '18px 18px 18px 4px',
-          padding: '9px 13px 6px',
-          fontSize: 13,
-          lineHeight: 1.6,
-          fontFamily: typography.stack,
-          maxWidth: '78%',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-          transform: `scale(${sc})`,
-          transformOrigin: 'bottom left',
-        }}
-      >
-        <div>✅ Swap confirmed!</div>
-        <div>1.0 USDC → 0.011410901 SOL</div>
-        <div style={{color: colors.purple, textDecoration: 'underline'}}>View on Solscan</div>
-        <div style={{marginTop: 2, fontSize: 10, color: colors.bubbleBotMeta}}>9:41</div>
-      </div>
-    </div>
-  );
-};
-
-const TelegramChatConfirmed: React.FC<{frame: number}> = ({frame}) => {
-  return (
-    <PhoneWrap>
-      <StatusBar opacity={1} />
-      <ChatHeader mascotSrc={mascotSrc} />
-      <div
-        style={{
-          position: 'absolute',
-          top: phone.TOTAL_HEADER,
-          bottom: phone.COMPOSER_H,
-          left: 0,
-          right: 0,
-          overflowY: 'hidden',
-          paddingTop: 10,
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'flex-end',
-          gap: 2,
-        }}
-      >
-        <UserBubble text="swap 1 usdc to sol" startFrame={-999} cpf={99} timestamp="9:41" frame={frame} />
-        <RazeBubble
-          lines={[
-            {text: '1 USDC → 0.0114 SOL via jupiter.', frame: -999},
-            {text: 'ready to sign.', frame: -999},
-          ]}
-          mascotSrc={mascotSrc}
-          timestamp="9:41"
-          frame={frame}
-        />
-        <SignBubble frame={frame} startFrame={-999} />
-        <ConfirmBubble frame={frame} startFrame={630} />
-      </div>
-      <Composer />
-    </PhoneWrap>
-  );
-};
-
-// ---------------------------------------------------------------------------
-// Scene 9 — END CARD  (frames 690-750)
+// End Card (frames 660–750) — light bg, dark text
 // ---------------------------------------------------------------------------
 
 const SwapEndCard: React.FC<{frame: number}> = ({frame}) => {
-  const overlayOp = clamp(frame, 690, 708, 0, 0.88);
-  const line1Op = clamp(frame, 700, 718, 0, 1);
-  const line1Y = clamp(frame, 700, 718, 16, 0);
-  const razeOp = clamp(frame, 714, 732, 0, 1);
-  const razeY = clamp(frame, 714, 732, 20, 0);
-  const glowT = clamp(frame, 720, 750, 0, 1);
-  const taglineOp = clamp(frame, 726, 744, 0, 1);
-  const taglineY = clamp(frame, 726, 744, 12, 0);
+  if (frame < 660) return null;
 
-  const springT = spring(frame, 696, 25);
-  const mascotOp = clamp(frame, 690, 706, 0, 1);
+  const phoneFadeOut = clamp(frame, 660, 685, 1, 0);
+  const mascotSpring = springProgress(frame, 668, 25);
+  const mascotOp = clamp(frame, 662, 678, 0, 1);
+  const line1Op = clamp(frame, 682, 698, 0, 1);
+  const line1Y = clamp(frame, 682, 698, 14, 0);
+  const razeOp = clamp(frame, 696, 712, 0, 1);
+  const razeY = clamp(frame, 696, 712, 18, 0);
+  const glowT = clamp(frame, 706, 730, 0, 1);
+  const taglineOp = clamp(frame, 714, 730, 0, 1);
+  const taglineY = clamp(frame, 714, 730, 10, 0);
+  const floatScale = frame > 693 ? 1 + Math.sin((frame - 693) * 0.08) * 0.025 : 1;
 
   return (
     <div style={{position: 'absolute', inset: 0, zIndex: 200, pointerEvents: 'none'}}>
-      <div style={{position: 'absolute', inset: 0, background: `rgba(0,0,0,${overlayOp})`}} />
+      {/* Light lavender replaces bg */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'linear-gradient(180deg, #FAFAFE 0%, #F0EDFF 60%, #E4DCFF 100%)',
+          opacity: clamp(frame, 660, 680, 0, 1),
+        }}
+      />
+
+      {/* Centered content */}
       <div
         style={{
           position: 'absolute',
@@ -939,19 +950,19 @@ const SwapEndCard: React.FC<{frame: number}> = ({frame}) => {
             height: 140,
             objectFit: 'contain',
             opacity: mascotOp,
-            transform: `translateY(${(1 - springT) * 100}px) scale(${0.9 + springT * 0.1})`,
-            filter: `drop-shadow(0 0 24px rgba(153,69,255,${0.7 * glowT}))`,
+            transform: `translateY(${(1 - mascotSpring) * 80}px) scale(${floatScale})`,
+            filter: `drop-shadow(0 0 24px rgba(153,69,255,${0.5 * glowT}))`,
           }}
         />
         <div
           style={{
             fontSize: 28,
             fontWeight: 500,
-            color: 'rgba(255,255,255,0.85)',
+            color: '#1A1A1A',
             opacity: line1Op,
             transform: `translateY(${line1Y}px)`,
             textAlign: 'center',
-            padding: '0 40px',
+            padding: '0 48px',
             lineHeight: 1.3,
           }}
         >
@@ -964,7 +975,7 @@ const SwapEndCard: React.FC<{frame: number}> = ({frame}) => {
             color: colors.purple,
             opacity: razeOp,
             transform: `translateY(${razeY}px)`,
-            textShadow: `0 0 ${32 * glowT}px rgba(153,69,255,${0.6 * glowT}), 0 0 ${60 * glowT}px rgba(153,69,255,${0.3 * glowT})`,
+            textShadow: `0 0 ${32 * glowT}px rgba(153,69,255,${0.5 * glowT}), 0 0 ${60 * glowT}px rgba(153,69,255,${0.25 * glowT})`,
             letterSpacing: '-0.01em',
           }}
         >
@@ -992,99 +1003,144 @@ const SwapEndCard: React.FC<{frame: number}> = ({frame}) => {
 export const SwapFlow: React.FC = () => {
   const frame = useCurrentFrame();
 
-  // Slide transition: scenes slide left-to-right
-  // Scene 2 (chat) → Scene 3 (TMA connect): frame 205-215
-  const chatSlideX = frame >= 205 ? clamp(frame, 205, 218, 0, -1080) : 0;
-  const tmaConnectIn = frame >= 205 ? clamp(frame, 205, 218, 1080, 0) : 1080;
+  // Scene boundaries — non-overlapping crossfade windows (12 frames each)
+  // Scene 2: chat         60–210
+  // Scene 3: TMA connect  210–330  (crossfade in: 210-222)
+  // Scene 3b: TMA wallet  280–330  (crossfade in: 280-292, out: 318-330)
+  // Scene 4: Phantom      330–420  (crossfade in: 330-342, out: 408-420)
+  // Scene 5: Submitting   420–480  (crossfade in: 420-432, out: 468-480)
+  // Scene 6: Success      480–570  (crossfade in: 480-492, out: 558-570)
+  // Scene 7: Chat confirm 570–660  (crossfade in: 570-582)
+  // Scene 8: End card     660-750
 
-  // Scene 3 (TMA connect) → Scene 4 (wallet connected): crossfade opacity-only
-  // (handled by opacity in each scene component)
+  const showHook = frame < 62;
+  const showPhone = frame >= 55 && frame < 665;
+  const showTelegramChat = frame >= 55 && frame < 222;
+  const showTmaConnect = frame >= 210 && frame < 330;
+  const showTmaConnected = frame >= 280 && frame < 342; // wallet connected crossfade
+  const showPhantom = frame >= 330 && frame < 440;
+  const showSubmitting = frame >= 420 && frame < 492;
+  const showSuccess = frame >= 480 && frame < 575;
+  const showChatConfirm = frame >= 558 && frame < 665;
+  const showEndCard = frame >= 660;
 
-  // Scene 4 (wallet connected) → Scene 5 (phantom): frame 385-398
-  const tmaConnectedOut = frame >= 385 ? clamp(frame, 385, 398, 0, -1080) : 0;
-  const phantomIn = frame >= 385 ? clamp(frame, 385, 398, 1080, 0) : 1080;
+  // Phone fade-in (scenes 2+)
+  const phoneOpacity = clamp(frame, 55, 72, 0, 1);
 
-  // Scene 5 (phantom) → Scene 6 (submitting): frame 478-490
-  const phantomOut = frame >= 478 ? clamp(frame, 478, 490, 0, -1080) : 0;
-  const submittingIn = frame >= 478 ? clamp(frame, 478, 490, 1080, 0) : 1080;
+  // Cross-fade opacities — each layer fades in then fades out, no two at full opacity simultaneously
+  const chatOpacity =
+    frame < 60 ? 0 : frame < 210 ? clamp(frame, 60, 72, 0, 1) : clamp(frame, 210, 222, 1, 0);
 
-  // Scene 7-8 cross: submitting transitions into success in-place (fade)
-  // Scene 8 (success) → Scene 9 (back to telegram): frame 628-640
-  const tmaOut = frame >= 628 ? clamp(frame, 628, 640, 0, -1080) : 0;
-  const chatConfirmIn = frame >= 628 ? clamp(frame, 628, 640, 1080, 0) : 1080;
+  const tmaConnectOpacity =
+    frame < 210
+      ? 0
+      : frame < 318
+      ? clamp(frame, 210, 222, 0, 1)
+      : clamp(frame, 318, 330, 1, 0);
 
-  const showHook = frame < 60;
-  const showChat = frame >= 60 && frame < 210;
-  const showTmaConnect = frame >= 205 && frame < 300;
-  const showTmaConnected = frame >= 295 && frame < 390;
-  const showPhantom = frame >= 385 && frame < 480;
-  const showSubmitting = frame >= 478 && frame < 540;
-  const showSuccess = frame >= 540 && frame < 630;
-  const showChatConfirm = frame >= 628 && frame < 695;
-  const showEndCard = frame >= 690;
+  const tmaConnectedOpacity =
+    frame < 280
+      ? 0
+      : frame < 330
+      ? clamp(frame, 280, 292, 0, 1)
+      : clamp(frame, 330, 342, 1, 0);
+
+  const phantomOpacity =
+    frame < 330
+      ? 0
+      : frame < 420
+      ? clamp(frame, 330, 342, 0, 1)
+      : clamp(frame, 420, 432, 1, 0);
+
+  const submittingOpacity =
+    frame < 420
+      ? 0
+      : frame < 468
+      ? clamp(frame, 432, 444, 0, 1)
+      : clamp(frame, 468, 480, 1, 0);
+
+  const successOpacity =
+    frame < 480
+      ? 0
+      : frame < 558
+      ? clamp(frame, 480, 492, 0, 1)
+      : clamp(frame, 558, 570, 1, 0);
+
+  const chatConfirmOpacity =
+    frame < 558 ? 0 : clamp(frame, 558, 570, 0, 1);
 
   return (
-    <div style={{position: 'relative', width: 1080, height: 1920, overflow: 'hidden', background: '#0D0B14'}}>
-      {/* Background — always present in dark scenes */}
-      {!showTmaConnect && !showTmaConnected && !showPhantom && !showSubmitting && !showSuccess && (
-        <BackgroundScene frame={frame} ctaDark={0} />
-      )}
+    <div style={{position: 'relative', width: VIEWPORT_W, height: VIEWPORT_H, overflow: 'hidden'}}>
+      {/* Always-on lavender background */}
+      <LavenderBg />
 
-      {/* Scene 1: Hook */}
-      {showHook && <Hook frame={frame} />}
-
-      {/* Scene 2: Telegram chat */}
-      {showChat && (
+      {/* Scene 1: Hook text (no phone) */}
+      {showHook && (
         <div
           style={{
             position: 'absolute',
             inset: 0,
-            transform: `translateX(${chatSlideX}px)`,
+            opacity: clamp(frame, 50, 62, 1, 0),
           }}
         >
-          <BackgroundScene frame={frame} ctaDark={0} />
-          <TelegramChat frame={frame} />
+          <Hook frame={frame} />
         </div>
       )}
 
-      {/* Scene 3: TMA connect */}
-      {showTmaConnect && (
-        <TmaPageConnect frame={frame} slideOffsetX={tmaConnectIn} />
+      {/* Phone frame — present for all scenes 2-8 */}
+      {showPhone && (
+        <PhoneFrame opacity={phoneOpacity}>
+          {/* Layer 1: Telegram chat (scenes 2 & 7) */}
+          {(showTelegramChat || showChatConfirm) && (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                opacity: showChatConfirm ? chatConfirmOpacity : chatOpacity,
+              }}
+            >
+              <TelegramChatContent frame={frame} showConfirm={showChatConfirm} />
+            </div>
+          )}
+
+          {/* Layer 2: TMA Connect (scene 3) */}
+          {showTmaConnect && (
+            <div style={{position: 'absolute', inset: 0, opacity: tmaConnectOpacity}}>
+              <TmaScreenContent frame={frame} />
+            </div>
+          )}
+
+          {/* Layer 3: TMA Wallet Connected (scene 3b crossfade — fades in at 280, fades out at 342) */}
+          {showTmaConnected && tmaConnectedOpacity > 0 && (
+            <div style={{position: 'absolute', inset: 0, opacity: tmaConnectedOpacity}}>
+              <TmaScreenContent frame={frame} showWallet />
+            </div>
+          )}
+
+          {/* Layer 4: Phantom (scene 4) */}
+          {showPhantom && (
+            <div style={{position: 'absolute', inset: 0, opacity: phantomOpacity}}>
+              <PhantomScreenContent frame={frame} />
+            </div>
+          )}
+
+          {/* Layer 5: Submitting (scene 5) */}
+          {showSubmitting && (
+            <div style={{position: 'absolute', inset: 0, opacity: submittingOpacity}}>
+              <TmaScreenContent frame={frame} showWallet showSubmitting />
+            </div>
+          )}
+
+          {/* Layer 6: Success (scene 6) */}
+          {showSuccess && (
+            <div style={{position: 'absolute', inset: 0, opacity: successOpacity}}>
+              <TmaScreenContent frame={frame} showWallet showSuccess />
+            </div>
+          )}
+        </PhoneFrame>
       )}
 
-      {/* Scene 4: Wallet connected */}
-      {showTmaConnected && (
-        <TmaPageConnected frame={frame} slideOffsetX={tmaConnectedOut} />
-      )}
-
-      {/* Scene 5: Phantom */}
-      {showPhantom && (
-        <PhantomScene frame={frame} slideOffsetX={phantomIn} />
-      )}
-
-      {/* Scene 6: Submitting */}
-      {showSubmitting && (
-        <TmaPageSubmitting frame={frame} slideOffsetX={submittingIn} />
-      )}
-
-      {/* Scene 7: Success */}
-      {showSuccess && <TmaPageSuccess frame={frame} />}
-
-      {/* Scene 8: Back to Telegram */}
-      {showChatConfirm && (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            transform: `translateX(${chatConfirmIn}px)`,
-          }}
-        >
-          <BackgroundScene frame={frame} ctaDark={0} />
-          <TelegramChatConfirmed frame={frame} />
-        </div>
-      )}
-
-      {/* Scene 9: End card */}
+      {/* Scene 8: End Card */}
       {showEndCard && <SwapEndCard frame={frame} />}
 
       {/* Audio */}
