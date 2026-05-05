@@ -1,4 +1,4 @@
-import {Audio, interpolate, staticFile, useCurrentFrame} from 'remotion';
+import {Audio, Easing, interpolate, staticFile, useCurrentFrame} from 'remotion';
 import {FilmGrain} from './FilmGrain';
 import {UserBubble, RazeBubble} from './Bubbles';
 import {StatusBar, ChatHeader, Composer} from './PhoneChrome';
@@ -20,6 +20,171 @@ function springProgress(frame: number, start: number, duration: number): number 
   return t < 1
     ? 1 - Math.pow(1 - t, 3) + Math.sin(t * Math.PI * 1.5) * 0.15 * (1 - t)
     : 1;
+}
+
+// ---------------------------------------------------------------------------
+// Camera zoom choreography
+// ---------------------------------------------------------------------------
+
+const EASE_SMOOTH = Easing.bezier(0.4, 0, 0.2, 1);   // slow zoom in/out
+const EASE_SPRING = Easing.bezier(0.34, 1.56, 0.64, 1); // punch zoom with overshoot
+
+function lerp(frame: number, a: number, b: number, from: number, to: number, easing: (t: number) => number) {
+  return interpolate(frame, [a, b], [from, to], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+    easing,
+  });
+}
+
+function getCameraState(frame: number): {scale: number; y: number} {
+  // Scene 2: Telegram Chat (frames 60-210)
+  if (frame < 75) {
+    return {scale: 1.0, y: 0};
+  }
+  if (frame < 110) {
+    // Slow zoom in as user types
+    return {
+      scale: lerp(frame, 75, 110, 1.0, 1.12, EASE_SMOOTH),
+      y: lerp(frame, 75, 110, 0, -20, EASE_SMOOTH),
+    };
+  }
+  if (frame < 130) {
+    // Zoom out when Raze responds
+    return {
+      scale: lerp(frame, 110, 130, 1.12, 1.05, EASE_SMOOTH),
+      y: lerp(frame, 110, 130, -20, -10, EASE_SMOOTH),
+    };
+  }
+  if (frame < 150) {
+    return {scale: 1.05, y: -10};
+  }
+  if (frame < 165) {
+    // Punch zoom when Sign Transaction button appears
+    return {
+      scale: lerp(frame, 150, 165, 1.05, 1.15, EASE_SPRING),
+      y: lerp(frame, 150, 165, -10, -30, EASE_SMOOTH),
+    };
+  }
+  if (frame < 170) {
+    // Slight bounce back
+    return {
+      scale: lerp(frame, 165, 170, 1.15, 1.08, EASE_SMOOTH),
+      y: -30,
+    };
+  }
+  if (frame < 200) {
+    return {scale: 1.08, y: -30};
+  }
+  if (frame < 210) {
+    // Ease to 1.0 before transition
+    return {
+      scale: lerp(frame, 200, 210, 1.08, 1.0, EASE_SMOOTH),
+      y: lerp(frame, 200, 210, -30, 0, EASE_SMOOTH),
+    };
+  }
+
+  // Scene 3: TMA Signing Page (frames 210-330)
+  if (frame < 230) {
+    return {scale: 1.0, y: 0};
+  }
+  if (frame < 280) {
+    // Slow drift zoom — Ken Burns
+    return {
+      scale: lerp(frame, 230, 280, 1.0, 1.05, EASE_SMOOTH),
+      y: 0,
+    };
+  }
+  if (frame < 295) {
+    // Punch when wallet connects
+    return {
+      scale: lerp(frame, 280, 295, 1.05, 1.1, EASE_SPRING),
+      y: 0,
+    };
+  }
+  if (frame < 300) {
+    return {
+      scale: lerp(frame, 295, 300, 1.1, 1.06, EASE_SMOOTH),
+      y: 0,
+    };
+  }
+  if (frame < 330) {
+    return {scale: 1.06, y: 0};
+  }
+
+  // Scene 4: Phantom Confirmation (frames 330-420)
+  if (frame < 345) {
+    return {scale: 1.0, y: 0};
+  }
+  if (frame < 390) {
+    // Slow zoom building tension
+    return {
+      scale: lerp(frame, 345, 390, 1.0, 1.08, EASE_SMOOTH),
+      y: 0,
+    };
+  }
+  if (frame < 400) {
+    // Punch zoom on Confirm button tap
+    return {
+      scale: lerp(frame, 390, 400, 1.08, 1.18, EASE_SPRING),
+      y: lerp(frame, 390, 400, 0, -40, EASE_SMOOTH),
+    };
+  }
+  if (frame < 410) {
+    return {
+      scale: lerp(frame, 400, 410, 1.18, 1.1, EASE_SMOOTH),
+      y: -40,
+    };
+  }
+  if (frame < 420) {
+    // Quick settle back to 1.0
+    return {
+      scale: lerp(frame, 410, 420, 1.1, 1.0, EASE_SMOOTH),
+      y: lerp(frame, 410, 420, -40, 0, EASE_SMOOTH),
+    };
+  }
+
+  // Scene 5: Submitting (frames 420-480)
+  if (frame < 480) {
+    return {scale: 1.0, y: 0};
+  }
+
+  // Scene 6: Transaction Sent (frames 480-570)
+  if (frame < 500) {
+    // Punch zoom on green checkmark
+    return {
+      scale: lerp(frame, 480, 500, 1.0, 1.15, EASE_SPRING),
+      y: lerp(frame, 480, 500, 0, -20, EASE_SMOOTH),
+    };
+  }
+  if (frame < 570) {
+    // Slow zoom out to reveal full success state
+    return {
+      scale: lerp(frame, 500, 570, 1.15, 1.0, EASE_SMOOTH),
+      y: lerp(frame, 500, 570, -20, 0, EASE_SMOOTH),
+    };
+  }
+
+  // Scene 7: Back to Telegram (frames 570-660)
+  if (frame < 590) {
+    return {scale: 1.0, y: 0};
+  }
+  if (frame < 620) {
+    // Slow zoom in as "Swap confirmed!" appears
+    return {
+      scale: lerp(frame, 590, 620, 1.0, 1.08, EASE_SMOOTH),
+      y: 0,
+    };
+  }
+  if (frame < 660) {
+    // Zoom out, pull back leading into end card
+    return {
+      scale: lerp(frame, 620, 660, 1.08, 0.95, EASE_SMOOTH),
+      y: 0,
+    };
+  }
+
+  return {scale: 1.0, y: 0};
 }
 
 // ---------------------------------------------------------------------------
@@ -1248,7 +1413,7 @@ export const SwapFlow: React.FC = () => {
 
       {/* Phone frame — present for all scenes 2-8 */}
       {showPhone && (
-        <PhoneFrame opacity={phoneOpacity}>
+        <PhoneFrame opacity={phoneOpacity} extraTransform={(() => { const cam = getCameraState(frame); return `scale(${cam.scale}) translateY(${cam.y}px)`; })()}>
           {/* Layer 1: Telegram chat (scenes 2 & 7) */}
           {(showTelegramChat || showChatConfirm) && (
             <div
