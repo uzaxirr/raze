@@ -400,7 +400,7 @@ const TimerCircle: React.FC = () => (
   </div>
 );
 
-// TMA top bar inside the phone screen
+// TMA top bar inside the phone screen — matches real Telegram in-app browser chrome
 const TmaTopBar: React.FC = () => (
   <div
     style={{
@@ -409,23 +409,40 @@ const TmaTopBar: React.FC = () => (
       left: 0,
       right: 0,
       height: phone.HEADER_H,
-      background: 'rgba(255,255,255,0.85)',
-      borderBottom: `1px solid ${colors.divider}`,
+      background: '#F2F2F7',
+      borderBottom: `1px solid rgba(0,0,0,0.12)`,
       display: 'flex',
-      alignItems: 'center',
-      padding: '0 12px',
-      gap: 8,
+      flexDirection: 'column',
+      justifyContent: 'center',
       fontFamily: typography.stack,
       zIndex: 4,
     }}
   >
-    {/* Back arrow */}
-    <svg width="10" height="18" viewBox="0 0 10 18" fill="none">
-      <path d="M8 2L2 9L8 16" stroke={colors.purple} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-    <div style={{flex: 1, display: 'flex', flexDirection: 'column', gap: 1}}>
-      <span style={{fontSize: 13, fontWeight: 600, color: '#111'}}>Raze — Sign Transaction</span>
-      <span style={{fontSize: 10, color: '#aaa'}}>raze.fun</span>
+    {/* Top row: ◁ Telegram | centered title | three-dot */}
+    <div style={{display: 'flex', alignItems: 'center', padding: '0 10px', height: '55%'}}>
+      <div style={{display: 'flex', alignItems: 'center', gap: 3, minWidth: 70}}>
+        <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
+          <path d="M6 1L1 6L6 11" stroke={colors.purple} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        <span style={{fontSize: 11, color: colors.purple, fontWeight: 500}}>Telegram</span>
+      </div>
+      <div style={{flex: 1, textAlign: 'center'}}>
+        <span style={{fontSize: 13, fontWeight: 700, color: '#111'}}>Raze — Sign Transaction</span>
+      </div>
+      {/* Three-dot menu */}
+      <div style={{display: 'flex', flexDirection: 'column', gap: 2.5, minWidth: 24, alignItems: 'center'}}>
+        {[0,1,2].map(i => (
+          <div key={i} style={{width: 3, height: 3, borderRadius: '50%', background: '#666'}} />
+        ))}
+      </div>
+    </div>
+    {/* Bottom row: lock icon + raze.fun */}
+    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, height: '45%'}}>
+      <svg width="8" height="10" viewBox="0 0 8 10" fill="none">
+        <rect x="1" y="4" width="6" height="5.5" rx="1" fill="#888"/>
+        <path d="M2.5 4V2.5C2.5 1.67 3.17 1 4 1C4.83 1 5.5 1.67 5.5 2.5V4" stroke="#888" strokeWidth="1.2" strokeLinecap="round"/>
+      </svg>
+      <span style={{fontSize: 10, color: '#888'}}>raze.fun</span>
     </div>
   </div>
 );
@@ -449,12 +466,12 @@ const TmaScreenContent: React.FC<TmaContentProps> = ({
     : 0;
   const glowPx = glowPulse * 14;
 
-  // Bouncing dots
+  // Bouncing dots for submitting
   const dot1 = showSubmitting ? Math.sin(((frame - 480) / 9) * Math.PI * 2) * 6 : 0;
   const dot2 = showSubmitting ? Math.sin(((frame - 480) / 9) * Math.PI * 2 + Math.PI * 0.45) * 6 : 0;
   const dot3 = showSubmitting ? Math.sin(((frame - 480) / 9) * Math.PI * 2 + Math.PI * 0.9) * 6 : 0;
 
-  // Checkmark spring
+  // Checkmark spring for success
   const checkSpring = showSuccess ? springProgress(frame, 480, 18) : 0;
   const checkScale = showSuccess ? (checkSpring > 1.0 ? Math.min(checkSpring, 1.1) : checkSpring) : 0;
   const checkOp = showSuccess ? clamp(frame, 480, 492, 0, 1) : 0;
@@ -467,7 +484,7 @@ const TmaScreenContent: React.FC<TmaContentProps> = ({
       <StatusBar opacity={1} />
       <TmaTopBar />
 
-      {/* Scrollable TMA body */}
+      {/* Lavender page body */}
       <div
         style={{
           position: 'absolute',
@@ -475,251 +492,279 @@ const TmaScreenContent: React.FC<TmaContentProps> = ({
           bottom: 0,
           left: 0,
           right: 0,
-          background: 'linear-gradient(180deg, #F8F6FF 0%, #EDE8FF 100%)',
+          background: 'linear-gradient(180deg, #F5F3FF 0%, #EDE8FF 100%)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          padding: '18px 16px 20px',
+          padding: '16px 14px 14px',
           overflowY: 'hidden',
+          boxSizing: 'border-box',
         }}
       >
-        {/* Timer circle */}
-        <div style={{position: 'relative', width: '100%'}}>
-          <TimerCircle />
+        {/* Mascot + "raze" inline — centered above card */}
+        <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12}}>
+          <img src={mascotSrc} alt="" style={{width: 52, height: 52, objectFit: 'contain'}} />
+          <span style={{fontSize: 18, fontWeight: 700, color: '#111', fontFamily: typography.stack}}>raze</span>
         </div>
 
-        {/* Mascot + title */}
-        <div
-          style={{
-            width: 52,
-            height: 52,
-            borderRadius: 26,
-            background: '#F0EDFF',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: 6,
-            overflow: 'hidden',
-          }}
-        >
-          <img src={mascotSrc} alt="" style={{width: '90%', height: '90%', objectFit: 'contain'}} />
-        </div>
-        <div style={{fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 2, fontFamily: typography.stack}}>raze</div>
-        <div style={{fontSize: 18, fontWeight: 700, color: '#111', marginBottom: 6, fontFamily: typography.stack}}>Swap</div>
-        <div
-          style={{
-            background: '#14F195',
-            color: '#000',
-            borderRadius: 20,
-            padding: '2px 10px',
-            fontSize: 9,
-            fontWeight: 700,
-            letterSpacing: '0.06em',
-            marginBottom: 14,
-            fontFamily: typography.stack,
-          }}
-        >
-          MAINNET
-        </div>
-
-        {/* Swap box */}
-        <div
-          style={{
-            background: 'rgba(255,255,255,0.7)',
-            borderRadius: 12,
-            padding: '10px 14px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            marginBottom: 8,
-            width: '100%',
-            boxSizing: 'border-box',
-          }}
-        >
-          <div style={{flex: 1, textAlign: 'left'}}>
-            <div style={{fontSize: 9, color: '#999', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2, fontFamily: typography.stack}}>YOU PAY</div>
-            <div style={{fontSize: 20, fontWeight: 700, color: '#111', lineHeight: 1, fontFamily: typography.stack}}>1</div>
-            <div style={{fontSize: 10, color: '#555', marginTop: 2, fontFamily: typography.stack}}>USDG</div>
-          </div>
-          <div style={{fontSize: 16, color: colors.purple, fontWeight: 700}}>→</div>
-          <div style={{flex: 1, textAlign: 'right'}}>
-            <div style={{fontSize: 9, color: '#999', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2, fontFamily: typography.stack}}>YOU GET</div>
-            <div style={{fontSize: 20, fontWeight: 700, color: '#111', lineHeight: 1, fontFamily: typography.stack}}>
-              {showSubmitting || showSuccess ? '0.01141' : '~'}
-            </div>
-            <div style={{fontSize: 10, color: '#555', marginTop: 2, fontFamily: typography.stack}}>SOL</div>
-          </div>
-        </div>
-
-        {/* Tx address */}
-        <div
-          style={{
-            fontSize: 10,
-            color: '#999',
-            fontFamily: 'monospace',
-            marginBottom: 10,
-            textAlign: 'center',
-          }}
-        >
-          transaction for: D4M5c6...YgpJ
-        </div>
-
-        {/* Connected wallet indicator */}
-        {showWallet && (
+        {/* White card */}
+        {!showSuccess && (
           <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              background: '#F0FFF8',
-              borderRadius: 8,
-              padding: '5px 10px',
-              marginBottom: 8,
-              fontSize: 10,
-              color: '#333',
-              fontFamily: 'monospace',
+              background: '#fff',
+              borderRadius: 20,
+              padding: '14px 16px 16px',
               width: '100%',
               boxSizing: 'border-box',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+              position: 'relative',
             }}
           >
-            <div style={{width: 7, height: 7, borderRadius: 4, background: '#14F195', flexShrink: 0}} />
-            <span>GfM3...xQ7z connected</span>
-          </div>
-        )}
+            {/* Timer circle — top right of card */}
+            <TimerCircle />
 
-        {/* Submitting state */}
-        {showSubmitting && !showSuccess && (
-          <div style={{textAlign: 'center', marginBottom: 8}}>
-            <div style={{fontSize: 11, color: '#555', marginBottom: 8, fontFamily: typography.stack}}>
-              submitting transaction...
+            {/* Swap heading */}
+            <div style={{fontSize: 20, fontWeight: 700, color: '#111', fontFamily: typography.stack, marginBottom: 6}}>
+              Swap
             </div>
-            <div style={{display: 'flex', justifyContent: 'center', gap: 6}}>
-              {[dot1, dot2, dot3].map((dy, i) => (
-                <div
-                  key={i}
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: 3,
-                    background: colors.purple,
-                    transform: `translateY(${dy}px)`,
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-        )}
 
-        {/* Success state */}
-        {showSuccess && (
-          <div style={{textAlign: 'center', marginBottom: 8, opacity: checkOp}}>
+            {/* MAINNET badge */}
             <div
               style={{
-                fontSize: 44,
-                color: '#14F195',
-                transform: `scale(${checkScale})`,
-                display: 'inline-block',
-                marginBottom: 4,
+                display: 'inline-flex',
+                alignItems: 'center',
+                background: '#DCFCE7',
+                borderRadius: 20,
+                padding: '2px 10px',
+                marginBottom: 14,
               }}
             >
-              ✓
+              <div style={{width: 6, height: 6, borderRadius: 3, background: '#16A34A', marginRight: 5}} />
+              <span style={{fontSize: 9, fontWeight: 700, color: '#16A34A', letterSpacing: '0.06em', fontFamily: typography.stack}}>
+                MAINNET
+              </span>
             </div>
-            <div style={{fontSize: 14, fontWeight: 700, color: '#14F195', marginBottom: 4, fontFamily: typography.stack}}>
+
+            {/* Swap inner bordered box */}
+            <div
+              style={{
+                border: '1.5px solid #E5E5EA',
+                borderRadius: 12,
+                padding: '10px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                marginBottom: 10,
+              }}
+            >
+              <div style={{flex: 1, textAlign: 'left'}}>
+                <div style={{fontSize: 9, color: '#999', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3, fontFamily: typography.stack}}>YOU PAY</div>
+                <div style={{fontSize: 24, fontWeight: 700, color: '#111', lineHeight: 1, fontFamily: typography.stack}}>1</div>
+                <div style={{fontSize: 11, color: colors.purple, marginTop: 3, fontFamily: typography.stack, fontWeight: 600}}>USDG</div>
+              </div>
+              <div style={{fontSize: 18, color: '#999'}}>→</div>
+              <div style={{flex: 1, textAlign: 'right'}}>
+                <div style={{fontSize: 9, color: '#999', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3, fontFamily: typography.stack}}>YOU GET</div>
+                {/* Solana wave SVG icon */}
+                <div style={{display: 'flex', justifyContent: 'flex-end', marginBottom: 3}}>
+                  <svg width="22" height="16" viewBox="0 0 646 505" fill="none">
+                    <path d="M108.53 310.31c4.19-4.19 9.9-6.56 15.88-6.56H626.06c10.01 0 15.02 12.11 7.94 19.19l-107.48 107.48c-4.19 4.19-9.9 6.56-15.88 6.56H9.94c-10.01 0-15.02-12.11-7.94-19.19L108.53 310.31z" fill="#9945FF"/>
+                    <path d="M108.53 6.56C112.72 2.37 118.43 0 124.41 0H626.06c10.01 0 15.02 12.11 7.94 19.19L526.52 126.67c-4.19 4.19-9.9 6.56-15.88 6.56H9.94C-.07 133.23-5.08 121.12 2 114.04L108.53 6.56z" fill="#14F195"/>
+                    <path d="M526.52 157.61c-4.19-4.19-9.9-6.56-15.88-6.56H9.94c-10.01 0-15.02 12.11-7.94 19.19l107.48 107.48c4.19 4.19 9.9 6.56 15.88 6.56H626.06c10.01 0 15.02-12.11 7.94-19.19L526.52 157.61z" fill="#00C2FF"/>
+                  </svg>
+                </div>
+                <div style={{fontSize: 11, color: colors.purple, fontFamily: typography.stack, fontWeight: 600}}>SOL</div>
+              </div>
+            </div>
+
+            {/* Transaction for row */}
+            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 12}}>
+              <span style={{fontSize: 10, color: '#999', fontFamily: typography.stack}}>transaction for:</span>
+              <span style={{fontSize: 10, color: '#888', fontFamily: 'monospace'}}>D4M5c6...YgpJ</span>
+            </div>
+
+            {/* scan QR | connect wallet outline buttons */}
+            <div style={{display: 'flex', gap: 8, marginBottom: showWallet ? 10 : 12, width: '100%', boxSizing: 'border-box'}}>
+              <div
+                style={{
+                  flex: 1,
+                  border: '1.5px solid #D1D1D6',
+                  borderRadius: 10,
+                  background: 'transparent',
+                  padding: '8px 0',
+                  fontSize: 11,
+                  color: '#555',
+                  textAlign: 'center',
+                  fontFamily: typography.stack,
+                }}
+              >
+                scan QR
+              </div>
+              <div
+                style={{
+                  flex: 1,
+                  border: '1.5px solid #D1D1D6',
+                  borderRadius: 10,
+                  background: 'transparent',
+                  padding: '8px 0',
+                  fontSize: 11,
+                  color: '#555',
+                  textAlign: 'center',
+                  fontFamily: typography.stack,
+                }}
+              >
+                connect wallet
+              </div>
+            </div>
+
+            {/* Wallet connected rows (scene 3b) */}
+            {showWallet && (
+              <div style={{marginBottom: 12}}>
+                {/* Row 1: green dot + address */}
+                <div style={{display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6}}>
+                  <div style={{width: 8, height: 8, borderRadius: 4, background: '#14F195', flexShrink: 0}} />
+                  <span style={{fontSize: 11, color: '#333', fontFamily: 'monospace'}}>D4M5c6 ... YqpJ</span>
+                </div>
+                {/* Row 2: purple icon + address + SOL balance */}
+                <div style={{display: 'flex', alignItems: 'center', gap: 6}}>
+                  <div
+                    style={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: 10,
+                      background: `linear-gradient(135deg, ${colors.purple}, #6B25E8)`,
+                      flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <span style={{fontSize: 9, color: '#fff', fontWeight: 700}}>◎</span>
+                  </div>
+                  <span style={{fontSize: 11, color: '#333', fontFamily: 'monospace'}}>D4M5...itYqpJ</span>
+                  <span style={{fontSize: 11, color: '#888', fontFamily: 'monospace', marginLeft: 'auto'}}>0.018 SOL</span>
+                </div>
+              </div>
+            )}
+
+            {/* Submitting state */}
+            {showSubmitting && !showSuccess && (
+              <div style={{textAlign: 'center', marginBottom: 12}}>
+                <div style={{fontSize: 11, color: '#555', marginBottom: 8, fontFamily: typography.stack}}>
+                  submitting transaction...
+                </div>
+                <div style={{display: 'flex', justifyContent: 'center', gap: 6}}>
+                  {[dot1, dot2, dot3].map((dy, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: 3,
+                        background: colors.purple,
+                        transform: `translateY(${dy}px)`,
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Primary CTA button */}
+            {!showSubmitting && (
+              <div
+                style={{
+                  background: colors.purple,
+                  borderRadius: 24,
+                  padding: '12px 0',
+                  textAlign: 'center',
+                  fontSize: 15,
+                  fontWeight: 700,
+                  color: '#fff',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  fontFamily: typography.stack,
+                  boxShadow: showWallet
+                    ? `0 0 ${glowPx}px ${colors.purpleGlow}, 0 0 ${glowPx * 2}px rgba(153,69,255,0.2)`
+                    : 'none',
+                }}
+              >
+                {showWallet ? 'sign & send' : 'Connect Wallet'}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Success card */}
+        {showSuccess && (
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: 20,
+              padding: '28px 20px 24px',
+              width: '100%',
+              boxSizing: 'border-box',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              opacity: checkOp,
+            }}
+          >
+            {/* Green checkmark circle */}
+            <div
+              style={{
+                width: 60,
+                height: 60,
+                borderRadius: 30,
+                background: 'rgba(20,241,149,0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 14,
+                transform: `scale(${checkScale})`,
+              }}
+            >
+              <span style={{fontSize: 30, color: '#14F195', fontWeight: 700, lineHeight: 1}}>✓</span>
+            </div>
+            <div style={{fontSize: 16, fontWeight: 700, color: '#14F195', marginBottom: 8, fontFamily: typography.stack}}>
               transaction sent
             </div>
             <div
               style={{
                 fontSize: 10,
                 fontFamily: 'monospace',
-                color: '#777',
-                marginBottom: 8,
+                color: '#999',
+                marginBottom: 16,
+                textAlign: 'center',
                 opacity: txHashOp,
               }}
             >
-              BZQs2Uez1v...QmyZz2
+              8ZQs2UezivjXCB6s...4hvF1TmuN6QmyZz2
             </div>
             <div
               style={{
-                border: `1px solid ${colors.purple}`,
-                borderRadius: 20,
-                padding: '5px 14px',
-                fontSize: 11,
+                border: `1.5px solid ${colors.purple}`,
+                borderRadius: 24,
+                padding: '9px 28px',
+                fontSize: 12,
                 color: colors.purple,
-                display: 'inline-block',
-                marginBottom: 6,
-                opacity: solscanOp,
                 fontFamily: typography.stack,
+                fontWeight: 600,
+                marginBottom: 12,
+                opacity: solscanOp,
               }}
             >
               view on solscan
             </div>
-            <div style={{fontSize: 11, color: '#aaa', opacity: backOp, fontFamily: typography.stack}}>
+            <div style={{fontSize: 12, color: '#aaa', opacity: backOp, fontFamily: typography.stack}}>
               back to telegram
             </div>
           </div>
         )}
 
-        {/* Buttons — connect state */}
-        {!showWallet && !showSubmitting && !showSuccess && (
-          <div style={{display: 'flex', gap: 8, marginBottom: 10, width: '100%', boxSizing: 'border-box'}}>
-            <div
-              style={{
-                flex: 1,
-                border: `1.5px solid #ddd`,
-                borderRadius: 10,
-                background: 'transparent',
-                padding: '8px 0',
-                fontSize: 12,
-                color: '#555',
-                textAlign: 'center',
-                fontFamily: typography.stack,
-              }}
-            >
-              scan QR
-            </div>
-            <div
-              style={{
-                flex: 1,
-                border: `1.5px solid #ddd`,
-                borderRadius: 10,
-                background: 'transparent',
-                padding: '8px 0',
-                fontSize: 12,
-                color: '#555',
-                textAlign: 'center',
-                fontFamily: typography.stack,
-              }}
-            >
-              connect wallet
-            </div>
-          </div>
-        )}
-
-        {/* Primary CTA button */}
-        {!showSubmitting && !showSuccess && (
-          <div
-            style={{
-              background: colors.purple,
-              borderRadius: 12,
-              padding: '11px 0',
-              textAlign: 'center',
-              fontSize: 14,
-              fontWeight: 700,
-              color: '#fff',
-              width: '100%',
-              boxSizing: 'border-box',
-              fontFamily: typography.stack,
-              boxShadow: showWallet
-                ? `0 0 ${glowPx}px ${colors.purpleGlow}, 0 0 ${glowPx * 2}px rgba(153,69,255,0.2)`
-                : 'none',
-            }}
-          >
-            {showWallet ? 'sign & send' : 'Connect Wallet'}
-          </div>
-        )}
-
         {/* Footer */}
-        <div style={{marginTop: 10, fontSize: 10, color: '#bbb', fontFamily: typography.stack, textAlign: 'center'}}>
+        <div style={{marginTop: 'auto', paddingTop: 12, fontSize: 10, color: '#bbb', fontFamily: typography.stack, textAlign: 'center'}}>
           raze.fun · @raze_aii
         </div>
       </div>
@@ -739,159 +784,265 @@ const PhantomScreenContent: React.FC<{frame: number}> = ({frame}) => {
       ? clamp(frame, 406, 414, 0.92, 1)
       : 1;
 
+  const divider = (
+    <div style={{height: 1, background: 'rgba(255,255,255,0.08)', margin: '10px 0'}} />
+  );
+
   return (
     <div
       style={{
         position: 'absolute',
         inset: 0,
-        background: '#1a1a1a',
+        background: '#1C1C1E',
         display: 'flex',
         flexDirection: 'column',
-        padding: '60px 20px 20px',
         fontFamily: typography.stack,
         overflowY: 'hidden',
       }}
     >
-      {/* Header */}
-      <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12}}>
-        <div
-          style={{
-            width: 30,
-            height: 30,
-            borderRadius: 15,
-            background: '#F0EDFF',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            overflow: 'hidden',
-          }}
-        >
-          <img src={mascotSrc} alt="" style={{width: '90%', height: '90%', objectFit: 'contain'}} />
-        </div>
-        <span style={{fontSize: 13, color: '#fff', fontWeight: 600}}>raze.fun</span>
-      </div>
+      {/* Status bar area — keep it dark */}
+      <div style={{height: phone.STATUS_H, background: '#1C1C1E'}} />
 
-      <div style={{fontSize: 17, fontWeight: 700, color: '#fff', marginBottom: 2}}>
-        Confirm transaction
-      </div>
-      <div style={{fontSize: 11, color: '#888', marginBottom: 10}}>
-        Balance changes are estimated...
-      </div>
-
-      {/* Warning */}
+      {/* Telegram nav bar — same as TMA but dark themed */}
       <div
         style={{
-          background: 'rgba(255, 180, 0, 0.12)',
-          border: '1px solid rgba(255, 180, 0, 0.4)',
-          borderRadius: 10,
-          padding: '7px 10px',
-          fontSize: 11,
-          color: '#FFB400',
-          marginBottom: 12,
-          lineHeight: 1.4,
+          height: phone.HEADER_H,
+          background: '#2C2C2E',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          flexShrink: 0,
         }}
       >
-        This domain is new. Only proceed if you trust this site.
+        <div style={{display: 'flex', alignItems: 'center', padding: '0 10px', height: '55%'}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: 3, minWidth: 70}}>
+            <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
+              <path d="M6 1L1 6L6 11" stroke={colors.purple} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span style={{fontSize: 11, color: colors.purple, fontWeight: 500}}>Telegram</span>
+          </div>
+          <div style={{flex: 1, textAlign: 'center'}}>
+            <span style={{fontSize: 13, fontWeight: 700, color: '#fff'}}>Raze — Sign Transaction</span>
+          </div>
+          <div style={{display: 'flex', flexDirection: 'column', gap: 2.5, minWidth: 24, alignItems: 'center'}}>
+            {[0,1,2].map(i => (
+              <div key={i} style={{width: 3, height: 3, borderRadius: '50%', background: '#888'}} />
+            ))}
+          </div>
+        </div>
+        <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, height: '45%'}}>
+          <svg width="8" height="10" viewBox="0 0 8 10" fill="none">
+            <rect x="1" y="4" width="6" height="5.5" rx="1" fill="#666"/>
+            <path d="M2.5 4V2.5C2.5 1.67 3.17 1 4 1C4.83 1 5.5 1.67 5.5 2.5V4" stroke="#666" strokeWidth="1.2" strokeLinecap="round"/>
+          </svg>
+          <span style={{fontSize: 10, color: '#666'}}>raze.fun</span>
+        </div>
       </div>
 
-      {/* Token rows */}
-      <div style={{display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+      {/* Phantom dialog content — scrollable body */}
+      <div
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '16px 16px 12px',
+          overflowY: 'hidden',
+        }}
+      >
+        {/* Header row: mascot avatar + raze.fun + X close */}
+        <div style={{display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12}}>
           <div
             style={{
-              width: 26,
-              height: 26,
-              borderRadius: 13,
-              background: '#2775CA',
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              background: '#E8B84B',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+              flexShrink: 0,
+            }}
+          >
+            <img src={mascotSrc} alt="" style={{width: '95%', height: '95%', objectFit: 'contain'}} />
+          </div>
+          <span style={{flex: 1, fontSize: 14, color: '#fff', fontWeight: 600}}>raze.fun</span>
+          <div
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 14,
+              background: 'rgba(255,255,255,0.1)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
             }}
           >
-            <span style={{fontSize: 10, fontWeight: 700, color: '#fff'}}>$</span>
+            <span style={{fontSize: 14, color: '#aaa', lineHeight: 1}}>✕</span>
           </div>
-          <div style={{flex: 1}}>
-            <div style={{fontSize: 12, color: '#fff', fontWeight: 500}}>USD Coin</div>
-            <div style={{fontSize: 10, color: '#888'}}>USDC</div>
-          </div>
-          <div style={{fontSize: 13, fontWeight: 700, color: '#CC4444'}}>-1 USDC</div>
         </div>
 
-        <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
-          <div
-            style={{
-              width: 26,
-              height: 26,
-              borderRadius: 13,
-              background: 'linear-gradient(135deg, #9945FF, #14F195)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <span style={{fontSize: 10, fontWeight: 700, color: '#fff'}}>◎</span>
-          </div>
-          <div style={{flex: 1}}>
-            <div style={{fontSize: 12, color: '#fff', fontWeight: 500}}>Solana</div>
-            <div style={{fontSize: 10, color: '#888'}}>SOL</div>
-          </div>
-          <div style={{fontSize: 13, fontWeight: 700, color: '#14F195'}}>+0.011414 SOL</div>
+        {/* Confirm transaction heading */}
+        <div style={{fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 6}}>
+          Confirm transaction
         </div>
-      </div>
+        <div style={{fontSize: 12, color: '#888', marginBottom: 12, lineHeight: 1.5}}>
+          Balance changes are estimated. Amounts and assets involved are not guaranteed.
+        </div>
 
-      {/* Details */}
-      {[
-        {label: 'Account', value: 'GfM3...xQ7z'},
-        {label: 'Network', value: 'Mainnet'},
-        {label: 'Network Fee', value: '~0.000005 SOL'},
-      ].map((row) => (
+        {/* Yellow warning box */}
         <div
-          key={row.label}
+          style={{
+            background: '#FFF3CD',
+            borderRadius: 10,
+            padding: '10px 12px',
+            fontSize: 12,
+            color: '#664D03',
+            marginBottom: 14,
+            lineHeight: 1.5,
+            display: 'flex',
+            gap: 8,
+            alignItems: 'flex-start',
+          }}
+        >
+          <span style={{fontSize: 14}}>⚠</span>
+          <span>This domain is new. Only proceed if you trust this site.</span>
+        </div>
+
+        {divider}
+
+        {/* Token rows */}
+        <div style={{display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 4}}>
+          {/* USDC row */}
+          <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                background: '#2775CA',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <span style={{fontSize: 12, fontWeight: 700, color: '#fff'}}>$</span>
+            </div>
+            <div style={{flex: 1}}>
+              <div style={{fontSize: 13, color: '#fff', fontWeight: 500}}>USD Coin</div>
+            </div>
+            <div style={{fontSize: 13, fontWeight: 700, color: '#FF6B6B'}}>-1 USDC</div>
+          </div>
+
+          {/* SOL row */}
+          <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                background: 'linear-gradient(135deg, #9945FF 0%, #666 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <span style={{fontSize: 14, fontWeight: 700, color: '#fff'}}>◎</span>
+            </div>
+            <div style={{flex: 1}}>
+              <div style={{fontSize: 13, color: '#fff', fontWeight: 500}}>Solana</div>
+            </div>
+            <div style={{fontSize: 13, fontWeight: 700, color: '#14F195'}}>+0.011414 SOL</div>
+          </div>
+        </div>
+
+        {divider}
+
+        {/* Detail rows */}
+        {[
+          {label: 'Account', value: 'Account 2'},
+          {label: 'Network', value: 'Solana'},
+          {label: 'Network Fee', value: '0.00009 SOL'},
+        ].map((row) => (
+          <div
+            key={row.label}
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              fontSize: 13,
+              marginBottom: 10,
+            }}
+          >
+            <span style={{color: '#888'}}>{row.label}</span>
+            <span style={{color: '#fff', fontWeight: 500}}>{row.value}</span>
+          </div>
+        ))}
+
+        {/* Advanced row */}
+        <div
           style={{
             display: 'flex',
             justifyContent: 'space-between',
-            fontSize: 11,
-            color: '#888',
-            marginBottom: 5,
+            alignItems: 'center',
+            fontSize: 13,
+            marginBottom: 4,
           }}
         >
-          <span>{row.label}</span>
-          <span style={{color: '#ccc'}}>{row.value}</span>
+          <span style={{color: '#888'}}>Advanced</span>
+          <span style={{color: '#888', fontSize: 16}}>›</span>
         </div>
-      ))}
 
-      {/* Buttons */}
-      <div style={{display: 'flex', gap: 8, marginTop: 14}}>
-        <div
-          style={{
-            flex: 1,
-            background: '#3a3a3a',
-            borderRadius: 10,
-            padding: '10px 0',
-            textAlign: 'center',
-            fontSize: 13,
-            color: '#ccc',
-            fontWeight: 600,
-          }}
-        >
-          Close
+        {divider}
+
+        {/* Buttons */}
+        <div style={{display: 'flex', gap: 10, marginTop: 4}}>
+          <div
+            style={{
+              flex: 1,
+              background: '#333',
+              borderRadius: 12,
+              padding: '13px 0',
+              textAlign: 'center',
+              fontSize: 15,
+              color: '#fff',
+              fontWeight: 600,
+            }}
+          >
+            Close
+          </div>
+          <div
+            style={{
+              flex: 1,
+              background: colors.purple,
+              borderRadius: 12,
+              padding: '13px 0',
+              textAlign: 'center',
+              fontSize: 15,
+              color: '#fff',
+              fontWeight: 700,
+              transform: `scale(${confirmTapScale})`,
+            }}
+          >
+            Confirm
+          </div>
         </div>
+
+        {/* Footer text */}
         <div
           style={{
-            flex: 1,
-            background: colors.purple,
-            borderRadius: 10,
-            padding: '10px 0',
+            marginTop: 10,
+            fontSize: 11,
+            color: '#666',
             textAlign: 'center',
-            fontSize: 13,
-            color: '#fff',
-            fontWeight: 700,
-            transform: `scale(${confirmTapScale})`,
+            fontFamily: typography.stack,
           }}
         >
-          Confirm
+          Only confirm if you trust this website.
         </div>
       </div>
     </div>
@@ -1016,9 +1167,12 @@ export const SwapFlow: React.FC = () => {
   const showHook = frame < 62;
   const showPhone = frame >= 55 && frame < 665;
   const showTelegramChat = frame >= 55 && frame < 222;
-  const showTmaConnect = frame >= 210 && frame < 330;
-  const showTmaConnected = frame >= 280 && frame < 342; // wallet connected crossfade
-  const showPhantom = frame >= 330 && frame < 440;
+  // TMA connect: fades in at 210, fully gone by 330 (before Phantom starts)
+  const showTmaConnect = frame >= 210 && frame < 336;
+  // TMA wallet connected: fades in at 280, fully gone by 330
+  const showTmaConnected = frame >= 280 && frame < 336;
+  // Phantom: fades in at 330, fully gone by 420
+  const showPhantom = frame >= 330 && frame < 432;
   const showSubmitting = frame >= 420 && frame < 492;
   const showSuccess = frame >= 480 && frame < 575;
   const showChatConfirm = frame >= 558 && frame < 665;
@@ -1027,47 +1181,52 @@ export const SwapFlow: React.FC = () => {
   // Phone fade-in (scenes 2+)
   const phoneOpacity = clamp(frame, 55, 72, 0, 1);
 
-  // Cross-fade opacities — each layer fades in then fades out, no two at full opacity simultaneously
+  // Cross-fade opacities — quick 6-frame snaps so no two screens are visible simultaneously
   const chatOpacity =
-    frame < 60 ? 0 : frame < 210 ? clamp(frame, 60, 72, 0, 1) : clamp(frame, 210, 222, 1, 0);
+    frame < 60 ? 0 : frame < 210 ? clamp(frame, 60, 72, 0, 1) : clamp(frame, 210, 216, 1, 0);
 
+  // TMA connect: fade in 210-216, hold, snap out 324-330 (fully gone before Phantom at 330)
   const tmaConnectOpacity =
     frame < 210
       ? 0
-      : frame < 318
-      ? clamp(frame, 210, 222, 0, 1)
-      : clamp(frame, 318, 330, 1, 0);
+      : frame < 324
+      ? clamp(frame, 210, 216, 0, 1)
+      : clamp(frame, 324, 330, 1, 0);
 
+  // TMA wallet connected: fade in 280-286, snap out 324-330
   const tmaConnectedOpacity =
     frame < 280
       ? 0
-      : frame < 330
-      ? clamp(frame, 280, 292, 0, 1)
-      : clamp(frame, 330, 342, 1, 0);
+      : frame < 324
+      ? clamp(frame, 280, 286, 0, 1)
+      : clamp(frame, 324, 330, 1, 0);
 
+  // Phantom: fade in 330-336 (starts right after TMA is gone), snap out 420-426
   const phantomOpacity =
     frame < 330
       ? 0
       : frame < 420
-      ? clamp(frame, 330, 342, 0, 1)
-      : clamp(frame, 420, 432, 1, 0);
+      ? clamp(frame, 330, 336, 0, 1)
+      : clamp(frame, 420, 426, 1, 0);
 
+  // Submitting: fade in 426-432 (after Phantom gone), snap out 468-474
   const submittingOpacity =
-    frame < 420
+    frame < 426
       ? 0
       : frame < 468
-      ? clamp(frame, 432, 444, 0, 1)
-      : clamp(frame, 468, 480, 1, 0);
+      ? clamp(frame, 426, 432, 0, 1)
+      : clamp(frame, 468, 474, 1, 0);
 
+  // Success: fade in 474-480, snap out 558-564
   const successOpacity =
-    frame < 480
+    frame < 474
       ? 0
       : frame < 558
-      ? clamp(frame, 480, 492, 0, 1)
-      : clamp(frame, 558, 570, 1, 0);
+      ? clamp(frame, 474, 480, 0, 1)
+      : clamp(frame, 558, 564, 1, 0);
 
   const chatConfirmOpacity =
-    frame < 558 ? 0 : clamp(frame, 558, 570, 0, 1);
+    frame < 558 ? 0 : clamp(frame, 564, 570, 0, 1);
 
   return (
     <div style={{position: 'relative', width: VIEWPORT_W, height: VIEWPORT_H, overflow: 'hidden'}}>
