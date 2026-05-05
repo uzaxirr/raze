@@ -312,6 +312,8 @@ async def build_transaction(session_id: str, body: BuildRequest, t: Optional[str
 
     if session.type == "swap":
         return await _build_swap(session, body.walletAddress, db)
+    elif session.type in ("sol_transfer", "token_transfer"):
+        return await _build_transfer(session, body.walletAddress, db)
     else:
         raise HTTPException(400, f"build not yet implemented for {session.type}")
 
@@ -376,6 +378,160 @@ async def _build_swap(session: SignSession, wallet_address: str, db: Session):
         "priceImpact": session.price_impact,
         "feeBps": REFERRAL_FEE_BPS,
         "feeAmount": float(session.fee_amount) if session.fee_amount else None,
+    }
+
+
+async def _build_transfer(session: SignSession, wallet_address: str, db: Session):
+    """Build a SOL or SPL token transfer transaction."""
+    from solders.pubkey import Pubkey
+    from solders.hash import Hash
+    from solders.message import Message
+    from solders.transaction import Transaction
+    from solders.system_program import transfer, TransferParams
+    import base64
+
+    RAZE_FEE_ACCOUNT = Pubkey.from_string(os.getenv("RAZE_TRANSFER_FEE_ACCOUNT", "D4M5cGfxFW9jZ4uLL24HPYMYur2cRGPdDZDGFVitYqpJ"))
+
+    from_pubkey = Pubkey.from_string(wallet_address)
+    to_address = session.to_address
+    if not to_address:
+        raise HTTPException(400, "missing recipient address")
+
+    # Resolve .sol domains
+    if to_address.endswith(".sol"):
+        try:
+            async with httpx.AsyncClient(timeout=5) as client:
+                helius_key = os.getenv("HELIUS_API_KEY", "")
+                resp = await client.post(
+                    f"https://mainnet.helius-rpc.com/?api-key={helius_key}",
+                    json={"jsonrpc": "2.0", "id": 1, "method": "getAssetsByAuthority",
+                          "params": {"authorityAddress": to_address}},
+                )
+                # Fallback: use SNS resolution
+        except Exception:
+            pass
+        raise HTTPException(400, f"cannot resolve {to_address} — use a wallet address directly")
+
+    to_pubkey = Pubkey.from_string(to_address)
+    amount = float(session.amount)
+
+    # Get recent blockhash
+    async with httpx.AsyncClient(timeout=10) as client:
+        rpc_resp = await client.post(
+            SOLANA_RPC_URL,
+            json={"jsonrpc": "2.0", "id": 1, "method": "getLatestBlockhash", "params": [{"commitment": "finalized"}]},
+        )
+    blockhash_data = rpc_resp.json().get("result", {}).get("value", {})
+    blockhash = Hash.from_string(blockhash_data["blockhash"])
+    last_valid = blockhash_data.get("lastValidBlockHeight", 0)
+
+    if session.type == "sol_transfer":
+        lamports = int(amount * 1_000_000_000)
+        fee_lamports = (lamports * TRANSFER_FEE_BPS) // 10_000
+        send_lamports = lamports - fee_lamports
+
+        instructions = [transfer(TransferParams(from_pubkey=from_pubkey, to_pubkey=to_pubkey, lamports=send_lamports))]
+        if fee_lamports > 0:
+            instructions.append(transfer(TransferParams(from_pubkey=from_pubkey, to_pubkey=RAZE_FEE_ACCOUNT, lamports=fee_lamports)))
+
+        msg = Message.new_with_blockhash(instructions, from_pubkey, blockhash)
+        tx = Transaction.new_unsigned(msg)
+        tx_b64 = base64.b64encode(bytes(tx)).decode()
+
+        fee_human = fee_lamports / 1_000_000_000
+        send_human = send_lamports / 1_000_000_000
+
+    else:  # token_transfer
+        from solders.instruction import Instruction, AccountMeta
+        from spl.token.constants import TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID
+        from spl.token.instructions import get_associated_token_address, transfer_checked, TransferCheckedParams
+
+        mint_address = _resolve_mint(session.from_token)
+        if not mint_address:
+            raise HTTPException(400, f"unknown token: {session.from_token}")
+        mint_pubkey = Pubkey.from_string(mint_address)
+
+        decimals = DECIMALS.get(session.from_token.upper(), 6) if session.from_token else 6
+        token_amount = int(amount * (10 ** decimals))
+        fee_amount = (token_amount * TRANSFER_FEE_BPS) // 10_000
+        send_amount = token_amount - fee_amount
+
+        from_ata = get_associated_token_address(from_pubkey, mint_pubkey)
+        to_ata = get_associated_token_address(to_pubkey, mint_pubkey)
+        fee_ata = get_associated_token_address(RAZE_FEE_ACCOUNT, mint_pubkey)
+
+        instructions = []
+
+        # Check if recipient ATA exists — create if needed
+        async with httpx.AsyncClient(timeout=10) as client:
+            for ata, owner in [(to_ata, to_pubkey), (fee_ata, RAZE_FEE_ACCOUNT)]:
+                resp = await client.post(
+                    SOLANA_RPC_URL,
+                    json={"jsonrpc": "2.0", "id": 1, "method": "getAccountInfo", "params": [str(ata), {"encoding": "base64"}]},
+                )
+                acct = resp.json().get("result", {}).get("value")
+                if not acct:
+                    # Create ATA instruction
+                    instructions.append(Instruction(
+                        program_id=ASSOCIATED_TOKEN_PROGRAM_ID,
+                        accounts=[
+                            AccountMeta(pubkey=from_pubkey, is_signer=True, is_writable=True),
+                            AccountMeta(pubkey=ata, is_signer=False, is_writable=True),
+                            AccountMeta(pubkey=owner, is_signer=False, is_writable=False),
+                            AccountMeta(pubkey=mint_pubkey, is_signer=False, is_writable=False),
+                            AccountMeta(pubkey=Pubkey.from_string("11111111111111111111111111111111"), is_signer=False, is_writable=False),
+                            AccountMeta(pubkey=TOKEN_PROGRAM_ID, is_signer=False, is_writable=False),
+                        ],
+                        data=bytes(),
+                    ))
+
+        # Transfer to recipient
+        instructions.append(transfer_checked(TransferCheckedParams(
+            program_id=TOKEN_PROGRAM_ID,
+            source=from_ata,
+            mint=mint_pubkey,
+            dest=to_ata,
+            owner=from_pubkey,
+            amount=send_amount,
+            decimals=decimals,
+        )))
+
+        # Fee transfer
+        if fee_amount > 0:
+            instructions.append(transfer_checked(TransferCheckedParams(
+                program_id=TOKEN_PROGRAM_ID,
+                source=from_ata,
+                mint=mint_pubkey,
+                dest=fee_ata,
+                owner=from_pubkey,
+                amount=fee_amount,
+                decimals=decimals,
+            )))
+
+        msg = Message.new_with_blockhash(instructions, from_pubkey, blockhash)
+        tx = Transaction.new_unsigned(msg)
+        tx_b64 = base64.b64encode(bytes(tx)).decode()
+
+        fee_human = fee_amount / (10 ** decimals)
+        send_human = send_amount / (10 ** decimals)
+
+    # Update session
+    session.status = "building"
+    session.execution_mode = "wallet_broadcast"
+    session.fee_bps = TRANSFER_FEE_BPS
+    session.fee_amount = Decimal(str(fee_human))
+    session.output_amount = Decimal(str(send_human))
+    db.commit()
+
+    _log_event(db, session.id, "tx_built_transfer", {"toAddress": to_address, "feeAmount": fee_human})
+
+    return {
+        "unsignedTransaction": tx_b64,
+        "requestId": None,
+        "outputAmount": send_human,
+        "feeBps": TRANSFER_FEE_BPS,
+        "feeAmount": fee_human,
+        "lastValidBlockHeight": last_valid,
     }
 
 
