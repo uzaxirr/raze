@@ -443,8 +443,40 @@ async def _build_transfer(session: SignSession, wallet_address: str, db: Session
 
     else:  # token_transfer
         from solders.instruction import Instruction, AccountMeta
-        from spl.token.constants import TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID
-        from spl.token.instructions import get_associated_token_address, transfer_checked, TransferCheckedParams
+
+        TOKEN_PROGRAM = Pubkey.from_string("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
+        ASSOC_TOKEN_PROGRAM = Pubkey.from_string("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL")
+        SYSTEM_PROGRAM = Pubkey.from_string("11111111111111111111111111111111")
+
+        def _get_ata(owner: Pubkey, mint: Pubkey) -> Pubkey:
+            seeds = [bytes(owner), bytes(TOKEN_PROGRAM), bytes(mint)]
+            return Pubkey.find_program_address(seeds, ASSOC_TOKEN_PROGRAM)[0]
+
+        def _create_ata_ix(payer: Pubkey, ata: Pubkey, owner: Pubkey, mint: Pubkey) -> Instruction:
+            return Instruction(
+                program_id=ASSOC_TOKEN_PROGRAM,
+                accounts=[
+                    AccountMeta(pubkey=payer, is_signer=True, is_writable=True),
+                    AccountMeta(pubkey=ata, is_signer=False, is_writable=True),
+                    AccountMeta(pubkey=owner, is_signer=False, is_writable=False),
+                    AccountMeta(pubkey=mint, is_signer=False, is_writable=False),
+                    AccountMeta(pubkey=SYSTEM_PROGRAM, is_signer=False, is_writable=False),
+                    AccountMeta(pubkey=TOKEN_PROGRAM, is_signer=False, is_writable=False),
+                ],
+                data=bytes(),
+            )
+
+        def _spl_transfer_ix(source: Pubkey, dest: Pubkey, owner: Pubkey, amount: int) -> Instruction:
+            data = bytes([3]) + amount.to_bytes(8, "little")
+            return Instruction(
+                program_id=TOKEN_PROGRAM,
+                accounts=[
+                    AccountMeta(pubkey=source, is_signer=False, is_writable=True),
+                    AccountMeta(pubkey=dest, is_signer=False, is_writable=True),
+                    AccountMeta(pubkey=owner, is_signer=True, is_writable=False),
+                ],
+                data=data,
+            )
 
         mint_address = _resolve_mint(session.from_token)
         if not mint_address:
@@ -456,13 +488,13 @@ async def _build_transfer(session: SignSession, wallet_address: str, db: Session
         fee_amount = (token_amount * TRANSFER_FEE_BPS) // 10_000
         send_amount = token_amount - fee_amount
 
-        from_ata = get_associated_token_address(from_pubkey, mint_pubkey)
-        to_ata = get_associated_token_address(to_pubkey, mint_pubkey)
-        fee_ata = get_associated_token_address(RAZE_FEE_ACCOUNT, mint_pubkey)
+        from_ata = _get_ata(from_pubkey, mint_pubkey)
+        to_ata = _get_ata(to_pubkey, mint_pubkey)
+        fee_ata = _get_ata(RAZE_FEE_ACCOUNT, mint_pubkey)
 
         instructions = []
 
-        # Check if recipient ATA exists — create if needed
+        # Check if recipient + fee ATAs exist — create if needed
         async with httpx.AsyncClient(timeout=10) as client:
             for ata, owner in [(to_ata, to_pubkey), (fee_ata, RAZE_FEE_ACCOUNT)]:
                 resp = await client.post(
@@ -471,42 +503,14 @@ async def _build_transfer(session: SignSession, wallet_address: str, db: Session
                 )
                 acct = resp.json().get("result", {}).get("value")
                 if not acct:
-                    # Create ATA instruction
-                    instructions.append(Instruction(
-                        program_id=ASSOCIATED_TOKEN_PROGRAM_ID,
-                        accounts=[
-                            AccountMeta(pubkey=from_pubkey, is_signer=True, is_writable=True),
-                            AccountMeta(pubkey=ata, is_signer=False, is_writable=True),
-                            AccountMeta(pubkey=owner, is_signer=False, is_writable=False),
-                            AccountMeta(pubkey=mint_pubkey, is_signer=False, is_writable=False),
-                            AccountMeta(pubkey=Pubkey.from_string("11111111111111111111111111111111"), is_signer=False, is_writable=False),
-                            AccountMeta(pubkey=TOKEN_PROGRAM_ID, is_signer=False, is_writable=False),
-                        ],
-                        data=bytes(),
-                    ))
+                    instructions.append(_create_ata_ix(from_pubkey, ata, owner, mint_pubkey))
 
         # Transfer to recipient
-        instructions.append(transfer_checked(TransferCheckedParams(
-            program_id=TOKEN_PROGRAM_ID,
-            source=from_ata,
-            mint=mint_pubkey,
-            dest=to_ata,
-            owner=from_pubkey,
-            amount=send_amount,
-            decimals=decimals,
-        )))
+        instructions.append(_spl_transfer_ix(from_ata, to_ata, from_pubkey, send_amount))
 
         # Fee transfer
         if fee_amount > 0:
-            instructions.append(transfer_checked(TransferCheckedParams(
-                program_id=TOKEN_PROGRAM_ID,
-                source=from_ata,
-                mint=mint_pubkey,
-                dest=fee_ata,
-                owner=from_pubkey,
-                amount=fee_amount,
-                decimals=decimals,
-            )))
+            instructions.append(_spl_transfer_ix(from_ata, fee_ata, from_pubkey, fee_amount))
 
         msg = Message.new_with_blockhash(instructions, from_pubkey, blockhash)
         tx = Transaction.new_unsigned(msg)
