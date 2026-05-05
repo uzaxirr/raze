@@ -716,12 +716,22 @@ async def create_signing_session(
     try:
         import httpx
         # Intent-only payload — NO pre-built transaction
+        # Map fields from both swap results and transfer results:
+        #   Swap: from_token, to_token, input_amount
+        #   Transfer: token (symbol), mint, amount, to
+        from_token = swap_params.get("from_token") or swap_params.get("fromSymbol") or swap_params.get("token") or ""
+        to_token = swap_params.get("to_token") or swap_params.get("toSymbol") or ""
+        amount = swap_params.get("input_amount") or swap_params.get("amount", 0)
+        # For transfers, if from_token is empty but mint is present, use the mint
+        if not from_token and swap_params.get("mint"):
+            from_token = swap_params["mint"]
+
         payload: dict = {
             "type": swap_params.get("type", "swap"),
             "walletAddress": session_state.get("external_wallet_address") or session_state.get("wallet_address"),
-            "fromToken": swap_params.get("from_token", swap_params.get("fromSymbol", "")),
-            "toToken": swap_params.get("to_token", swap_params.get("toSymbol", "")),
-            "amount": swap_params.get("input_amount", swap_params.get("amount", 0)),
+            "fromToken": from_token,
+            "toToken": to_token,
+            "amount": amount,
             "toAddress": swap_params.get("to", swap_params.get("toAddress", "")),
             "slippageBps": 50,
             "network": session_state.get("solana_network", "mainnet"),
@@ -1959,14 +1969,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     except Exception:
                         await update.message.reply_text(text[:4096])
 
-                tg_username = update.effective_user.username or update.effective_user.first_name or ""
-                bouncer_user_id = f"{user_id}:{tg_username}" if tg_username else str(user_id)
-
                 try:
                     async for event in client.run_agent_stream(
                         agent_id="bouncer",
                         message=message_text,
-                        user_id=bouncer_user_id,
+                        user_id=str(user_id),
                         session_id=bouncer_session_id,
                         session_state=bouncer_session_state,
                     ):
