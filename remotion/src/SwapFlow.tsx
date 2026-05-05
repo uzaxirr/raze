@@ -301,9 +301,9 @@ const PhoneFrame: React.FC<PhoneProps> = ({children, extraTransform = '', opacit
 
 const Hook: React.FC<{frame: number}> = ({frame}) => {
   const lines: {text: string; color: string; start: number}[] = [
-    {text: 'your keys.', color: '#1A1A1A', start: 0},
-    {text: 'your wallet.', color: '#1A1A1A', start: 15},
-    {text: 'one message.', color: colors.purple, start: 30},
+    {text: 'text raze.', color: '#1A1A1A', start: 0},
+    {text: 'sign from your wallet.', color: '#1A1A1A', start: 15},
+    {text: 'your keys never leave your device.', color: colors.purple, start: 30},
   ];
 
   return (
@@ -521,6 +521,41 @@ const TelegramChatContent: React.FC<{frame: number; showConfirm?: boolean}> = ({
         gap: 2,
       }}
     >
+      {/* Previous conversation — already visible when chat opens */}
+      <BlueUserBubble
+        text="check my balance"
+        startFrame={-999}
+        cpf={99}
+        timestamp="9:38"
+        frame={frame}
+      />
+      <RazeBubble
+        lines={[
+          {text: '12.4 SOL ($2,100), 45M BONK ($890), 2,100 USDC.', frame: -999},
+          {text: 'total: $5,090. bonk carrying your portfolio as usual.', frame: -999},
+        ]}
+        mascotSrc={mascotSrc}
+        timestamp="9:38"
+        frame={frame}
+      />
+      <BlueUserBubble
+        text="is $POPCAT safe?"
+        startFrame={-999}
+        cpf={99}
+        timestamp="9:39"
+        frame={frame}
+      />
+      <RazeBubble
+        lines={[
+          {text: 'mint revoked ✅ lp burned ✅ top 10: 14.7%.', frame: -999},
+          {text: 'score 8/8. cleaner than your trading history.', frame: -999},
+        ]}
+        mascotSrc={mascotSrc}
+        timestamp="9:40"
+        frame={frame}
+      />
+
+      {/* New swap conversation */}
       <BlueUserBubble
         text="swap 1 usdc to sol"
         startFrame={showConfirm ? -999 : 75}
@@ -1468,7 +1503,7 @@ export const SwapFlow: React.FC = () => {
       {showEndCard && <SwapEndCard frame={frame} />}
 
       {/* Audio */}
-      <Audio src={staticFile('music/bg-music.mp3')} volume={0.4} startFrom={0} />
+      <Audio src={staticFile('music/fresh-beginning.mp3')} volume={0.35} startFrom={0} />
 
       {/* Film grain — always on top */}
       <FilmGrain frame={frame} />
