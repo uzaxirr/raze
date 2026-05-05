@@ -38,7 +38,7 @@ function lerp(frame: number, a: number, b: number, from: number, to: number, eas
 }
 
 function getCameraState(frame: number): {scale: number; y: number} {
-  // Scene 2: Telegram Chat (frames 60-210)
+  // Scene 2: Telegram Chat (frames 75-210)
   if (frame < 75) {
     return {scale: 1.0, y: 0};
   }
@@ -295,15 +295,15 @@ const PhoneFrame: React.FC<PhoneProps> = ({children, extraTransform = '', opacit
 );
 
 // ---------------------------------------------------------------------------
-// Scene 1 — HOOK  (frames 0–60)
+// Scene 1 — HOOK  (frames 0–75)
 // Light lavender bg, dark text
 // ---------------------------------------------------------------------------
 
 const Hook: React.FC<{frame: number}> = ({frame}) => {
   const lines: {text: string; color: string; start: number}[] = [
-    {text: 'text raze.', color: '#1A1A1A', start: 0},
-    {text: 'sign from your wallet.', color: '#1A1A1A', start: 15},
-    {text: 'your keys never leave your device.', color: colors.purple, start: 30},
+    {text: 'text raze.', color: '#1A1A1A', start: 5},
+    {text: 'sign from your wallet.', color: '#1A1A1A', start: 22},
+    {text: 'your keys never leave your device.', color: colors.purple, start: 39},
   ];
 
   return (
@@ -558,7 +558,7 @@ const TelegramChatContent: React.FC<{frame: number; showConfirm?: boolean}> = ({
       {/* New swap conversation */}
       <BlueUserBubble
         text="swap 1 usdc to sol"
-        startFrame={showConfirm ? -999 : 75}
+        startFrame={showConfirm ? -999 : 90}
         cpf={showConfirm ? 99 : 0.9}
         timestamp="9:41"
         frame={frame}
@@ -1364,7 +1364,7 @@ export const SwapFlow: React.FC = () => {
   // Scene 7: Chat confirm 570–660  (crossfade in: 570-582)
   // Scene 8: End card     660-750
 
-  const showHook = frame < 62;
+  const showHook = frame < 77;
   const showPhone = frame >= 55 && frame < 665;
   const showTelegramChat = frame >= 55 && frame < 222;
   // TMA connect: fades in at 210, fully gone by 330 (before Phantom starts)
@@ -1383,7 +1383,7 @@ export const SwapFlow: React.FC = () => {
 
   // Cross-fade opacities — quick 6-frame snaps so no two screens are visible simultaneously
   const chatOpacity =
-    frame < 60 ? 0 : frame < 210 ? clamp(frame, 60, 72, 0, 1) : clamp(frame, 210, 216, 1, 0);
+    frame < 75 ? 0 : frame < 210 ? clamp(frame, 75, 87, 0, 1) : clamp(frame, 210, 216, 1, 0);
 
   // TMA connect: fade in 210-216, hold, snap out 324-330 (fully gone before Phantom at 330)
   const tmaConnectOpacity =
