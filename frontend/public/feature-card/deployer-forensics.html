@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Raze — Feature Card</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1080px; height: 1080px;
+    background: linear-gradient(180deg, #FAFAFE 0%, #F0EDFF 50%, #E8E0FF 100%);
+    font-family: "Inter", sans-serif;
+    display: flex; flex-direction: column;
+    align-items: center;
+    padding: 36px 40px 0;
+  }
+
+  /* Headline */
+  .headline { text-align: center; margin-bottom: 24px; }
+  .headline h1 {
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 52px; font-weight: 700;
+    color: #1A1A1A; letter-spacing: -0.03em; line-height: 1.1;
+  }
+  .headline h1 .purple { color: #9945FF; }
+  .subline { font-size: 18px; color: #888; font-style: italic; margin-top: 6px; }
+
+  /* iPhone — thin bezel, clean, matching reference */
+  .phone {
+    width: 440px;
+    background: #000;
+    border-radius: 48px;
+    padding: 8px;
+    box-shadow:
+      0 20px 50px rgba(0,0,0,0.15),
+      0 8px 20px rgba(0,0,0,0.08);
+    display: flex; flex-direction: column;
+    flex: 1;
+    margin-bottom: 0;
+    max-height: 820px;
+  }
+
+  /* Screen */
+  .scr {
+    flex: 1; border-radius: 42px;
+    overflow: hidden; display: flex; flex-direction: column;
+    background: #EDEDED;
+    position: relative;
+  }
+
+  /* Dynamic Island */
+  .di {
+    position: absolute;
+    top: 10px; left: 50%; transform: translateX(-50%);
+    width: 100px; height: 26px;
+    background: #000; border-radius: 14px;
+    z-index: 20;
+  }
+  .di::after {
+    content: '';
+    position: absolute; right: 18px; top: 50%; transform: translateY(-50%);
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #1a2040;
+  }
+
+  /* Status bar */
+  .sb {
+    height: 52px; background: #517DA2;
+    display: flex; align-items: flex-end; justify-content: space-between;
+    padding: 0 30px 8px; color: #fff;
+    font-family: "JetBrains Mono", monospace; font-size: 15px; font-weight: 700;
+  }
+  .sb-r { font-size: 13px; }
+
+  /* Chat header */
+  .ch {
+    background: #517DA2; color: #fff;
+    padding: 4px 18px 12px; display: flex; align-items: center; gap: 10px;
+  }
+  .ch-back { font-size: 22px; opacity: 0.7; }
+  .ch-av {
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ch-av img { width: 36px; height: 36px; object-fit: contain; }
+  .ch-nm { font-size: 16px; font-weight: 600; }
+  .ch-st { font-size: 11px; opacity: 0.7; }
+
+  /* Messages */
+  .msgs {
+    flex: 1; padding: 12px 12px;
+    display: flex; flex-direction: column; gap: 7px;
+    overflow: hidden; background: #EDEDED;
+  }
+
+  /* User bubble */
+  .u {
+    align-self: flex-end; max-width: 70%;
+    background: #EEFFDE; color: #1A1A1A;
+    border-radius: 16px 16px 4px 16px;
+    padding: 8px 14px; font-size: 15px; font-weight: 500;
+    line-height: 1.4;
+  }
+
+  /* Bot row */
+  .br {
+    display: flex; gap: 8px; align-items: flex-start;
+    max-width: 82%;
+  }
+  .ba {
+    width: 32px; height: 32px;
+    flex-shrink: 0; margin-top: 2px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ba img { width: 32px; height: 32px; object-fit: contain; }
+  .b {
+    background: #fff; border-radius: 4px 16px 16px 16px;
+    padding: 10px 14px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    font-size: 14px; color: #1A1A1A; line-height: 1.5;
+  }
+  .b .bl { font-family: "JetBrains Mono", monospace; font-size: 10px; color: #9945FF; font-weight: 700; margin-bottom: 3px; }
+  .b .r { color: #CC0000; font-weight: 600; }
+  .b .g { color: #14A86C; font-weight: 600; }
+  .b .p { color: #9945FF; font-weight: 700; font-family: "JetBrains Mono", monospace; font-size: 12px; }
+  .b .dim { color: #888; font-size: 13px; }
+
+  /* Composer */
+  .co {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 14px; background: #F6F6F7;
+    border-top: 1px solid #ddd;
+  }
+  .co-in {
+    flex: 1; background: #fff; border-radius: 20px;
+    padding: 10px 16px; font-size: 14px; color: #bbb;
+    border: 1px solid #ddd;
+  }
+  .co-snd {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: #9945FF;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 14px;
+  }
+
+  /* Footer */
+  .foot {
+    padding: 24px 0 40px; text-align: center;
+  }
+  .foot-cta {
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 22px; font-weight: 700; color: #9945FF;
+  }
+  .foot-sub {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 14px; color: #BBB; margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+
+<div class="headline">
+  <h1>is this deployer <span class="purple">a serial rugger?</span></h1>
+  <div class="subline">one message. raze checks their entire history.</div>
+</div>
+
+<div class="phone">
+  <div class="scr">
+    <div class="di"></div>
+    <div class="sb"><div>9:41</div><div class="sb-r">●●● ▲ ■</div></div>
+    <div class="ch">
+      <div class="ch-back">‹</div>
+      <div class="ch-av"><img src="../assets/imp-expressions/waving.png" alt=""></div>
+      <div><div class="ch-nm">Raze</div><div class="ch-st">bot · online</div></div>
+    </div>
+
+    <div class="msgs">
+      <div class="u">check the deployer of $LUNA2</div>
+      <div class="br">
+        <div class="ba"><img src="../assets/imp-expressions/waving.png" alt=""></div>
+        <div class="b">
+          <div class="bl">raze</div>
+          deployer: <span class="p">7xKp...3mNq</span><br><br>
+          previous launches:<br>
+          <span class="r">1. $FAKEMOON</span> <span class="dim">— LP pulled, -94%</span><br>
+          <span class="r">2. $SAFERUG</span> <span class="dim">— minted 400M tokens</span><br><br>
+          <span class="r">100% rug rate.</span> mint auth STILL ENABLED.<br>
+          run. don't walk. run. 💀
+        </div>
+      </div>
+
+      <div class="u">what about $PEPEFLY? my friend told me about it</div>
+      <div class="br">
+        <div class="ba"><img src="../assets/imp-expressions/waving.png" alt=""></div>
+        <div class="b">
+          <div class="bl">raze</div>
+          different deployer. clean history.<br>
+          mint: REVOKED ✅ LP: burned ✅ top 10: 8.4% ✅<br><br>
+          <span class="g">score 7/8.</span> actually decent.<br>
+          <span class="dim">your friend might not be an idiot.</span>
+        </div>
+      </div>
+
+      <div class="u">swap 2 SOL to $PEPEFLY</div>
+      <div class="br">
+        <div class="ba"><img src="../assets/imp-expressions/waving.png" alt=""></div>
+        <div class="b">
+          <div class="bl">raze</div>
+          <span class="g">done.</span> 2 SOL → 4.2M PEPEFLY via jupiter.<br>
+          <span class="dim">trailing stop? knowing you, you'll diamond hand this to zero.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="co">
+      <div class="co-in">Message...</div>
+      <div class="co-snd">↑</div>
+    </div>
+  </div>
+</div>
+
+<div class="foot">
+  <div class="foot-cta">raze.fun</div>
+  <div class="foot-sub">everything solana · one chat</div>
+</div>
+
+</body>
+</html>

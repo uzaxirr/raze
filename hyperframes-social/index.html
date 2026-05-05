@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1080">
+</head>
+<body>
+
+<div data-composition-id="raze-chat-demo" data-width="1080" data-height="1080" data-start="0" data-duration="18">
+
+  <!-- Scene 1: Chat conversation (0s - 14.5s) -->
+  <div id="scene-chat" class="clip" data-start="0" data-duration="14.5" data-track-index="0">
+    <div class="scene-content">
+
+      <!-- Chat header -->
+      <div class="chat-header" id="chat-header">
+        <div class="avatar">
+          <div class="avatar-gradient"></div>
+        </div>
+        <div class="header-text">
+          <div class="header-name">Raze</div>
+          <div class="header-status">online</div>
+        </div>
+      </div>
+
+      <!-- Chat area -->
+      <div class="chat-area" id="chat-area">
+
+        <!-- User message 1: "scan my wallet" -->
+        <div class="bubble-row user" id="user-1">
+          <div class="bubble user-bubble" id="user-1-bubble">
+            <span id="user-1-text"></span>
+            <span class="cursor" id="cursor-1">|</span>
+          </div>
+        </div>
+
+        <!-- Typing indicator 1 -->
+        <div class="bubble-row bot" id="typing-1">
+          <div class="mini-mascot" id="mascot-1"></div>
+          <div class="bubble bot-bubble typing-bubble">
+            <div class="dot d1"></div>
+            <div class="dot d2"></div>
+            <div class="dot d3"></div>
+          </div>
+        </div>
+
+        <!-- Bot reply 1 -->
+        <div class="bubble-row bot" id="bot-1">
+          <div class="mini-mascot"></div>
+          <div class="bubble bot-bubble">$3.3k in stables. 4 dust attacks. 0.03 SOL — one failed tx from broke.</div>
+        </div>
+
+        <!-- Bot reply 2 (follow-up) -->
+        <div class="bubble-row bot" id="bot-2">
+          <div class="spacer-mascot"></div>
+          <div class="bubble bot-bubble">someone sent you 3,000 USDG yesterday. want me to trace?</div>
+        </div>
+
+        <!-- User message 2: "trace it" -->
+        <div class="bubble-row user" id="user-2">
+          <div class="bubble user-bubble" id="user-2-bubble">
+            <span id="user-2-text"></span>
+            <span class="cursor" id="cursor-2">|</span>
+          </div>
+        </div>
+
+        <!-- Typing indicator 2 -->
+        <div class="bubble-row bot" id="typing-2">
+          <div class="mini-mascot"></div>
+          <div class="bubble bot-bubble typing-bubble">
+            <div class="dot d1"></div>
+            <div class="dot d2"></div>
+            <div class="dot d3"></div>
+          </div>
+        </div>
+
+        <!-- Bot reply 3 -->
+        <div class="bubble-row bot" id="bot-3">
+          <div class="mini-mascot"></div>
+          <div class="bubble bot-bubble">sender has <strong>10,533 SOL</strong>. they gave you pocket change.</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Scene 2: End card (14.5s - 18s) -->
+  <div id="scene-end" class="clip" data-start="14.5" data-duration="3.5" data-track-index="0">
+    <div class="end-content">
+      <div class="end-wordmark" id="end-wordmark">
+        <span class="end-raze">raze</span><span class="end-dot">.</span><span class="end-fun">fun</span>
+      </div>
+      <div class="end-tagline" id="end-tagline">everything solana in one chat.</div>
+      <div class="end-cta" id="end-cta">@razeaii_bot on Telegram</div>
+    </div>
+  </div>
+
+</div>
+
+<style>
+  [data-composition-id="raze-chat-demo"] {
+    background: #F4EFFF;
+    font-family: "Inter", sans-serif;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Subtle background glow */
+  [data-composition-id="raze-chat-demo"]::before {
+    content: '';
+    position: absolute;
+    top: -100px;
+    right: -100px;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(153,69,255,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .scene-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 60px 80px;
+    box-sizing: border-box;
+  }
+
+  /* Chat header */
+  .chat-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid rgba(153,69,255,0.08);
+    margin-bottom: 32px;
+  }
+  .avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .avatar-gradient {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #C084FC, #9945FF);
+    border-radius: 50%;
+  }
+  .header-name {
+    font-size: 24px;
+    font-weight: 600;
+    color: #1A0A2E;
+    letter-spacing: -0.01em;
+  }
+  .header-status {
+    font-size: 14px;
+    font-weight: 500;
+    color: #14C97A;
+  }
+
+  /* Chat area */
+  .chat-area {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+    justify-content: flex-end;
+  }
+
+  /* Bubble rows */
+  .bubble-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+  }
+  .bubble-row.user {
+    justify-content: flex-end;
+  }
+  .bubble-row.bot {
+    justify-content: flex-start;
+  }
+
+  /* Bubbles */
+  .bubble {
+    max-width: 580px;
+    padding: 16px 22px;
+    font-size: 22px;
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+  }
+  .user-bubble {
+    background: rgba(153,69,255,0.12);
+    color: #6B2FD4;
+    font-weight: 500;
+    border-radius: 24px 6px 24px 24px;
+  }
+  .bot-bubble {
+    background: #FFFFFF;
+    color: #1A0A2E;
+    border-radius: 6px 24px 24px 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  }
+  .bot-bubble strong {
+    color: #9945FF;
+    font-weight: 600;
+  }
+
+  /* Mini mascot */
+  .mini-mascot {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #C084FC, #9945FF);
+    flex-shrink: 0;
+  }
+  .spacer-mascot {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+  }
+
+  /* Cursor blink */
+  .cursor {
+    color: #9945FF;
+    font-weight: 300;
+    animation: blink 0.6s step-end infinite;
+  }
+  @keyframes blink {
+    50% { opacity: 0; }
+  }
+
+  /* Typing indicator */
+  .typing-bubble {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    padding: 18px 24px;
+  }
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #B8A0D8;
+  }
+
+  /* End card */
+  .end-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    background: #F4EFFF;
+  }
+  .end-wordmark {
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 96px;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+  .end-raze, .end-fun {
+    color: #1A0A2E;
+  }
+  .end-dot {
+    color: #9945FF;
+  }
+  .end-tagline {
+    font-family: "Inter", sans-serif;
+    font-size: 28px;
+    font-weight: 400;
+    color: #5A4A6E;
+  }
+  .end-cta {
+    font-family: "Inter", sans-serif;
+    font-size: 20px;
+    font-weight: 500;
+    color: #9945FF;
+    margin-top: 8px;
+  }
+
+  /* All chat elements start hidden — GSAP controls visibility */
+  #user-1, #typing-1, #bot-1, #bot-2, #user-2, #typing-2, #bot-3 {
+    opacity: 0;
+  }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+<script>
+window.__timelines = window.__timelines || {};
+const tl = gsap.timeline({ paused: true });
+
+// ── Scene 1: Chat conversation ──
+
+const TYPE_SPEED = 0.06; // seconds per character
+const msg1 = "scan my wallet";
+const msg2 = "trace it";
+
+// Chat header entrance
+tl.from("#chat-header", { y: -30, opacity: 0, duration: 0.5, ease: "power2.out" }, 0.2);
+
+// --- User types "scan my wallet" (0.8s - 1.8s) ---
+tl.set("#user-1", { opacity: 1 }, 0.8);
+tl.from("#user-1", { y: 20, opacity: 0, duration: 0.3, ease: "power2.out" }, 0.8);
+
+// Type each character
+for (let i = 0; i < msg1.length; i++) {
+  tl.call(() => {
+    const el = document.getElementById("user-1-text");
+    if (el) el.textContent = msg1.substring(0, i + 1);
+  }, null, 1.0 + i * TYPE_SPEED);
+}
+// Hide cursor after typing
+tl.set("#cursor-1", { opacity: 0 }, 1.0 + msg1.length * TYPE_SPEED + 0.2);
+
+// --- Typing indicator 1 (2.2s - 3.2s) ---
+tl.set("#typing-1", { opacity: 1 }, 2.2);
+tl.from("#typing-1", { y: 16, opacity: 0, duration: 0.3, ease: "power2.out" }, 2.2);
+
+// Dot bounce animation
+const dotBounce1 = (startT) => {
+  for (let cycle = 0; cycle < 3; cycle++) {
+    const t = startT + cycle * 0.5;
+    tl.to("#typing-1 .d1", { y: -6, duration: 0.15, ease: "power2.out", overwrite: "auto" }, t);
+    tl.to("#typing-1 .d1", { y: 0, duration: 0.15, ease: "power2.in", overwrite: "auto" }, t + 0.15);
+    tl.to("#typing-1 .d2", { y: -6, duration: 0.15, ease: "power2.out", overwrite: "auto" }, t + 0.12);
+    tl.to("#typing-1 .d2", { y: 0, duration: 0.15, ease: "power2.in", overwrite: "auto" }, t + 0.27);
+    tl.to("#typing-1 .d3", { y: -6, duration: 0.15, ease: "power2.out", overwrite: "auto" }, t + 0.24);
+    tl.to("#typing-1 .d3", { y: 0, duration: 0.15, ease: "power2.in", overwrite: "auto" }, t + 0.39);
+  }
+};
+dotBounce1(2.3);
+
+// Hide typing, show bot reply 1 (3.4s)
+tl.to("#typing-1", { opacity: 0, duration: 0.15 }, 3.3);
+tl.set("#bot-1", { opacity: 1 }, 3.4);
+tl.from("#bot-1", { y: 16, opacity: 0, duration: 0.4, ease: "power3.out" }, 3.4);
+
+// Bot reply 2 follows (4.2s)
+tl.set("#bot-2", { opacity: 1 }, 4.2);
+tl.from("#bot-2", { y: 16, opacity: 0, duration: 0.4, ease: "power2.out" }, 4.2);
+
+// --- User types "trace it" (5.5s - 6.2s) ---
+tl.set("#user-2", { opacity: 1 }, 5.5);
+tl.from("#user-2", { y: 20, opacity: 0, duration: 0.3, ease: "power2.out" }, 5.5);
+
+for (let i = 0; i < msg2.length; i++) {
+  tl.call(() => {
+    const el = document.getElementById("user-2-text");
+    if (el) el.textContent = msg2.substring(0, i + 1);
+  }, null, 5.8 + i * TYPE_SPEED);
+}
+tl.set("#cursor-2", { opacity: 0 }, 5.8 + msg2.length * TYPE_SPEED + 0.2);
+
+// --- Typing indicator 2 (6.8s - 7.8s) ---
+tl.set("#typing-2", { opacity: 1 }, 6.8);
+tl.from("#typing-2", { y: 16, opacity: 0, duration: 0.3, ease: "power2.out" }, 6.8);
+
+const dotBounce2 = (startT) => {
+  for (let cycle = 0; cycle < 3; cycle++) {
+    const t = startT + cycle * 0.5;
+    tl.to("#typing-2 .d1", { y: -6, duration: 0.15, ease: "power2.out", overwrite: "auto" }, t);
+    tl.to("#typing-2 .d1", { y: 0, duration: 0.15, ease: "power2.in", overwrite: "auto" }, t + 0.15);
+    tl.to("#typing-2 .d2", { y: -6, duration: 0.15, ease: "power2.out", overwrite: "auto" }, t + 0.12);
+    tl.to("#typing-2 .d2", { y: 0, duration: 0.15, ease: "power2.in", overwrite: "auto" }, t + 0.27);
+    tl.to("#typing-2 .d3", { y: -6, duration: 0.15, ease: "power2.out", overwrite: "auto" }, t + 0.24);
+    tl.to("#typing-2 .d3", { y: 0, duration: 0.15, ease: "power2.in", overwrite: "auto" }, t + 0.39);
+  }
+};
+dotBounce2(6.9);
+
+// Hide typing, show bot reply 3 (8.0s)
+tl.to("#typing-2", { opacity: 0, duration: 0.15 }, 7.9);
+tl.set("#bot-3", { opacity: 1 }, 8.0);
+tl.from("#bot-3", { y: 16, opacity: 0, duration: 0.4, ease: "expo.out" }, 8.0);
+
+// Hold the conversation visible (8.5s - 14s)
+
+// ── Transition: crossfade to end card (14s - 14.5s) ──
+// Scene 1 stays visible — transition handles exit
+
+// ── Scene 2: End card (14.5s) ──
+tl.from("#end-wordmark", { y: 40, opacity: 0, duration: 0.6, ease: "power3.out" }, 14.7);
+tl.from("#end-tagline", { y: 25, opacity: 0, duration: 0.5, ease: "power2.out" }, 15.1);
+tl.from("#end-cta", { y: 20, opacity: 0, duration: 0.4, ease: "power2.out" }, 15.5);
+
+// Final fade out
+tl.to("#end-wordmark, #end-tagline, #end-cta", { opacity: 0, duration: 0.6, ease: "power1.in" }, 17.2);
+
+window.__timelines["raze-chat-demo"] = tl;
+</script>
+
+</body>
+</html>

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Raze Feature Card</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #111;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 40px;
+  }
+
+  .card {
+    width: 1080px;
+    height: 1080px;
+    background: linear-gradient(145deg, #0D0B14 0%, #1A1230 50%, #0D0B14 100%);
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 72px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Ambient purple glow */
+  .card::before {
+    content: '';
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(153,69,255,0.12) 0%, transparent 70%);
+    top: -100px;
+    right: -100px;
+  }
+
+  .card::after {
+    content: '';
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(153,69,255,0.08) 0%, transparent 70%);
+    bottom: -50px;
+    left: -50px;
+  }
+
+  /* Top bar */
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 48px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo img {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+  }
+
+  .logo span {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: #9945FF;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: rgba(153,69,255,0.1);
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(153,69,255,0.2);
+  }
+
+  /* Feature title */
+  .feature-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 56px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin-bottom: 16px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .feature-title .purple {
+    color: #9945FF;
+  }
+
+  .feature-sub {
+    font-family: 'Inter', sans-serif;
+    font-size: 20px;
+    color: rgba(255,255,255,0.45);
+    line-height: 1.5;
+    margin-bottom: 48px;
+    max-width: 600px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Chat demo */
+  .chat {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .user-msg {
+    align-self: flex-end;
+    background: #9945FF;
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    padding: 14px 22px;
+    border-radius: 20px 20px 6px 20px;
+    max-width: 500px;
+  }
+
+  .bot-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .bot-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: contain;
+    margin-top: 4px;
+  }
+
+  .bot-msg {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+    font-size: 17px;
+    padding: 16px 20px;
+    border-radius: 6px 20px 20px 20px;
+    max-width: 600px;
+    line-height: 1.5;
+  }
+
+  .bot-msg .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #9945FF;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .bot-msg .data {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    color: rgba(255,255,255,0.7);
+  }
+
+  .bot-msg .highlight {
+    color: #14F195;
+    font-weight: 600;
+  }
+
+  .bot-msg .danger {
+    color: #FF6B6B;
+    font-weight: 600;
+  }
+
+  /* Bottom bar */
+  .bottom-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 48px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .bottom-bar .url {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: rgba(255,255,255,0.25);
+  }
+
+  .bottom-bar .handle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: #9945FF;
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <!-- Top bar — same for all cards -->
+  <div class="top-bar">
+    <div class="logo">
+      <img src="/assets/imp-expressions/waving.png" alt="" />
+      <span>raze</span>
+    </div>
+    <!-- EDIT: Change badge text per feature -->
+    <div class="badge">new feature</div>
+  </div>
+
+  <!-- EDIT: Feature headline -->
+  <div class="feature-title">
+    DCA orders.<br/><span class="purple">set it and forget it.</span>
+  </div>
+
+  <!-- EDIT: One-line description -->
+  <div class="feature-sub">
+    buy any token on a schedule. one message to set up, raze handles the rest.
+  </div>
+
+  <!-- EDIT: Chat exchange showing the feature -->
+  <div class="chat">
+    <div class="user-msg">buy 1 SOL of BONK every day for 7 days</div>
+    <div class="bot-row">
+      <img class="bot-avatar" src="/assets/imp-expressions/waving.png" alt="" />
+      <div class="bot-msg">
+        <div class="label">raze</div>
+        <div>dca set up:</div>
+        <div class="data">
+          <span class="highlight">1 SOL → BONK</span> daily × 7 days<br/>
+          first buy in 23h 59m<br/>
+          total commitment: 7 SOL
+        </div>
+        <div style="margin-top: 8px; color: rgba(255,255,255,0.4); font-size: 14px;">
+          sit back. i'll ping you after each buy. or don't — i'll judge your entries either way 💀
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom bar — same for all cards -->
+  <div class="bottom-bar">
+    <div class="url">raze.fun</div>
+    <div class="handle">@raze_aii</div>
+  </div>
+</div>
+
+</body>
+</html>

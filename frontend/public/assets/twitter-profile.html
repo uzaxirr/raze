@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 400px; height: 400px; overflow: hidden; }
+
+  .container {
+    width: 400px;
+    height: 400px;
+    background: linear-gradient(150deg, #F5F0FF 0%, #EDE5FF 40%, #DDD2FF 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Single soft glow behind mascot */
+  .glow {
+    position: absolute;
+    top: 42%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 260px;
+    height: 260px;
+    background: radial-gradient(circle, rgba(153,69,255,0.14) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* Subtle ring */
+  .ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -52%);
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    border: 1px solid rgba(153,69,255,0.1);
+  }
+
+  .mascot-wrap {
+    position: relative;
+    z-index: 3;
+    width: 250px;
+    height: 260px;
+    margin-top: -20px;
+  }
+  .mascot-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 8px 30px rgba(153,69,255,0.25));
+  }
+
+  .wordmark {
+    position: relative;
+    z-index: 3;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 48px;
+    font-weight: 700;
+    color: #1A0A2E;
+    letter-spacing: -2px;
+    line-height: 1;
+    margin-top: -6px;
+  }
+
+  /* Minimal particles — just 4 */
+  .p { position: absolute; border-radius: 50%; z-index: 2; }
+  .p1 { width: 8px; height: 8px; background: #FFB830; top: 60px;  left: 55px; opacity: 0.7; }
+  .p2 { width: 6px; height: 6px; background: #14F195; top: 80px;  right: 60px; opacity: 0.6; }
+  .p3 { width: 5px; height: 5px; background: #FF8FCE; bottom: 90px; left: 50px; opacity: 0.5; }
+  .p4 { width: 6px; height: 6px; background: #C084FC; bottom: 100px; right: 55px; opacity: 0.5; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="glow"></div>
+  <div class="ring"></div>
+  <div class="p p1"></div>
+  <div class="p p2"></div>
+  <div class="p p3"></div>
+  <div class="p p4"></div>
+  <div class="mascot-wrap">
+    <img src="imp-expressions/confident.png" alt="Raze">
+  </div>
+  <div class="wordmark">raze</div>
+</div>
+</body>
+</html>

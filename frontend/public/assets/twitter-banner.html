@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1500px; height: 500px; overflow: hidden; background: #FAFAFE; }
+
+  .banner {
+    width: 1500px;
+    height: 500px;
+    background: linear-gradient(135deg, #FAFAFE 0%, #F4EFFF 35%, #EDE5FF 70%, #E4DCFF 100%);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Soft ambient blobs — no grid, no noise */
+  .blob1 {
+    position: absolute;
+    width: 500px;
+    height: 450px;
+    top: -80px;
+    left: -50px;
+    background: radial-gradient(ellipse, rgba(153,69,255,0.07) 0%, transparent 70%);
+  }
+  .blob2 {
+    position: absolute;
+    width: 350px;
+    height: 350px;
+    bottom: -80px;
+    right: 550px;
+    background: radial-gradient(ellipse, rgba(20,241,149,0.05) 0%, transparent 70%);
+  }
+
+  /* LEFT CONTENT */
+  .left {
+    position: relative;
+    z-index: 3;
+    padding-left: 100px;
+    display: flex;
+    flex-direction: column;
+    width: 600px;
+    flex-shrink: 0;
+  }
+
+  .wordmark {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 120px;
+    font-weight: 700;
+    color: #1A0A2E;
+    letter-spacing: -5px;
+    line-height: 0.9;
+    margin-bottom: 16px;
+  }
+
+  .tagline {
+    font-family: 'Inter', sans-serif;
+    font-size: 24px;
+    font-weight: 400;
+    color: #5A4A6E;
+    letter-spacing: -0.3px;
+    margin-bottom: 24px;
+    line-height: 1.3;
+  }
+  .tagline em {
+    font-style: normal;
+    font-weight: 600;
+    color: #1A0A2E;
+  }
+
+  .pills {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .pill {
+    padding: 7px 18px;
+    border-radius: 999px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .pill-swap  { color: #7B2FFF; border: 1px solid rgba(153,69,255,0.25); background: rgba(153,69,255,0.06); }
+  .pill-res   { color: #0E9E6A; border: 1px solid rgba(20,241,149,0.3); background: rgba(20,241,149,0.06); }
+  .pill-alert { color: #B05E00; border: 1px solid rgba(255,180,50,0.3); background: rgba(255,180,50,0.06); }
+  .pill-track { color: #5050CC; border: 1px solid rgba(100,100,240,0.25); background: rgba(100,100,240,0.05); }
+
+  .links-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: #7A62A8;
+  }
+  .link-primary {
+    color: #9945FF;
+    font-weight: 600;
+  }
+  .link-sep {
+    color: #C8B8E0;
+  }
+
+  /* RIGHT — PHONE */
+  .right {
+    position: absolute;
+    right: 80px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 3;
+  }
+
+  /* Phone frame */
+  .phone {
+    width: 260px;
+    height: 480px;
+    background: #FFFFFF;
+    border-radius: 40px;
+    box-shadow:
+      0 0 0 1px rgba(180,160,220,0.35),
+      0 20px 60px rgba(100,60,180,0.15),
+      0 8px 24px rgba(153,69,255,0.08);
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Notch — Dynamic Island style */
+  .phone-notch {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 22px;
+    background: #000;
+    border-radius: 11px;
+    z-index: 10;
+  }
+
+  /* Status bar */
+  .status-bar {
+    height: 44px;
+    background: #FFFFFF;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 24px 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: #1A0A2E;
+  }
+  .status-icons {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .bar { width: 3px; border-radius: 1px; background: #1A0A2E; }
+  .b1 { height: 5px; }
+  .b2 { height: 8px; }
+  .b3 { height: 11px; }
+  .b4 { height: 14px; opacity: 0.25; }
+
+  /* Chat header */
+  .chat-header {
+    background: #FFFFFF;
+    padding: 6px 14px 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+  }
+  .back-arrow {
+    font-size: 18px;
+    color: #9945FF;
+    font-weight: 500;
+  }
+  .avatar-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: linear-gradient(135deg, #C084FC, #9945FF);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .avatar-circle img {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    object-position: center 22%;
+    margin-top: 8px;
+  }
+  .online-indicator {
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #14F195;
+    border: 2px solid #FFF;
+  }
+  .header-name {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1A0A2E;
+  }
+  .header-status {
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    color: #14C97A;
+    font-weight: 500;
+  }
+
+  /* Chat body */
+  .chat-body {
+    background: #F8F5FF;
+    padding: 12px 10px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: 340px;
+    overflow: hidden;
+  }
+
+  .date-pill {
+    align-self: center;
+    padding: 3px 12px;
+    border-radius: 10px;
+    background: rgba(153,69,255,0.06);
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    color: #9A85B8;
+    margin-bottom: 4px;
+  }
+
+  .bubble-row { display: flex; gap: 6px; }
+  .bubble-row.from-user { flex-direction: row-reverse; }
+
+  .bubble {
+    max-width: 175px;
+    padding: 8px 11px;
+    font-family: 'Inter', sans-serif;
+    font-size: 11.5px;
+    line-height: 1.5;
+  }
+  .bubble.bot {
+    background: #FFFFFF;
+    color: #1A0A2E;
+    border-radius: 4px 16px 16px 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .bubble.user-msg {
+    background: #9945FF;
+    color: #FFFFFF;
+    border-radius: 16px 4px 16px 16px;
+    font-size: 10.5px;
+  }
+  .hl { color: #9945FF; font-weight: 600; }
+  .gr { color: #0E9E6A; font-weight: 600; }
+  .mt { color: #9A85B8; }
+
+  .time {
+    font-family: 'Inter', sans-serif;
+    font-size: 9px;
+    color: #B8A8D0;
+    margin-top: 3px;
+  }
+  .time-left { text-align: left; }
+  .time-right { text-align: right; }
+
+  /* Input bar */
+  .chat-input {
+    background: #FFFFFF;
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-top: 1px solid rgba(0,0,0,0.04);
+  }
+  .input-box {
+    flex: 1;
+    height: 32px;
+    background: #F5F0FF;
+    border-radius: 16px;
+    border: 1px solid rgba(153,69,255,0.1);
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    color: #C0B0D8;
+  }
+  .send-circle {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #9945FF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .send-circle::after {
+    content: '';
+    width: 0;
+    height: 0;
+    border-left: 7px solid white;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    margin-left: 2px;
+  }
+
+  /* Mascot peeking from left side of phone — full body visible */
+  .mascot-peek {
+    position: absolute;
+    left: -130px;
+    bottom: 10px;
+    width: 160px;
+    height: 180px;
+    z-index: 2;
+  }
+  .mascot-peek img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(4px 6px 20px rgba(153,69,255,0.2));
+  }
+
+  /* Bottom accent */
+  .accent-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #9945FF 30%, #14F195 70%, transparent);
+    opacity: 0.6;
+  }
+</style>
+</head>
+<body>
+<div class="banner">
+  <div class="blob1"></div>
+  <div class="blob2"></div>
+
+  <!-- LEFT -->
+  <div class="left">
+    <div class="wordmark">raze</div>
+    <div class="tagline">Everything Solana in <em>one chat</em></div>
+    <div class="pills">
+      <div class="pill pill-swap">Swap</div>
+      <div class="pill pill-res">Research</div>
+      <div class="pill pill-alert">Alert</div>
+      <div class="pill pill-track">Track</div>
+    </div>
+    <div class="links-row">
+      <span class="link-primary">raze.fun</span>
+      <span class="link-sep">·</span>
+      <span>@razeaii_bot</span>
+    </div>
+  </div>
+
+  <!-- RIGHT: PHONE -->
+  <div class="right">
+    <!-- Mascot peeking from left of phone -->
+    <div class="mascot-peek">
+      <img src="imp-expressions/waving.png" alt="Raze">
+    </div>
+
+    <div class="phone">
+      <div class="phone-notch"></div>
+
+      <div class="status-bar">
+        <span>9:41</span>
+        <div class="status-icons">
+          <div style="display:flex;gap:2px;align-items:flex-end;">
+            <div class="bar b1"></div>
+            <div class="bar b2"></div>
+            <div class="bar b3"></div>
+            <div class="bar b4"></div>
+          </div>
+          <svg width="22" height="10" viewBox="0 0 22 10" fill="none">
+            <rect x="0.5" y="0.5" width="18" height="9" rx="2.5" stroke="#1A0A2E" stroke-opacity="0.35"/>
+            <rect x="19.5" y="3" width="2" height="4" rx="1" fill="#1A0A2E" fill-opacity="0.4"/>
+            <rect x="1.5" y="1.5" width="13" height="7" rx="1.5" fill="#1A0A2E"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Chat header -->
+      <div class="chat-header">
+        <span class="back-arrow">‹</span>
+        <div style="position:relative;">
+          <div class="avatar-circle">
+            <img src="imp-expressions/waving.png" alt="Raze">
+          </div>
+          <div class="online-indicator"></div>
+        </div>
+        <div>
+          <div class="header-name">Raze</div>
+          <div class="header-status">online</div>
+        </div>
+      </div>
+
+      <!-- Chat -->
+      <div class="chat-body">
+        <div class="date-pill">Today</div>
+
+        <!-- User sends wallet -->
+        <div class="bubble-row from-user">
+          <div>
+            <div class="bubble user-msg" style="word-break:break-all;">D4M5cG...YqpJ</div>
+            <div class="time time-right">2:14 PM</div>
+          </div>
+        </div>
+
+        <!-- Bot roast -->
+        <div class="bubble-row">
+          <div>
+            <div class="bubble bot">
+              <span class="hl">$3k in USDG</span> doing nothing. <span class="mt">0.03 SOL</span> — can't even afford a failed tx.
+            </div>
+            <div class="time time-left">2:14 PM</div>
+          </div>
+        </div>
+
+        <!-- Bot follow-up -->
+        <div class="bubble-row">
+          <div>
+            <div class="bubble bot">
+              someone sent you <span class="gr">3000 USDG</span> yesterday. want me to trace who?
+            </div>
+            <div class="time time-left">2:14 PM</div>
+          </div>
+        </div>
+
+        <!-- User yes -->
+        <div class="bubble-row from-user">
+          <div>
+            <div class="bubble user-msg">trace it</div>
+            <div class="time time-right">2:15 PM</div>
+          </div>
+        </div>
+
+        <!-- Bot trace result -->
+        <div class="bubble-row">
+          <div>
+            <div class="bubble bot">
+              your sender is sitting on <span class="hl">10,533 SOL</span>. they gave you pocket change.
+            </div>
+            <div class="time time-left">2:15 PM</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input -->
+      <div class="chat-input">
+        <div class="input-box">Message Raze...</div>
+        <div class="send-circle"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="accent-bar"></div>
+</div>
+</body>
+</html>

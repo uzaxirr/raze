@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Raze — Pitch Deck</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #000000; }
+  .slide {
+    width: 1920px;
+    height: 1080px;
+    background-color: #000000;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    font-family: 'Inter', sans-serif;
+    color: #EDEDED;
+    page-break-after: always;
+    overflow: hidden;
+  }
+  .slide:last-child { page-break-after: auto; }
+
+  /* ============ SLIDE 1 — TITLE ============ */
+  .slide-1 {
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+  }
+  .ghost-logo {
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .title-wordmark {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 140px;
+    font-weight: 700;
+    color: #FFFFFF;
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+  .title-subtitle {
+    font-family: 'Inter', sans-serif;
+    font-size: 26px;
+    font-weight: 400;
+    color: #888888;
+    letter-spacing: -0.01em;
+    margin-top: -8px;
+  }
+  .title-links {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    color: #9945FF;
+    margin-top: 32px;
+  }
+  .title-links .sep {
+    color: #3A2A5A;
+  }
+
+  /* ============ SHARED ============ */
+  .label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #9945FF;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+  .headline {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 72px;
+    font-weight: 700;
+    color: #FFFFFF;
+    line-height: 82px;
+    letter-spacing: -0.025em;
+  }
+  .body-muted {
+    font-family: 'Inter', sans-serif;
+    font-size: 20px;
+    font-weight: 400;
+    color: #5A5A6A;
+    line-height: 32px;
+  }
+
+  /* ============ SLIDE 2 — PROBLEM ============ */
+  .slide-2 {
+    padding: 140px 120px;
+    justify-content: space-between;
+  }
+  .slide-2 .top {
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+  }
+  .slide-2 .label-row { margin-bottom: 24px; }
+  .problem-cards {
+    display: flex;
+    gap: 24px;
+    margin-top: 32px;
+  }
+  .problem-card {
+    flex: 1;
+    background-color: #0A0A0A;
+    border: 1px solid #1A1A1A;
+    border-radius: 16px;
+    padding: 36px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .problem-card h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: #FFFFFF;
+  }
+  .problem-card p {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 400;
+    color: #6B6B6B;
+    line-height: 24px;
+  }
+  .slide-2 .body-muted { max-width: 900px; }
+
+  /* ============ SLIDE 3 — SOLUTION ============ */
+  .slide-3 {
+    padding: 140px 120px;
+    flex-direction: row;
+    align-items: center;
+    gap: 80px;
+  }
+  .slide-3 .left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  .slide-3 .left .headline { font-size: 64px; line-height: 72px; }
+  .slide-3 .description {
+    font-family: 'Inter', sans-serif;
+    font-size: 18px;
+    font-weight: 400;
+    color: #777777;
+    line-height: 28px;
+    max-width: 560px;
+  }
+  .query-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    color: #14F195;
+    line-height: 20px;
+  }
+  .phone-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .phone {
+    width: 320px;
+    height: 660px;
+    background: #1A1A1A;
+    border-radius: 48px;
+    border: 3px solid #2A2A2A;
+    padding: 12px;
+    position: relative;
+    box-shadow: 0 0 80px rgba(153,69,255,0.25);
+  }
+  .phone-screen {
+    width: 100%;
+    height: 100%;
+    background: #C8D6E5;
+    border-radius: 38px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  .phone-notch {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90px;
+    height: 26px;
+    background: #000;
+    border-radius: 18px;
+    z-index: 5;
+  }
+  .phone-header {
+    padding: 50px 16px 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #C8D6E5;
+  }
+  .phone-time {
+    position: absolute;
+    top: 20px;
+    left: 24px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: #000;
+  }
+  .phone-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 14px;
+    background: #9945FF;
+  }
+  .phone-name-col { display: flex; flex-direction: column; }
+  .phone-name {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #000;
+  }
+  .phone-status {
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    color: #4A6B7A;
+  }
+  .phone-messages {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+    overflow: hidden;
+  }
+  .p-msg-user { align-self: flex-end; max-width: 75%; }
+  .p-msg-bot { align-self: flex-start; max-width: 85%; }
+  .p-bubble-user {
+    background: #DFFFC8;
+    border-radius: 12px 12px 4px 12px;
+    padding: 8px 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    color: #000;
+    line-height: 14px;
+  }
+  .p-bubble-bot {
+    background: #FFFFFF;
+    border-radius: 12px 12px 12px 4px;
+    padding: 8px 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    color: #000;
+    line-height: 14px;
+  }
+  .p-bubble-alert {
+    background: #FFFFFF;
+    border-left: 3px solid #E74C3C;
+    border-radius: 4px 12px 12px 4px;
+    padding: 8px 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    color: #000;
+    line-height: 14px;
+  }
+  .p-alert-time {
+    font-family: 'Inter', sans-serif;
+    font-size: 9px;
+    color: #666;
+    margin-bottom: 4px;
+  }
+  .p-alert-btn {
+    background: #E74C3C;
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 600;
+    margin-top: 6px;
+    text-align: center;
+  }
+  .phone-input-bar {
+    background: #FFFFFF;
+    padding: 10px 14px;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    color: #999;
+    border-top: 1px solid #E0E0E0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .phone-send {
+    width: 18px;
+    height: 18px;
+    background: #147EFB;
+    border-radius: 9px;
+  }
+
+  /* ============ SLIDE 4 — INTELLIGENCE ============ */
+  .slide-4 {
+    padding: 140px 120px;
+    justify-content: space-between;
+  }
+  .slide-4 .top { display: flex; flex-direction: column; gap: 48px; }
+  .slide-4 .label-row { margin-bottom: 24px; }
+  .stat-cards {
+    display: flex;
+    gap: 24px;
+    margin-top: 40px;
+  }
+  .stat-card {
+    flex: 1;
+    background: #0A0A0A;
+    border: 1px solid #1A1A1A;
+    border-radius: 16px;
+    padding: 36px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .stat-number {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 56px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .stat-p { color: #9945FF; }
+  .stat-g { color: #14F195; }
+  .stat-y { color: #F5A623; }
+  .stat-card h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: #FFFFFF;
+    margin-top: 12px;
+  }
+  .stat-card p {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 400;
+    color: #6B6B6B;
+    line-height: 24px;
+  }
+  .slide-4 .body-muted { max-width: 800px; }
+
+  /* ============ SLIDE 5 — BREADTH ============ */
+  .slide-5 {
+    padding: 140px 120px;
+    justify-content: space-between;
+  }
+  .slide-5 .top { display: flex; flex-direction: column; gap: 48px; }
+  .slide-5 .label-row { margin-bottom: 24px; }
+  .slide-5 .headline { font-size: 72px; }
+  .capability-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    max-width: 1300px;
+    margin-top: 40px;
+  }
+  .pill {
+    background: #0A0A0A;
+    border: 1px solid #1A1A1A;
+    border-radius: 12px;
+    padding: 14px 22px;
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: #DADADA;
+  }
+  .callout {
+    background: rgba(153,69,255,0.08);
+    border: 1px solid rgba(153,69,255,0.25);
+    border-radius: 12px;
+    padding: 22px 28px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    max-width: 1100px;
+    margin-top: 40px;
+  }
+  .callout-arrow {
+    font-family: 'JetBrains Mono', monospace;
+    color: #9945FF;
+    font-size: 20px;
+  }
+  .callout p {
+    font-family: 'Inter', sans-serif;
+    font-size: 18px;
+    color: #C0C0D0;
+    line-height: 28px;
+  }
+
+  /* ============ SLIDE 6 — CLOSE ============ */
+  .slide-6 {
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+  }
+  .slide-6 .ghost-wave {
+    width: 130px;
+    height: 130px;
+  }
+  .slide-6 h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 96px;
+    font-weight: 700;
+    color: #FFFFFF;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+  .slide-6 .sub {
+    font-family: 'Inter', sans-serif;
+    font-size: 22px;
+    color: #888888;
+    margin-top: -12px;
+  }
+  .close-links {
+    display: flex;
+    gap: 48px;
+    align-items: flex-start;
+    margin-top: 36px;
+  }
+  .close-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .close-link .val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    color: #9945FF;
+  }
+  .close-link .lbl {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    color: #555555;
+  }
+  .close-link-sep {
+    width: 1px;
+    height: 40px;
+    background: #2A2A2A;
+    margin-top: 4px;
+  }
+  .credit {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: #3A3A4A;
+    margin-top: 48px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ SLIDE 1 — TITLE ============ -->
+<div class="slide slide-1">
+  <svg class="ghost-logo" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 15 C30 15 18 30 18 50 L18 82 L25 75 L32 82 L39 75 L46 82 L53 75 L60 82 L67 75 L74 82 L82 75 L82 50 C82 30 70 15 50 15 Z" fill="#9945FF"/>
+    <circle cx="40" cy="45" r="7" fill="#FFFFFF"/>
+    <circle cx="60" cy="45" r="7" fill="#FFFFFF"/>
+    <circle cx="42" cy="47" r="3" fill="#000000"/>
+    <circle cx="62" cy="47" r="3" fill="#000000"/>
+    <ellipse cx="50" cy="58" rx="4" ry="2" fill="#C870FF" opacity="0.6"/>
+  </svg>
+  <div class="title-wordmark">raze</div>
+  <div class="title-subtitle">The conversational AI agent for Solana</div>
+  <div class="title-links">
+    <span>raze.fun</span>
+    <span class="sep">•</span>
+    <span>@razeaii_bot</span>
+  </div>
+</div>
+
+<!-- ============ SLIDE 2 — PROBLEM ============ -->
+<div class="slide slide-2">
+  <div class="top">
+    <div class="label-row"><div class="label">The Problem</div></div>
+    <div class="headline">Doing anything on Solana requires being<br>a power user</div>
+    <div class="problem-cards">
+      <div class="problem-card">
+        <h3>10+ tools to juggle</h3>
+        <p>Phantom, Jupiter, Birdeye, DexScreener, Solscan, Telegram groups — each requires knowing what to look for and where.</p>
+      </div>
+      <div class="problem-card">
+        <h3>Information is scattered</h3>
+        <p>Security data in one place, price data in another, sentiment on Twitter, whale moves in a Discord. No single source of truth.</p>
+      </div>
+      <div class="problem-card">
+        <h3>No intelligence layer</h3>
+        <p>Existing tools show you raw data. None of them cross-reference, give opinions, remember your context, or alert you proactively.</p>
+      </div>
+    </div>
+  </div>
+  <div class="body-muted">30 million Solana users. The data is all there. It's just trapped behind ten<br>different interfaces that each require you to already know what you're doing.</div>
+</div>
+
+<!-- ============ SLIDE 3 — SOLUTION ============ -->
+<div class="slide slide-3">
+  <div class="left">
+    <div class="label">The Solution</div>
+    <div class="headline">You ask for it,<br>Raze does it</div>
+    <div class="description">Raze is a conversational AI agent for Solana. Type what you want in plain English inside Telegram. No menu, no dashboard, no learning curve. Live at raze.fun</div>
+    <div class="query-list">
+      <div>"decode this transaction"</div>
+      <div>"who holds the most BONK?"</div>
+      <div>"why is this token dumping?"</div>
+      <div>"watch this wallet and ping me when it moves"</div>
+      <div>"what's the sentiment on JUP?"</div>
+    </div>
+  </div>
+  <div class="phone-wrap">
+    <div class="phone">
+      <div class="phone-screen">
+        <div class="phone-notch"></div>
+        <div class="phone-time">9:41</div>
+        <div class="phone-header">
+          <div class="phone-avatar"></div>
+          <div class="phone-name-col">
+            <div class="phone-name">Raze</div>
+            <div class="phone-status">online</div>
+          </div>
+        </div>
+        <div class="phone-messages">
+          <div class="p-msg-user"><div class="p-bubble-user">what's in my wallet?</div></div>
+          <div class="p-msg-bot"><div class="p-bubble-bot">45.2 sol, some usdc and bonk. not terrible for once<br><br>bonk up 35% since tuesday 🎉</div></div>
+          <div class="p-msg-user"><div class="p-bubble-user">swap 5 SOL to USDC</div></div>
+          <div class="p-msg-bot"><div class="p-bubble-bot">done. 674.50 usdc in your wallet<br><br>oh btw sol to $250 is 62% on polymarket 👀</div></div>
+          <div class="p-msg-bot"><div class="p-bubble-alert"><div class="p-alert-time">3:47 AM</div>yo wake up. XYZ authority changed. pull it NOW 🚨<div class="p-alert-btn">withdraw all</div></div></div>
+          <div class="p-msg-user"><div class="p-bubble-user">find me new tokens</div></div>
+          <div class="p-msg-bot"><div class="p-bubble-bot">$MOCHI 7/8 🔥 +340%<br>looks like your usual type — degen but not suicidal</div></div>
+        </div>
+        <div class="phone-input-bar">
+          <span>Message</span>
+          <div class="phone-send"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SLIDE 4 — INTELLIGENCE ============ -->
+<div class="slide slide-4">
+  <div class="top">
+    <div class="label-row"><div class="label">Not a bot. An agent.</div></div>
+    <div class="headline">Raze thinks before it speaks</div>
+    <div class="stat-cards">
+      <div class="stat-card">
+        <div class="stat-number stat-p">7</div>
+        <h3>Real-time data servers</h3>
+        <p>Helius (on-chain), Jupiter (execution), Birdeye (analytics), LunarCrush (sentiment), Polymarket (predictions), SNS (.sol domains), Helius webhooks (alerts)</p>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number stat-g">∞</div>
+        <h3>Persistent memory</h3>
+        <p>Remembers your trades, risk appetite, favorite tokens, past mistakes. Uses context naturally — never asks the same thing twice.</p>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number stat-y">24/7</div>
+        <h3>Always watching</h3>
+        <p>Price alerts, wallet watchers, authority change detection. Set it once — Raze pings you at 3 AM when something moves.</p>
+      </div>
+    </div>
+  </div>
+  <div class="body-muted">Cross-references security, momentum, holder distribution, and social sentiment before giving you<br>an opinion. Not just data — an actual take.</div>
+</div>
+
+<!-- ============ SLIDE 5 — BREADTH ============ -->
+<div class="slide slide-5">
+  <div class="top">
+    <div class="label-row"><div class="label">What Raze does today</div></div>
+    <div class="headline">All of Solana in one chat</div>
+    <div class="capability-pills">
+      <div class="pill">Token Swaps</div>
+      <div class="pill">Token Research</div>
+      <div class="pill">Security Scanning</div>
+      <div class="pill">Wallet Analytics</div>
+      <div class="pill">Tx Decoding</div>
+      <div class="pill">Whale Tracking</div>
+      <div class="pill">Price Alerts</div>
+      <div class="pill">Prediction Markets</div>
+      <div class="pill">Token Sniping</div>
+      <div class="pill">DeFi Staking</div>
+      <div class="pill">Sentiment Analysis</div>
+      <div class="pill">Bundle Detection</div>
+      <div class="pill">Copy Trading</div>
+      <div class="pill">PnL Tracking</div>
+      <div class="pill">Send Crypto</div>
+      <div class="pill">.sol Domains</div>
+    </div>
+  </div>
+  <div class="callout">
+    <div class="callout-arrow">↑</div>
+    <p>Any time someone builds a new protocol on Solana, Raze can talk to it. The interface never needs to change.</p>
+  </div>
+</div>
+
+<!-- ============ SLIDE 6 — CLOSE ============ -->
+<div class="slide slide-6">
+  <svg class="ghost-wave" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M30 15 L30 30 M30 15 L24 8" stroke="#9945FF" stroke-width="5" stroke-linecap="round"/>
+    <path d="M90 15 L90 30 M90 15 L96 8" stroke="#9945FF" stroke-width="5" stroke-linecap="round"/>
+    <path d="M60 30 C42 30 32 42 32 58 L32 92 L39 85 L46 92 L53 85 L60 92 L67 85 L74 92 L81 85 L88 92 L88 58 C88 42 78 30 60 30 Z" fill="#9945FF"/>
+    <circle cx="50" cy="56" r="7" fill="#FFFFFF"/>
+    <circle cx="70" cy="56" r="7" fill="#FFFFFF"/>
+    <circle cx="52" cy="58" r="3" fill="#000000"/>
+    <circle cx="72" cy="58" r="3" fill="#000000"/>
+  </svg>
+  <h1>Try it right now</h1>
+  <div class="sub">Open Telegram. Search @razeaii_bot. Type anything.</div>
+  <div class="close-links">
+    <div class="close-link">
+      <div class="val">raze.fun</div>
+      <div class="lbl">Website</div>
+    </div>
+    <div class="close-link-sep"></div>
+    <div class="close-link">
+      <div class="val">@razeaii_bot</div>
+      <div class="lbl">Telegram Bot</div>
+    </div>
+    <div class="close-link-sep"></div>
+    <div class="close-link">
+      <div class="val">@uzaxirr</div>
+      <div class="lbl">Twitter / X</div>
+    </div>
+  </div>
+  <div class="credit">Built by Uzair Ali</div>
+</div>
+
+</body>
+</html>
