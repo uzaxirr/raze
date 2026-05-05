@@ -64,7 +64,7 @@ export const ChatHeader: React.FC<{mascotSrc: string}> = ({mascotSrc}) => (
     {/* Back arrow + unread count */}
     <div style={{display: 'flex', alignItems: 'center', gap: 2, padding: '4px 4px 4px 0'}}>
       <svg width="12" height="20" viewBox="0 0 12 20" fill="none">
-        <path d="M10 2L2 10L10 18" stroke={colors.purple} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M10 2L2 10L10 18" stroke="#007AFF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
       {/* Unread badge */}
       <div style={{
@@ -102,7 +102,7 @@ export const ChatHeader: React.FC<{mascotSrc: string}> = ({mascotSrc}) => (
 
     {/* Name + online status */}
     <div style={{flex: 1, marginLeft: 10, display: 'flex', flexDirection: 'column', gap: 1}}>
-      <span style={{fontSize: 16, fontWeight: 600, color: '#fff', letterSpacing: '-0.01em'}}>Raze</span>
+      <span style={{fontSize: 16, fontWeight: 600, color: '#111', letterSpacing: '-0.01em'}}>Raze</span>
       <span style={{fontSize: 12, color: '#888', fontWeight: 400}}>bot</span>
     </div>
 
@@ -160,15 +160,15 @@ export const Composer: React.FC = () => (
       style={{
         flex: 1,
         height: 36,
-        background: '#2A2A2E',
+        background: '#f0f0f5',
         borderRadius: 18,
         display: 'flex',
         alignItems: 'center',
         padding: '0 14px',
-        border: '1px solid rgba(255,255,255,0.08)',
+        border: '1px solid rgba(0,0,0,0.08)',
       }}
     >
-      <span style={{color: '#555', fontSize: 15}}>Message</span>
+      <span style={{color: '#aaa', fontSize: 15}}>Message</span>
     </div>
 
     {/* Emoji */}

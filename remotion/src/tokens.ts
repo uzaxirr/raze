@@ -16,19 +16,19 @@ export const colors = {
   bgDarkC: '#12082a',
   bgVignette: 'rgba(5, 3, 12, 0.55)',
 
-  // Dark Telegram chat surfaces
-  chatBg: '#17171A',
-  headerBg: '#212121',
-  divider: 'rgba(255,255,255,0.08)',
-  bubbleBot: '#262633',
-  bubbleUser: '#9945FF',
-  bubbleUserMeta: 'rgba(255,255,255,0.4)',
-  bubbleBotMeta: 'rgba(255,255,255,0.4)',
+  // Light Telegram chat surfaces
+  chatBg: '#f7f7f8',
+  headerBg: '#ffffff',
+  divider: 'rgba(0,0,0,0.08)',
+  bubbleBot: '#f0f0f5',
+  bubbleUser: '#007AFF',
+  bubbleUserMeta: 'rgba(255,255,255,0.6)',
+  bubbleBotMeta: 'rgba(0,0,0,0.3)',
 
   // Phone chrome
   phoneFrame: '#1a1a1a',
   phoneFrameEdge: '#2a2a2a',
-  phoneScreen: '#17171A',
+  phoneScreen: '#f7f7f8',
 
   // Text
   textPrimary: '#111',

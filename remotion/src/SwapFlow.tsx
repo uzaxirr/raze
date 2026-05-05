@@ -181,11 +181,11 @@ const Hook: React.FC<{frame: number}> = ({frame}) => {
 };
 
 // ---------------------------------------------------------------------------
-// Telegram chat: user bubble — purple dark mode
+// Telegram chat: user bubble — iMessage blue (light mode)
 // ---------------------------------------------------------------------------
 
-/** Purple Telegram-style user bubble for dark mode chat. */
-const PurpleUserBubble: React.FC<{
+/** iMessage-blue Telegram-style user bubble for light mode chat. */
+const BlueUserBubble: React.FC<{
   text: string;
   startFrame: number;
   cpf: number;
@@ -212,7 +212,7 @@ const PurpleUserBubble: React.FC<{
           opacity,
           transform: `scale(${scale})`,
           transformOrigin: 'bottom right',
-          background: '#9945FF',
+          background: '#007AFF',
           color: '#fff',
           borderRadius: '16px 16px 4px 16px',
           padding: '9px 13px 6px',
@@ -220,7 +220,7 @@ const PurpleUserBubble: React.FC<{
           fontFamily: typography.stack,
           maxWidth: '78%',
           lineHeight: 1.4,
-          boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
         }}
       >
         <div>
@@ -235,7 +235,7 @@ const PurpleUserBubble: React.FC<{
               justifyContent: 'flex-end',
               alignItems: 'center',
               gap: 3,
-              color: 'rgba(255,255,255,0.4)',
+              color: 'rgba(255,255,255,0.6)',
               fontSize: 10,
             }}
           >
@@ -248,32 +248,33 @@ const PurpleUserBubble: React.FC<{
   );
 };
 
-// Sign transaction inline button (dark mode Telegram style)
+// Sign transaction inline button — auto-width centered, light bg
 const SignBubble: React.FC<{frame: number; startFrame: number}> = ({frame, startFrame}) => {
   if (frame < startFrame) return null;
   const op = clamp(frame, startFrame, startFrame + 10, 0, 1);
   const scale = clamp(frame, startFrame, startFrame + 12, 0.88, 1);
   return (
-    <div style={{padding: '4px 12px', marginBottom: 6}}>
+    <div style={{padding: '4px 12px', marginBottom: 6, display: 'flex', justifyContent: 'center'}}>
       <div
         style={{
           opacity: op,
           transform: `scale(${scale})`,
-          background: '#2A2540',
-          border: '1px solid rgba(255,255,255,0.15)',
+          background: '#fff',
+          border: '1px solid #ddd',
           borderRadius: 12,
-          padding: '10px 16px',
-          fontSize: 14,
+          padding: '8px 20px',
+          fontSize: 13,
           fontWeight: 600,
-          color: '#ffffff',
+          color: '#111',
           fontFamily: typography.stack,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          gap: 6,
         }}
       >
-        <span>🔐 Sign Transaction</span>
-        <span style={{fontSize: 16, opacity: 0.7}}>↗</span>
+        <span>🔐</span>
+        <span>Sign Transaction</span>
+        <span style={{fontSize: 10, color: '#888'}}>↗</span>
       </div>
     </div>
   );
@@ -294,7 +295,7 @@ const ConfirmBubble: React.FC<{frame: number; startFrame: number}> = ({frame, st
           width: 32,
           height: 32,
           borderRadius: 16,
-          background: '#2A2540',
+          background: '#F0EDFF',
           overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',
@@ -306,15 +307,15 @@ const ConfirmBubble: React.FC<{frame: number; startFrame: number}> = ({frame, st
       </div>
       <div
         style={{
-          background: '#262633',
-          color: '#fff',
+          background: '#E9E9EB',
+          color: '#111',
           borderRadius: '18px 18px 18px 4px',
           padding: '9px 13px 6px',
           fontSize: 13,
           lineHeight: 1.6,
           fontFamily: typography.stack,
           maxWidth: '78%',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
           transform: `scale(${sc})`,
           transformOrigin: 'bottom left',
         }}
@@ -322,7 +323,7 @@ const ConfirmBubble: React.FC<{frame: number; startFrame: number}> = ({frame, st
         <div style={{fontWeight: 700}}>✅ Swap confirmed!</div>
         <div>1.0 USDC → 0.011410901 SOL</div>
         <div style={{color: colors.purple, textDecoration: 'underline'}}>View on Solscan</div>
-        <div style={{marginTop: 2, fontSize: 10, color: 'rgba(255,255,255,0.4)'}}>9:41</div>
+        <div style={{marginTop: 2, fontSize: 10, color: 'rgba(0,0,0,0.3)'}}>9:41</div>
       </div>
     </div>
   );
@@ -355,7 +356,7 @@ const TelegramChatContent: React.FC<{frame: number; showConfirm?: boolean}> = ({
         gap: 2,
       }}
     >
-      <PurpleUserBubble
+      <BlueUserBubble
         text="swap 1 usdc to sol"
         startFrame={showConfirm ? -999 : 75}
         cpf={showConfirm ? 99 : 0.9}
@@ -623,32 +624,27 @@ const TmaScreenContent: React.FC<TmaContentProps> = ({
               </div>
             </div>
 
-            {/* Wallet connected rows (scene 3b) */}
+            {/* Wallet connected rows (scene 3b) — flex row, two address chips side by side */}
             {showWallet && (
-              <div style={{marginBottom: 12}}>
-                {/* Row 1: green dot + address */}
-                <div style={{display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6}}>
+              <div style={{display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center'}}>
+                {/* Chip 1: green dot + address */}
+                <div style={{display: 'flex', alignItems: 'center', gap: 5, flex: 1, background: '#F5F5F7', borderRadius: 8, padding: '5px 8px'}}>
                   <div style={{width: 8, height: 8, borderRadius: 4, background: '#14F195', flexShrink: 0}} />
-                  <span style={{fontSize: 11, color: '#333', fontFamily: 'monospace'}}>D4M5c6 ... YqpJ</span>
+                  <span style={{fontSize: 10, color: '#333', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>D4M5c6...YqpJ</span>
                 </div>
-                {/* Row 2: purple icon + address + SOL balance */}
-                <div style={{display: 'flex', alignItems: 'center', gap: 6}}>
+                {/* Chip 2: purple square + address + SOL */}
+                <div style={{display: 'flex', alignItems: 'center', gap: 5, flex: 1, background: '#F5F5F7', borderRadius: 8, padding: '5px 8px'}}>
                   <div
                     style={{
-                      width: 20,
-                      height: 20,
-                      borderRadius: 10,
-                      background: `linear-gradient(135deg, ${colors.purple}, #6B25E8)`,
+                      width: 8,
+                      height: 8,
+                      borderRadius: 2,
+                      background: '#9945FF',
                       flexShrink: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
                     }}
-                  >
-                    <span style={{fontSize: 9, color: '#fff', fontWeight: 700}}>◎</span>
-                  </div>
-                  <span style={{fontSize: 11, color: '#333', fontFamily: 'monospace'}}>D4M5...itYqpJ</span>
-                  <span style={{fontSize: 11, color: '#888', fontFamily: 'monospace', marginLeft: 'auto'}}>0.018 SOL</span>
+                  />
+                  <span style={{fontSize: 10, color: '#333', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>D4M5...itYqpJ</span>
+                  <span style={{fontSize: 10, color: '#888', fontFamily: 'monospace', flexShrink: 0, marginLeft: 2}}>0.018 SOL</span>
                 </div>
               </div>
             )}
