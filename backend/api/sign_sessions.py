@@ -44,14 +44,18 @@ SESSION_TTL_MINUTES = 10
 # Token mints
 MINTS = {
     "SOL": "So11111111111111111111111111111111111111112",
+    "WSOL": "So11111111111111111111111111111111111111112",
     "USDC": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
     "USDT": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+    "USDG": "2u1tszSeqZ3qBWF3uNGPFc8TzMk2tdiwknnRMWGWjGWH",
+    "PYUSD": "2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo",
+    "USDS": "USDSwr9ApdHk5bvJKMjzff41FfuX8bSxdKcR81vTwcA",
     "BONK": "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
     "JUP": "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN",
     "JLP": "27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4",
     "WIF": "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm",
 }
-DECIMALS = {"SOL": 9, "USDC": 6, "USDT": 6, "BONK": 5, "JUP": 6, "JLP": 6, "WIF": 6}
+DECIMALS = {"SOL": 9, "WSOL": 9, "USDC": 6, "USDT": 6, "USDG": 6, "PYUSD": 6, "USDS": 6, "BONK": 5, "JUP": 6, "JLP": 6, "WIF": 6}
 
 REFERRAL_PROGRAM_ID = "REFER4ZgmyYx9c6He5XfaTMiGfdLwRnkV4RPp9t9iF3"
 
@@ -110,7 +114,32 @@ def _log_event(db: Session, session_id: str, event: str, data: dict = None):
 
 
 def _resolve_mint(symbol: str) -> Optional[str]:
-    return MINTS.get(symbol.upper())
+    """Resolve token symbol to mint address. Falls back to Birdeye search."""
+    upper = symbol.upper()
+    if upper in MINTS:
+        return MINTS[upper]
+    # Fallback: check if it's already a valid solana address (mint passed directly)
+    import re
+    if re.match(r'^[1-9A-HJ-NP-Za-km-z]{32,44}$', symbol):
+        return symbol
+    # Fallback: try Birdeye search for unknown symbols
+    try:
+        import httpx
+        birdeye_key = os.getenv("BIRDEYE_API_KEY")
+        if birdeye_key:
+            resp = httpx.get(
+                "https://public-api.birdeye.so/defi/v3/search",
+                headers={"X-API-KEY": birdeye_key, "x-chain": "solana"},
+                params={"keyword": upper, "limit": 1},
+                timeout=5,
+            )
+            if resp.status_code == 200:
+                items = resp.json().get("data", {}).get("items", [])
+                if items and items[0].get("address"):
+                    return items[0]["address"]
+    except Exception:
+        pass
+    return None
 
 
 def _to_smallest_units(amount: float, symbol: str) -> int:
