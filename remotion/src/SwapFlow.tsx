@@ -181,11 +181,11 @@ const Hook: React.FC<{frame: number}> = ({frame}) => {
 };
 
 // ---------------------------------------------------------------------------
-// Telegram chat: user bubble override — Telegram green #EEFFDE, dark text
+// Telegram chat: user bubble — purple dark mode
 // ---------------------------------------------------------------------------
 
-/** Green Telegram-style user bubble. Replaces the purple one from Bubbles.tsx */
-const GreenUserBubble: React.FC<{
+/** Purple Telegram-style user bubble for dark mode chat. */
+const PurpleUserBubble: React.FC<{
   text: string;
   startFrame: number;
   cpf: number;
@@ -212,15 +212,15 @@ const GreenUserBubble: React.FC<{
           opacity,
           transform: `scale(${scale})`,
           transformOrigin: 'bottom right',
-          background: '#EEFFDE',
-          color: '#111',
-          borderRadius: '18px 18px 4px 18px',
+          background: '#9945FF',
+          color: '#fff',
+          borderRadius: '16px 16px 4px 16px',
           padding: '9px 13px 6px',
           fontSize: 14,
           fontFamily: typography.stack,
           maxWidth: '78%',
           lineHeight: 1.4,
-          boxShadow: '0 1px 2px rgba(0,0,0,0.08)',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
         }}
       >
         <div>
@@ -235,7 +235,7 @@ const GreenUserBubble: React.FC<{
               justifyContent: 'flex-end',
               alignItems: 'center',
               gap: 3,
-              color: 'rgba(0,0,0,0.4)',
+              color: 'rgba(255,255,255,0.4)',
               fontSize: 10,
             }}
           >
@@ -248,29 +248,32 @@ const GreenUserBubble: React.FC<{
   );
 };
 
-// Sign transaction button bubble
+// Sign transaction inline button (dark mode Telegram style)
 const SignBubble: React.FC<{frame: number; startFrame: number}> = ({frame, startFrame}) => {
   if (frame < startFrame) return null;
   const op = clamp(frame, startFrame, startFrame + 10, 0, 1);
   const scale = clamp(frame, startFrame, startFrame + 12, 0.88, 1);
   return (
-    <div style={{display: 'flex', justifyContent: 'center', padding: '4px 12px', marginBottom: 6}}>
+    <div style={{padding: '4px 12px', marginBottom: 6}}>
       <div
         style={{
           opacity: op,
           transform: `scale(${scale})`,
-          background: colors.purple,
-          borderRadius: 14,
-          padding: '10px 24px',
+          background: '#2A2540',
+          border: '1px solid rgba(255,255,255,0.15)',
+          borderRadius: 12,
+          padding: '10px 16px',
           fontSize: 14,
           fontWeight: 600,
           color: '#ffffff',
           fontFamily: typography.stack,
-          boxShadow: `0 0 20px ${colors.purpleGlow}`,
-          letterSpacing: '0.01em',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
         }}
       >
-        🔐 Sign Transaction
+        <span>🔐 Sign Transaction</span>
+        <span style={{fontSize: 16, opacity: 0.7}}>↗</span>
       </div>
     </div>
   );
@@ -291,7 +294,7 @@ const ConfirmBubble: React.FC<{frame: number; startFrame: number}> = ({frame, st
           width: 32,
           height: 32,
           borderRadius: 16,
-          background: '#F0EDFF',
+          background: '#2A2540',
           overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',
@@ -303,23 +306,23 @@ const ConfirmBubble: React.FC<{frame: number; startFrame: number}> = ({frame, st
       </div>
       <div
         style={{
-          background: '#FFFFFF',
-          color: colors.textPrimary,
+          background: '#262633',
+          color: '#fff',
           borderRadius: '18px 18px 18px 4px',
           padding: '9px 13px 6px',
           fontSize: 13,
           lineHeight: 1.6,
           fontFamily: typography.stack,
           maxWidth: '78%',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
           transform: `scale(${sc})`,
           transformOrigin: 'bottom left',
         }}
       >
-        <div>✅ Swap confirmed!</div>
+        <div style={{fontWeight: 700}}>✅ Swap confirmed!</div>
         <div>1.0 USDC → 0.011410901 SOL</div>
         <div style={{color: colors.purple, textDecoration: 'underline'}}>View on Solscan</div>
-        <div style={{marginTop: 2, fontSize: 10, color: 'rgba(0,0,0,0.3)'}}>9:41</div>
+        <div style={{marginTop: 2, fontSize: 10, color: 'rgba(255,255,255,0.4)'}}>9:41</div>
       </div>
     </div>
   );
@@ -352,7 +355,7 @@ const TelegramChatContent: React.FC<{frame: number; showConfirm?: boolean}> = ({
         gap: 2,
       }}
     >
-      <GreenUserBubble
+      <PurpleUserBubble
         text="swap 1 usdc to sol"
         startFrame={showConfirm ? -999 : 75}
         cpf={showConfirm ? 99 : 0.9}
@@ -936,9 +939,10 @@ const PhantomScreenContent: React.FC<{frame: number}> = ({frame}) => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
+                overflow: 'hidden',
               }}
             >
-              <span style={{fontSize: 12, fontWeight: 700, color: '#fff'}}>$</span>
+              <span style={{fontSize: 18, fontWeight: 700, color: '#fff'}}>$</span>
             </div>
             <div style={{flex: 1}}>
               <div style={{fontSize: 13, color: '#fff', fontWeight: 500}}>USD Coin</div>
@@ -948,20 +952,11 @@ const PhantomScreenContent: React.FC<{frame: number}> = ({frame}) => {
 
           {/* SOL row */}
           <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 16,
-                background: 'linear-gradient(135deg, #9945FF 0%, #666 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <span style={{fontSize: 14, fontWeight: 700, color: '#fff'}}>◎</span>
-            </div>
+            <img
+              src={staticFile('coins/sol.png')}
+              style={{width: 32, height: 32, borderRadius: 16, objectFit: 'contain', flexShrink: 0}}
+              alt="SOL"
+            />
             <div style={{flex: 1}}>
               <div style={{fontSize: 13, color: '#fff', fontWeight: 500}}>Solana</div>
             </div>
