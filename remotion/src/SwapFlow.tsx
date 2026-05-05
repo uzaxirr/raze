@@ -400,7 +400,8 @@ const TimerCircle: React.FC = () => (
   </div>
 );
 
-// TMA top bar inside the phone screen — matches real Telegram in-app browser chrome
+// TMA top bar inside the phone screen — matches real Telegram Mini App browser chrome
+// Single row: X close | raze.fun pill (centered) | ••• menu
 const TmaTopBar: React.FC = () => (
   <div
     style={{
@@ -408,41 +409,43 @@ const TmaTopBar: React.FC = () => (
       top: phone.STATUS_H,
       left: 0,
       right: 0,
-      height: phone.HEADER_H,
-      background: '#F2F2F7',
-      borderBottom: `1px solid rgba(0,0,0,0.12)`,
+      height: 44,
+      background: '#FFFFFF',
+      borderBottom: `1px solid rgba(0,0,0,0.10)`,
       display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
+      alignItems: 'center',
+      padding: '0 12px',
       fontFamily: typography.stack,
       zIndex: 4,
     }}
   >
-    {/* Top row: ◁ Telegram | centered title | three-dot */}
-    <div style={{display: 'flex', alignItems: 'center', padding: '0 10px', height: '55%'}}>
-      <div style={{display: 'flex', alignItems: 'center', gap: 3, minWidth: 70}}>
-        <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
-          <path d="M6 1L1 6L6 11" stroke={colors.purple} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-        <span style={{fontSize: 11, color: colors.purple, fontWeight: 500}}>Telegram</span>
-      </div>
-      <div style={{flex: 1, textAlign: 'center'}}>
-        <span style={{fontSize: 13, fontWeight: 700, color: '#111'}}>Raze — Sign Transaction</span>
-      </div>
-      {/* Three-dot menu */}
-      <div style={{display: 'flex', flexDirection: 'column', gap: 2.5, minWidth: 24, alignItems: 'center'}}>
-        {[0,1,2].map(i => (
-          <div key={i} style={{width: 3, height: 3, borderRadius: '50%', background: '#666'}} />
-        ))}
+    {/* X close button */}
+    <div style={{minWidth: 28, display: 'flex', alignItems: 'center', justifyContent: 'flex-start'}}>
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M1 1L13 13M13 1L1 13" stroke="#333" strokeWidth="1.6" strokeLinecap="round"/>
+      </svg>
+    </div>
+
+    {/* Centered raze.fun pill */}
+    <div style={{flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+      <div
+        style={{
+          background: '#F0F0F5',
+          borderRadius: 20,
+          padding: '5px 20px',
+          minWidth: 140,
+          textAlign: 'center',
+        }}
+      >
+        <span style={{fontSize: 13, fontWeight: 500, color: '#333'}}>raze.fun</span>
       </div>
     </div>
-    {/* Bottom row: lock icon + raze.fun */}
-    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, height: '45%'}}>
-      <svg width="8" height="10" viewBox="0 0 8 10" fill="none">
-        <rect x="1" y="4" width="6" height="5.5" rx="1" fill="#888"/>
-        <path d="M2.5 4V2.5C2.5 1.67 3.17 1 4 1C4.83 1 5.5 1.67 5.5 2.5V4" stroke="#888" strokeWidth="1.2" strokeLinecap="round"/>
-      </svg>
-      <span style={{fontSize: 10, color: '#888'}}>raze.fun</span>
+
+    {/* Three-dot menu */}
+    <div style={{minWidth: 28, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 3}}>
+      {[0,1,2].map(i => (
+        <div key={i} style={{width: 3.5, height: 3.5, borderRadius: '50%', background: '#555'}} />
+      ))}
     </div>
   </div>
 );
@@ -488,7 +491,7 @@ const TmaScreenContent: React.FC<TmaContentProps> = ({
       <div
         style={{
           position: 'absolute',
-          top: phone.TOTAL_HEADER,
+          top: phone.STATUS_H + 44,
           bottom: 0,
           left: 0,
           right: 0,
@@ -513,7 +516,7 @@ const TmaScreenContent: React.FC<TmaContentProps> = ({
             style={{
               background: '#fff',
               borderRadius: 20,
-              padding: '14px 16px 16px',
+              padding: '20px 20px 20px',
               width: '100%',
               boxSizing: 'border-box',
               boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
@@ -559,7 +562,7 @@ const TmaScreenContent: React.FC<TmaContentProps> = ({
             >
               <div style={{flex: 1, textAlign: 'left'}}>
                 <div style={{fontSize: 9, color: '#999', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3, fontFamily: typography.stack}}>YOU PAY</div>
-                <div style={{fontSize: 24, fontWeight: 700, color: '#111', lineHeight: 1, fontFamily: typography.stack}}>1</div>
+                <div style={{fontSize: 36, fontWeight: 700, color: '#111', lineHeight: 1, fontFamily: typography.stack}}>1</div>
                 <div style={{fontSize: 11, color: colors.purple, marginTop: 3, fontFamily: typography.stack, fontWeight: 600}}>USDG</div>
               </div>
               <div style={{fontSize: 18, color: '#999'}}>→</div>
@@ -578,13 +581,13 @@ const TmaScreenContent: React.FC<TmaContentProps> = ({
             </div>
 
             {/* Transaction for row */}
-            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 12}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 16}}>
               <span style={{fontSize: 10, color: '#999', fontFamily: typography.stack}}>transaction for:</span>
               <span style={{fontSize: 10, color: '#888', fontFamily: 'monospace'}}>D4M5c6...YgpJ</span>
             </div>
 
             {/* scan QR | connect wallet outline buttons */}
-            <div style={{display: 'flex', gap: 8, marginBottom: showWallet ? 10 : 12, width: '100%', boxSizing: 'border-box'}}>
+            <div style={{display: 'flex', gap: 8, marginBottom: showWallet ? 10 : 16, width: '100%', boxSizing: 'border-box'}}>
               <div
                 style={{
                   flex: 1,
@@ -672,24 +675,27 @@ const TmaScreenContent: React.FC<TmaContentProps> = ({
 
             {/* Primary CTA button */}
             {!showSubmitting && (
-              <div
-                style={{
-                  background: colors.purple,
-                  borderRadius: 24,
-                  padding: '12px 0',
-                  textAlign: 'center',
-                  fontSize: 15,
-                  fontWeight: 700,
-                  color: '#fff',
-                  width: '100%',
-                  boxSizing: 'border-box',
-                  fontFamily: typography.stack,
-                  boxShadow: showWallet
-                    ? `0 0 ${glowPx}px ${colors.purpleGlow}, 0 0 ${glowPx * 2}px rgba(153,69,255,0.2)`
-                    : 'none',
-                }}
-              >
-                {showWallet ? 'sign & send' : 'Connect Wallet'}
+              <div style={{display: 'flex', justifyContent: 'center'}}>
+                <div
+                  style={{
+                    background: colors.purple,
+                    borderRadius: 24,
+                    padding: showWallet ? '12px 0' : '10px 28px',
+                    textAlign: 'center',
+                    fontSize: showWallet ? 15 : 14,
+                    fontWeight: 700,
+                    color: '#fff',
+                    width: showWallet ? '100%' : undefined,
+                    minWidth: showWallet ? undefined : 180,
+                    boxSizing: 'border-box',
+                    fontFamily: typography.stack,
+                    boxShadow: showWallet
+                      ? `0 0 ${glowPx}px ${colors.purpleGlow}, 0 0 ${glowPx * 2}px rgba(153,69,255,0.2)`
+                      : 'none',
+                  }}
+                >
+                  {showWallet ? 'sign & send' : 'Connect Wallet'}
+                </div>
               </div>
             )}
           </div>
@@ -803,7 +809,7 @@ const PhantomScreenContent: React.FC<{frame: number}> = ({frame}) => {
       {/* Status bar area — keep it dark */}
       <div style={{height: phone.STATUS_H, background: '#1C1C1E'}} />
 
-      {/* Telegram nav bar — same as TMA but dark themed */}
+      {/* Telegram nav bar — dark themed, two-row (back + title / lock + url) */}
       <div
         style={{
           height: phone.HEADER_H,
@@ -815,22 +821,25 @@ const PhantomScreenContent: React.FC<{frame: number}> = ({frame}) => {
           flexShrink: 0,
         }}
       >
+        {/* Top row: back arrow | title | three-dot */}
         <div style={{display: 'flex', alignItems: 'center', padding: '0 10px', height: '55%'}}>
-          <div style={{display: 'flex', alignItems: 'center', gap: 3, minWidth: 70}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: 3, minWidth: 28}}>
             <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
-              <path d="M6 1L1 6L6 11" stroke={colors.purple} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M6 1L1 6L6 11" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            <span style={{fontSize: 11, color: colors.purple, fontWeight: 500}}>Telegram</span>
           </div>
           <div style={{flex: 1, textAlign: 'center'}}>
-            <span style={{fontSize: 13, fontWeight: 700, color: '#fff'}}>Raze — Sign Transaction</span>
+            <span style={{fontSize: 13, fontWeight: 600, color: '#fff'}}>Raze — Sign Transaction</span>
           </div>
-          <div style={{display: 'flex', flexDirection: 'column', gap: 2.5, minWidth: 24, alignItems: 'center'}}>
-            {[0,1,2].map(i => (
-              <div key={i} style={{width: 3, height: 3, borderRadius: '50%', background: '#888'}} />
-            ))}
+          <div style={{minWidth: 28, display: 'flex', alignItems: 'center', justifyContent: 'flex-end'}}>
+            <svg width="16" height="4" viewBox="0 0 16 4" fill="none">
+              <circle cx="2" cy="2" r="1.5" fill="#aaa"/>
+              <circle cx="8" cy="2" r="1.5" fill="#aaa"/>
+              <circle cx="14" cy="2" r="1.5" fill="#aaa"/>
+            </svg>
           </div>
         </div>
+        {/* Bottom row: lock + raze.fun */}
         <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, height: '45%'}}>
           <svg width="8" height="10" viewBox="0 0 8 10" fill="none">
             <rect x="1" y="4" width="6" height="5.5" rx="1" fill="#666"/>
@@ -888,7 +897,7 @@ const PhantomScreenContent: React.FC<{frame: number}> = ({frame}) => {
         <div style={{fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 6}}>
           Confirm transaction
         </div>
-        <div style={{fontSize: 12, color: '#888', marginBottom: 12, lineHeight: 1.5}}>
+        <div style={{fontSize: 12, color: '#888', marginBottom: 12, lineHeight: 1.6}}>
           Balance changes are estimated. Amounts and assets involved are not guaranteed.
         </div>
 
@@ -900,7 +909,7 @@ const PhantomScreenContent: React.FC<{frame: number}> = ({frame}) => {
             padding: '10px 12px',
             fontSize: 12,
             color: '#664D03',
-            marginBottom: 14,
+            marginBottom: 0,
             lineHeight: 1.5,
             display: 'flex',
             gap: 8,
@@ -914,7 +923,7 @@ const PhantomScreenContent: React.FC<{frame: number}> = ({frame}) => {
         {divider}
 
         {/* Token rows */}
-        <div style={{display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 4}}>
+        <div style={{display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 0}}>
           {/* USDC row */}
           <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
             <div
@@ -990,7 +999,7 @@ const PhantomScreenContent: React.FC<{frame: number}> = ({frame}) => {
             justifyContent: 'space-between',
             alignItems: 'center',
             fontSize: 13,
-            marginBottom: 4,
+            marginBottom: 0,
           }}
         >
           <span style={{color: '#888'}}>Advanced</span>
@@ -999,14 +1008,14 @@ const PhantomScreenContent: React.FC<{frame: number}> = ({frame}) => {
 
         {divider}
 
-        {/* Buttons */}
+        {/* Buttons — each ~45% width */}
         <div style={{display: 'flex', gap: 10, marginTop: 4}}>
           <div
             style={{
               flex: 1,
-              background: '#333',
-              borderRadius: 12,
-              padding: '13px 0',
+              background: '#3A3A3C',
+              borderRadius: 14,
+              padding: '14px 0',
               textAlign: 'center',
               fontSize: 15,
               color: '#fff',
@@ -1019,8 +1028,8 @@ const PhantomScreenContent: React.FC<{frame: number}> = ({frame}) => {
             style={{
               flex: 1,
               background: colors.purple,
-              borderRadius: 12,
-              padding: '13px 0',
+              borderRadius: 14,
+              padding: '14px 0',
               textAlign: 'center',
               fontSize: 15,
               color: '#fff',
