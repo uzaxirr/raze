@@ -49,6 +49,10 @@ RAZE_TRANSFER_FEE_ACCOUNT = Pubkey.from_string(
 )
 RAZE_TRANSFER_FEE_BPS = int(os.getenv("RAZE_TRANSFER_FEE_BPS", "100"))  # 100 bps = 1%
 
+# Raze Unleashed subscription payment address (receives 5 USDC)
+RAZE_SUBSCRIPTION_ACCOUNT = os.getenv("RAZE_SUBSCRIPTION_ACCOUNT", "3FKgJnzBFT8emAoXKFKaXqtFaub417qaMyAG4hM91XEE")
+RAZE_SUBSCRIPTION_AMOUNT_USDC = float(os.getenv("RAZE_SUBSCRIPTION_AMOUNT_USDC", "5.0"))
+
 # SPL Token Program ID
 TOKEN_PROGRAM_ID = Pubkey.from_string("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
 ASSOCIATED_TOKEN_PROGRAM_ID = Pubkey.from_string("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL")
