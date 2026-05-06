@@ -785,6 +785,73 @@ async def get_swap_quote(
         }
 
 
+@mcp.tool()
+async def verify_subscription_payment(
+    wallet_address: str,
+) -> Dict[str, Any]:
+    """
+    Verify if a wallet has sent a USDC payment to the Raze Unleashed subscription address.
+    Call this when a user says they've signed/completed their Unleashed payment.
+
+    Args:
+        wallet_address: The user's wallet address to check
+
+    Returns:
+        Verification result with payment status and transaction details
+    """
+    USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+    subscription_address = RAZE_SUBSCRIPTION_ACCOUNT
+    min_amount = RAZE_SUBSCRIPTION_AMOUNT_USDC
+
+    try:
+        helius_key = os.getenv("HELIUS_API_KEY", "")
+        if not helius_key:
+            return {"status": "error", "message": "Cannot verify payment — API key missing."}
+
+        # Check recent transactions from this wallet using Helius Enhanced Transactions API
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.get(
+                f"https://api.helius.xyz/v0/addresses/{wallet_address}/transactions",
+                params={"api-key": helius_key, "limit": 20}
+            )
+
+            if resp.status_code != 200:
+                return {"status": "error", "message": "Failed to fetch transactions."}
+
+            txs = resp.json()
+
+            # Look for a USDC transfer to the subscription address
+            for tx in txs:
+                token_transfers = tx.get("tokenTransfers") or []
+                for tt in token_transfers:
+                    if (tt.get("mint") == USDC_MINT
+                            and tt.get("toUserAccount") == subscription_address
+                            and tt.get("fromUserAccount") == wallet_address):
+                        # Found it — check amount (tokenAmount is in human-readable form)
+                        amount = tt.get("tokenAmount", 0)
+                        if amount >= min_amount:
+                            tx_sig = tx.get("signature", "")
+                            timestamp = tx.get("timestamp", 0)
+
+                            return {
+                                "status": "verified",
+                                "message": f"Payment confirmed! {amount} USDC received.",
+                                "tx_signature": tx_sig,
+                                "amount": amount,
+                                "timestamp": timestamp,
+                            }
+
+            # No matching transaction found
+            return {
+                "status": "not_found",
+                "message": f"No USDC payment found from your wallet to the subscription address yet. It may take a few seconds to confirm — try again in a moment.",
+            }
+
+    except Exception as e:
+        logger.exception(f"Subscription verification failed: {e}")
+        return {"status": "error", "message": "Failed to verify payment. Try again."}
+
+
 def main():
     """Run the MCP server."""
     logger.info("Starting transaction-executor MCP server...")

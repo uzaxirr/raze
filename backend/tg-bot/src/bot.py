@@ -2018,6 +2018,23 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                         elif isinstance(event, ToolCallCompletedEvent) and event.tool:
                             tool_result = event.tool.result or ""
                             tool_name = event.tool.tool_name or ""
+
+                            # Handle subscription verification
+                            if tool_name == "verify_subscription_payment" and '"verified"' in tool_result:
+                                try:
+                                    import json as _json
+                                    verify_data = _json.loads(tool_result)
+                                    if verify_data.get("status") == "verified":
+                                        from db.subscription import activate_unleashed
+                                        activate_unleashed(
+                                            telegram_user_id=int(user_id),
+                                            payment_method="onchain_usdc",
+                                            tx_hash=verify_data.get("tx_signature", ""),
+                                        )
+                                        logger.info(f"Unleashed activated for user {user_id} via on-chain payment")
+                                except Exception as e:
+                                    logger.warning(f"Failed to activate unleashed after verification: {e}")
+
                             if "pending_signature" in tool_result and tool_name in ("swap_tokens", "send_sol", "send_token"):
                                 try:
                                     import json as _json

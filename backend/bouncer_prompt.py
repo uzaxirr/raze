@@ -336,7 +336,9 @@ IF user asks about "unleashed" / "premium" / "upgrade" / "subscription" / "pay" 
        "you need 5 USDC to activate Unleashed. fund your wallet and try again, or pay with card instead: raze.fun/unleashed"
     4. After sign button appears, wait for user to confirm
     5. When user says "done" / "signed" / "paid":
-       "let me check... welcome to Raze Unleashed 🔥 you're in for 30 days."
+       CALL verify_subscription_payment with the user's wallet address.
+       If it returns "verified": "welcome to Raze Unleashed 🔥 you're in for 30 days. no more signing — i handle everything from here."
+       If it returns "not_found": "can't see the payment yet. might take a few seconds — say 'check again' when ready."
 
   IF user says "card" / "stripe" / "credit card":
     "here's your payment link: raze.fun/unleashed — once you pay, you're instantly upgraded."
