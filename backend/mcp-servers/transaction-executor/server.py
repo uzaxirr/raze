@@ -583,6 +583,36 @@ async def swap_tokens(
         from_symbol = get_token_symbol(input_mint) or from_token
         to_symbol = get_token_symbol(output_mint) or to_token
 
+        # Pre-check liquidity for non-major tokens to avoid pointless swap attempts
+        MAJOR_MINTS = {
+            "So11111111111111111111111111111111111111112",  # SOL
+            "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",  # USDC
+            "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",  # USDT
+            "2u1tszSeqZ3qBWF3uNGPFc8TzMk2tdiwknnRMWGWjGWH",  # USDG
+        }
+        for mint_to_check, sym in [(input_mint, from_symbol), (output_mint, to_symbol)]:
+            if mint_to_check not in MAJOR_MINTS:
+                try:
+                    birdeye_key = os.getenv("BIRDEYE_API_KEY", "")
+                    if birdeye_key:
+                        async with httpx.AsyncClient(timeout=5) as _client:
+                            _resp = await _client.get(
+                                f"https://public-api.birdeye.so/defi/v3/token/trade-data/single",
+                                headers={"X-API-KEY": birdeye_key, "x-chain": "solana"},
+                                params={"address": mint_to_check},
+                            )
+                            if _resp.status_code == 200:
+                                _data = _resp.json().get("data", {})
+                                vol_24h = _data.get("volume_24h_usd", 0) or 0
+                                if vol_24h < 500:
+                                    return {
+                                        "status": "error",
+                                        "error": "no_liquidity",
+                                        "message": f"{sym} has almost no trading volume right now (${vol_24h:.0f} in 24h). Swap would likely fail — not enough liquidity.",
+                                    }
+                except Exception:
+                    pass  # Don't block swap on pre-check failure
+
         # Convert to smallest units
         input_amount = amount_to_lamports(amount, from_token)
 
