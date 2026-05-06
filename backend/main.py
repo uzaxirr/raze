@@ -196,5 +196,9 @@ app.add_middleware(
 from api.sign_sessions import router as sign_router
 app.include_router(sign_router)
 
+# Mount Stripe payment API
+from api.stripe_pay import router as stripe_router
+app.include_router(stripe_router)
+
 if __name__ == "__main__":
     agent_os.serve(app="main:app", reload=True)
