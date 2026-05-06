@@ -2510,7 +2510,15 @@ async def stream_response(
                     logger.warning(f"Failed to send chart image: {e}")
                     await safe_edit_message(bot_message, clean_text or "couldn't load chart")
             else:
-                clean_text = strip_sign_tx_tags(accumulated_text)
+                import re as _clean_re
+                clean_text = accumulated_text
+                # Strip internal tags
+                clean_text = _clean_re.sub(r'\[THINK\w*\].*?\[/THINK\w*\]', '', clean_text, flags=_clean_re.DOTALL).strip()
+                clean_text = _clean_re.sub(r'\[THINK\w*\].*$', '', clean_text, flags=_clean_re.DOTALL).strip()
+                clean_text = _clean_re.sub(r'\[BOUNCER_\w*\].*', '', clean_text, flags=_clean_re.DOTALL).strip()
+                # Strip bubble separators
+                clean_text = clean_text.replace("|||", "\n\n")
+                clean_text = strip_sign_tx_tags(clean_text)
                 clean_text, _ = extract_pending_swap(clean_text)
                 tma_url = await create_signing_session(pending_swap_data, session_state, telegram_chat_id=chat_id) if pending_swap_data else None
 
