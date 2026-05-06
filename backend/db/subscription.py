@@ -4,11 +4,36 @@ Global utilities for checking premium status and managing subscriptions.
 Importable from any service: tg-bot, imessage-bot, AgentOS, MCP servers.
 """
 
+import os
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+
+import httpx
 from sqlalchemy import select
 from db.database import SessionLocal
 from db.models import Subscription
+
+logger = logging.getLogger(__name__)
+
+ADMIN_BOT_TOKEN = os.getenv("ADMIN_BOT_TOKEN")
+ADMIN_USER_ID = os.getenv("ADMIN_USER_ID", "1327643512")
+
+
+async def _notify_admin(message: str):
+    """Send subscription event notification to admin bot."""
+    if not ADMIN_BOT_TOKEN or not ADMIN_USER_ID:
+        return
+    try:
+        url = f"https://api.telegram.org/bot{ADMIN_BOT_TOKEN}/sendMessage"
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            await client.post(url, json={
+                "chat_id": int(ADMIN_USER_ID),
+                "text": message,
+                "parse_mode": "HTML",
+            })
+    except Exception as e:
+        logger.warning(f"Failed to notify admin: {e}")
 
 
 def is_unleashed(
@@ -124,6 +149,26 @@ def activate_unleashed(
 
         db.commit()
         db.refresh(sub)
+
+        # Notify admin about successful subscription
+        try:
+            import asyncio
+            user_label = f"tg:{telegram_user_id}" if telegram_user_id else f"imsg:{phone_number}" if phone_number else email or "unknown"
+            msg = (
+                f"💰 <b>Raze Unleashed — New Subscriber!</b>\n"
+                f"User: {user_label}\n"
+                f"Payment: {payment_method}\n"
+                f"Duration: {days} days\n"
+                f"Expires: {sub.current_period_end.strftime('%Y-%m-%d')}"
+            )
+            if tx_hash:
+                msg += f"\nTx: {tx_hash[:16]}..."
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                loop.create_task(_notify_admin(msg))
+        except Exception:
+            pass  # Don't block subscription on notification failure
+
         return sub
 
 

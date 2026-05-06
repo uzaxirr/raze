@@ -2025,6 +2025,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                                     if result_data.get("status") == "pending_signature":
                                         pending_swap_data = result_data
                                         logger.info(f"Bouncer: captured pending_signature from {tool_name}")
+
+                                        # Notify admin if this is a subscription payment
+                                        SUBSCRIPTION_ADDR = "3FKgJnzBFT8emAoXKFKaXqtFaub417qaMyAG4hM91XEE"
+                                        if result_data.get("to") == SUBSCRIPTION_ADDR:
+                                            from .waitlist import notify_admin
+                                            tg_user = update.effective_user
+                                            _aio.ensure_future(notify_admin(
+                                                f"🔔 <b>Unleashed — Payment Initiated!</b>\n"
+                                                f"User: @{tg_user.username or tg_user.first_name} ({user_id})\n"
+                                                f"Amount: {result_data.get('amount', '?')} USDC\n"
+                                                f"Status: awaiting signature"
+                                            ))
                                 except Exception as e:
                                     logger.warning(f"Bouncer: failed to parse tool result: {e}")
                         elif isinstance(event, RunCompletedEvent):
