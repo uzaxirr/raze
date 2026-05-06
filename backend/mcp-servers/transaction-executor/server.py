@@ -841,10 +841,78 @@ async def verify_subscription_payment(
                                 "timestamp": timestamp,
                             }
 
-            # No matching transaction found
+            # Helius hasn't indexed it yet — fallback to direct RPC
+            # Check recent signatures from user's wallet and parse each tx
+            logger.info(f"Helius didn't find payment, trying direct RPC for {wallet_address}")
+            rpc_url = os.getenv("SOLANA_RPC_URL", SOLANA_RPC_URL)
+
+            async with httpx.AsyncClient(timeout=15) as client:
+                # Get recent signatures for the user's wallet
+                sig_resp = await client.post(rpc_url, json={
+                    "jsonrpc": "2.0", "id": 1,
+                    "method": "getSignaturesForAddress",
+                    "params": [wallet_address, {"limit": 10}],
+                })
+                sigs = sig_resp.json().get("result", [])
+
+                for sig_info in sigs:
+                    sig = sig_info.get("signature", "")
+                    if sig_info.get("err"):
+                        continue  # skip failed txs
+
+                    # Fetch full transaction
+                    tx_resp = await client.post(rpc_url, json={
+                        "jsonrpc": "2.0", "id": 1,
+                        "method": "getTransaction",
+                        "params": [sig, {"encoding": "jsonParsed", "maxSupportedTransactionVersion": 0}],
+                    })
+                    tx_data = tx_resp.json().get("result")
+                    if not tx_data:
+                        continue
+
+                    # Check inner instructions + main instructions for SPL transfer
+                    meta = tx_data.get("meta", {})
+                    all_instructions = tx_data.get("transaction", {}).get("message", {}).get("instructions", [])
+                    inner = meta.get("innerInstructions", [])
+                    for inner_set in inner:
+                        all_instructions.extend(inner_set.get("instructions", []))
+
+                    for ix in all_instructions:
+                        parsed = ix.get("parsed")
+                        if not parsed:
+                            continue
+                        ix_type = parsed.get("type", "")
+                        info = parsed.get("info", {})
+
+                        if ix_type in ("transfer", "transferChecked"):
+                            # Check if destination is the subscription account's USDC ATA
+                            dest = info.get("destination", "")
+                            source = info.get("source", "")
+                            token_amount = info.get("tokenAmount", {})
+                            ui_amount = token_amount.get("uiAmount", 0) if isinstance(token_amount, dict) else 0
+
+                            # Also check the 'amount' field for plain transfers
+                            if not ui_amount and info.get("amount"):
+                                ui_amount = int(info["amount"]) / 1_000_000  # USDC has 6 decimals
+
+                            if ui_amount >= min_amount:
+                                # Verify this tx involves the subscription address by checking account keys
+                                account_keys = tx_data.get("transaction", {}).get("message", {}).get("accountKeys", [])
+                                account_addrs = [k.get("pubkey", k) if isinstance(k, dict) else k for k in account_keys]
+                                if subscription_address in account_addrs:
+                                    logger.info(f"Found subscription payment via RPC: {sig}, amount={ui_amount}")
+                                    return {
+                                        "status": "verified",
+                                        "message": f"Payment confirmed! {ui_amount} USDC received.",
+                                        "tx_signature": sig,
+                                        "amount": ui_amount,
+                                        "timestamp": tx_data.get("blockTime", 0),
+                                    }
+
+            # Still not found after both methods
             return {
                 "status": "not_found",
-                "message": f"No USDC payment found from your wallet to the subscription address yet. It may take a few seconds to confirm — try again in a moment.",
+                "message": "No USDC payment found yet. The transaction might still be confirming — say 'check again' in a moment.",
             }
 
     except Exception as e:
