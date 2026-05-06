@@ -419,7 +419,7 @@ async def _build_transfer(session: SignSession, wallet_address: str, db: Session
     async with httpx.AsyncClient(timeout=10) as client:
         rpc_resp = await client.post(
             SOLANA_RPC_URL,
-            json={"jsonrpc": "2.0", "id": 1, "method": "getLatestBlockhash", "params": [{"commitment": "finalized"}]},
+            json={"jsonrpc": "2.0", "id": 1, "method": "getLatestBlockhash", "params": [{"commitment": "confirmed"}]},
         )
     blockhash_data = rpc_resp.json().get("result", {}).get("value", {})
     blockhash = Hash.from_string(blockhash_data["blockhash"])
@@ -588,14 +588,13 @@ async def submit_transaction(session_id: str, body: SubmitRequest, t: Optional[s
             tx_b64 = base64.b64encode(tx_bytes).decode()
 
             async with httpx.AsyncClient(timeout=30) as client:
-                # Don't skipPreflight — catch expired blockhash and other errors before sending
                 rpc_resp = await client.post(
                     SOLANA_RPC_URL,
                     json={
                         "jsonrpc": "2.0",
                         "id": 1,
                         "method": "sendTransaction",
-                        "params": [tx_b64, {"encoding": "base64", "skipPreflight": False, "maxRetries": 5}],
+                        "params": [tx_b64, {"encoding": "base64", "skipPreflight": True, "preflightCommitment": "confirmed", "maxRetries": 5}],
                     },
                 )
 
