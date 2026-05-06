@@ -582,30 +582,73 @@ async def submit_transaction(session_id: str, body: SubmitRequest, t: Optional[s
                 raise HTTPException(502, "no signature from Jupiter /execute")
 
         else:
-            # Send: broadcast directly
+            # Send: broadcast directly (transfers)
             import base64
             tx_bytes = base64.b64decode(body.signedTransaction)
             tx_b64 = base64.b64encode(tx_bytes).decode()
 
             async with httpx.AsyncClient(timeout=30) as client:
+                # Don't skipPreflight — catch expired blockhash and other errors before sending
                 rpc_resp = await client.post(
                     SOLANA_RPC_URL,
                     json={
                         "jsonrpc": "2.0",
                         "id": 1,
                         "method": "sendTransaction",
-                        "params": [tx_b64, {"encoding": "base64", "skipPreflight": True, "maxRetries": 3}],
+                        "params": [tx_b64, {"encoding": "base64", "skipPreflight": False, "maxRetries": 5}],
                     },
                 )
 
             rpc_result = rpc_resp.json()
             if "error" in rpc_result:
+                error_msg = str(rpc_result["error"])
+                logger.error(f"Transfer RPC error: {error_msg}")
+
+                # If blockhash expired, tell user to retry
+                if "Blockhash not found" in error_msg or "block height exceeded" in error_msg:
+                    session.status = "failed"
+                    session.error_message = "Transaction expired. Please try again."
+                    db.commit()
+                    raise HTTPException(502, "Transaction expired — the signing took too long. Go back and try again.")
+
                 session.status = "failed"
-                session.error_message = str(rpc_result["error"])
+                session.error_message = error_msg
                 db.commit()
-                raise HTTPException(502, f"RPC error: {rpc_result['error']}")
+                raise HTTPException(502, f"RPC error: {error_msg}")
 
             signature = rpc_result.get("result")
+
+            # Confirm the transaction actually landed (wait up to 15s)
+            confirmed = False
+            for _ in range(5):
+                import asyncio
+                await asyncio.sleep(3)
+                async with httpx.AsyncClient(timeout=10) as client:
+                    confirm_resp = await client.post(
+                        SOLANA_RPC_URL,
+                        json={
+                            "jsonrpc": "2.0", "id": 1,
+                            "method": "getSignatureStatuses",
+                            "params": [[signature]],
+                        },
+                    )
+                statuses = confirm_resp.json().get("result", {}).get("value", [])
+                if statuses and statuses[0]:
+                    status = statuses[0]
+                    if status.get("err"):
+                        session.status = "failed"
+                        session.error_message = f"Transaction failed on-chain: {status['err']}"
+                        db.commit()
+                        raise HTTPException(502, f"Transaction failed: {status['err']}")
+                    confirmed = True
+                    break
+
+            if not confirmed:
+                logger.warning(f"Transaction {signature} not confirmed after 15s — marking pending")
+                session.status = "pending_confirmation"
+                session.tx_hash = signature
+                db.commit()
+                return {"signature": signature, "status": "pending_confirmation"}
 
         # Success
         session.status = "confirmed"

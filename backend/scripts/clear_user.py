@@ -62,6 +62,9 @@ def clear_user(user_id: str, use_prod: bool = False):
         ("sign_session_events", f"DELETE FROM sign_session_events WHERE session_id IN (SELECT id FROM sign_sessions WHERE telegram_chat_id = {uid_int})"),
         ("sign_sessions", f"DELETE FROM sign_sessions WHERE telegram_chat_id = {uid_int}"),
 
+        # ── Subscriptions ──
+        ("subscriptions", f"DELETE FROM subscriptions WHERE telegram_user_id = {uid_int}"),
+
         # ── Waitlist ──
         ("waitlist", f"DELETE FROM waitlist WHERE telegram_user_id = {uid_int}"),
 
