@@ -220,6 +220,11 @@ def check_access(telegram_user_id: int) -> dict:
     """
     db = SessionLocal()
     try:
+        # Check Unleashed subscription first — bypasses waitlist entirely
+        from db.subscription import is_unleashed
+        if is_unleashed(telegram_user_id=telegram_user_id):
+            return {"access": "full", "unleashed": True}
+
         entry = db.query(Waitlist).filter_by(telegram_user_id=telegram_user_id).first()
 
         if entry is None:

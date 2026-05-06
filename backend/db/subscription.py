@@ -47,8 +47,31 @@ def activate_unleashed(
     stripe_subscription_id: Optional[str] = None,
     days: int = 30,
 ) -> Subscription:
-    """Activate or extend a Raze Unleashed subscription."""
+    """Activate or extend a Raze Unleashed subscription.
+
+    Also approves the user on the waitlist (bypasses waitlist)
+    and sets signing_mode to 'internal' (auto-sign via Privy wallet).
+    """
     now = datetime.now(timezone.utc)
+
+    # Approve on waitlist if they're waiting
+    if telegram_user_id:
+        try:
+            from db.models import Waitlist, UserProfile
+            with SessionLocal() as wl_db:
+                entry = wl_db.query(Waitlist).filter_by(telegram_user_id=telegram_user_id).first()
+                if entry and entry.status not in ("approved", "active"):
+                    entry.status = "approved"
+                    entry.approved_at = now
+                wl_db.commit()
+
+                # Set signing mode to internal (Privy auto-sign) for Unleashed users
+                profile = wl_db.query(UserProfile).filter_by(telegram_user_id=telegram_user_id).first()
+                if profile:
+                    profile.signing_mode = "internal"
+                    wl_db.commit()
+        except Exception:
+            pass  # Don't block subscription on waitlist/profile update failure
 
     with SessionLocal() as db:
         # Find existing subscription
