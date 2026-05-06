@@ -281,3 +281,35 @@ class SignSessionEvent(Base):
     event = Column(String(50), nullable=False)
     data = Column(Text)  # JSON string
     created_at = Column(DateTime, server_default=func.now())
+
+
+class Subscription(Base):
+    """Raze Unleashed subscriptions — $5/month via crypto or Stripe."""
+    __tablename__ = "subscriptions"
+
+    id = Column(Integer, primary_key=True)
+
+    # Identity — at least one must be set
+    email = Column(String(256), index=True)
+    telegram_user_id = Column(BigInteger, index=True, nullable=True)
+    imessage_phone = Column(String(20), index=True, nullable=True)
+
+    # Subscription state
+    tier = Column(String(20), nullable=False, default="free")  # free | unleashed
+    status = Column(String(20), nullable=False, default="active")  # active | cancelled | expired
+
+    # Payment
+    payment_method = Column(String(20))  # stripe | onchain_usdc
+    stripe_customer_id = Column(String(64))
+    stripe_subscription_id = Column(String(64))
+    onchain_tx_hash = Column(String(128))  # last USDC payment tx
+
+    # Billing cycle
+    current_period_start = Column(DateTime)
+    current_period_end = Column(DateTime)  # subscription expires after this
+
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    def __repr__(self):
+        return f"<Subscription(tg={self.telegram_user_id}, tier={self.tier}, expires={self.current_period_end})>"
