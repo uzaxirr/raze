@@ -801,7 +801,8 @@ async def verify_subscription_payment(
     """
     USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
     subscription_address = RAZE_SUBSCRIPTION_ACCOUNT
-    min_amount = RAZE_SUBSCRIPTION_AMOUNT_USDC
+    # Account for 1% transfer fee: user sends 5 USDC but 4.95 arrives after fee
+    min_amount = RAZE_SUBSCRIPTION_AMOUNT_USDC * 0.95
 
     try:
         helius_key = os.getenv("HELIUS_API_KEY", "")
