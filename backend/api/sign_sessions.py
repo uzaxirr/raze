@@ -539,6 +539,31 @@ async def _build_transfer(session: SignSession, wallet_address: str, db: Session
     }
 
 
+async def _rpc_send_tx(tx_b64: str, session, db: Session) -> str:
+    """Fallback: send transaction via raw Solana RPC."""
+    async with httpx.AsyncClient(timeout=30) as client:
+        rpc_resp = await client.post(
+            SOLANA_RPC_URL,
+            json={
+                "jsonrpc": "2.0", "id": 1,
+                "method": "sendTransaction",
+                "params": [tx_b64, {"encoding": "base64", "skipPreflight": True, "preflightCommitment": "confirmed", "maxRetries": 5}],
+            },
+        )
+    rpc_result = rpc_resp.json()
+    if "error" in rpc_result:
+        error_msg = str(rpc_result["error"])
+        logger.error(f"RPC sendTransaction error: {error_msg}")
+        session.status = "failed"
+        session.error_message = error_msg
+        db.commit()
+        raise HTTPException(502, f"Transaction failed: {error_msg}")
+    sig = rpc_result.get("result")
+    if not sig:
+        raise HTTPException(502, "No signature from RPC")
+    return sig
+
+
 @router.post("/sessions/{session_id}/submit")
 async def submit_transaction(session_id: str, body: SubmitRequest, t: Optional[str] = None, db: Session = Depends(get_db)):
     """Submit signed transaction. Server calls Jupiter /execute."""
@@ -582,72 +607,30 @@ async def submit_transaction(session_id: str, body: SubmitRequest, t: Optional[s
                 raise HTTPException(502, "no signature from Jupiter /execute")
 
         else:
-            # Send: broadcast directly (transfers)
+            # Send: broadcast via Jupiter tx/v1/submit for reliable landing
             import base64
             tx_bytes = base64.b64decode(body.signedTransaction)
             tx_b64 = base64.b64encode(tx_bytes).decode()
 
-            async with httpx.AsyncClient(timeout=30) as client:
-                rpc_resp = await client.post(
-                    SOLANA_RPC_URL,
-                    json={
-                        "jsonrpc": "2.0",
-                        "id": 1,
-                        "method": "sendTransaction",
-                        "params": [tx_b64, {"encoding": "base64", "skipPreflight": True, "preflightCommitment": "confirmed", "maxRetries": 5}],
-                    },
+            # Try Jupiter submit first (better landing infra)
+            async with httpx.AsyncClient(timeout=60) as client:
+                jup_resp = await client.post(
+                    "https://api.jup.ag/tx/v1/submit",
+                    json={"signedTransaction": tx_b64},
+                    headers=_jup_headers(),
                 )
 
-            rpc_result = rpc_resp.json()
-            if "error" in rpc_result:
-                error_msg = str(rpc_result["error"])
-                logger.error(f"Transfer RPC error: {error_msg}")
-
-                # If blockhash expired, tell user to retry
-                if "Blockhash not found" in error_msg or "block height exceeded" in error_msg:
-                    session.status = "failed"
-                    session.error_message = "Transaction expired. Please try again."
-                    db.commit()
-                    raise HTTPException(502, "Transaction expired — the signing took too long. Go back and try again.")
-
-                session.status = "failed"
-                session.error_message = error_msg
-                db.commit()
-                raise HTTPException(502, f"RPC error: {error_msg}")
-
-            signature = rpc_result.get("result")
-
-            # Confirm the transaction actually landed (wait up to 15s)
-            confirmed = False
-            for _ in range(5):
-                import asyncio
-                await asyncio.sleep(3)
-                async with httpx.AsyncClient(timeout=10) as client:
-                    confirm_resp = await client.post(
-                        SOLANA_RPC_URL,
-                        json={
-                            "jsonrpc": "2.0", "id": 1,
-                            "method": "getSignatureStatuses",
-                            "params": [[signature]],
-                        },
-                    )
-                statuses = confirm_resp.json().get("result", {}).get("value", [])
-                if statuses and statuses[0]:
-                    status = statuses[0]
-                    if status.get("err"):
-                        session.status = "failed"
-                        session.error_message = f"Transaction failed on-chain: {status['err']}"
-                        db.commit()
-                        raise HTTPException(502, f"Transaction failed: {status['err']}")
-                    confirmed = True
-                    break
-
-            if not confirmed:
-                logger.warning(f"Transaction {signature} not confirmed after 15s — marking pending")
-                session.status = "pending_confirmation"
-                session.tx_hash = signature
-                db.commit()
-                return {"signature": signature, "status": "pending_confirmation"}
+            if jup_resp.status_code == 200:
+                jup_result = jup_resp.json()
+                signature = jup_result.get("signature")
+                if not signature:
+                    # Fallback to raw RPC
+                    logger.warning("Jupiter submit returned no signature, falling back to RPC")
+                    signature = await _rpc_send_tx(tx_b64, session, db)
+            else:
+                # Jupiter submit failed — fallback to raw RPC
+                logger.warning(f"Jupiter submit failed ({jup_resp.status_code}), falling back to RPC")
+                signature = await _rpc_send_tx(tx_b64, session, db)
 
         # Success
         session.status = "confirmed"
