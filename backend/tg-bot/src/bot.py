@@ -1810,10 +1810,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             entry = access.get("entry")
             code = entry.referral_code if entry else "???"
             await update.message.reply_text(
-                f"you've hit your daily limit — 5 free msgs/day while on the waitlist.\n\n"
-                f"share your link for instant access:\n"
-                f"raze.fun/ref/{code}\n\n"
-                f"or wait til tomorrow. your call 💀"
+                f"you've hit your daily limit (25 messages).\n\n"
+                f"upgrade to Raze Unleashed for unlimited access — $5/month.\n"
+                f"auto-sign wallet, whale alerts, KOL feed intel, iMessage access.\n\n"
+                f"say \"upgrade\" to pay with crypto or card.\n"
+                f"or come back tomorrow for 25 more."
             )
             return
 
