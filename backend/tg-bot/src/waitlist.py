@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 # Config (overridable via env vars later)
 REFERRAL_BOOST = 50       # spots gained per referral
 AUTO_APPROVE_REFS = 5     # referrals needed for instant access
-DAILY_MSG_LIMIT = 25  # free users hit wall after 25 msgs/day → Unleashed pitch
+MONTHLY_MSG_LIMIT = 25  # free users hit wall after 25 msgs/month → Unleashed pitch
 
 # Admin notifications
 ADMIN_BOT_TOKEN = os.getenv("ADMIN_BOT_TOKEN")
@@ -253,18 +253,18 @@ def check_access(telegram_user_id: int) -> dict:
 
             return {"access": "full"}
 
-        # Status is "waiting" — check taste mode limits
-        today = date.today()
-        reset_date = entry.messages_reset_at.date() if entry.messages_reset_at else None
+        # Status is "waiting" — check taste mode limits (monthly)
+        now = datetime.utcnow()
+        reset_at = entry.messages_reset_at if entry.messages_reset_at else None
 
-        if reset_date != today:
-            # Reset daily counter
-            entry.messages_today = 0
-            entry.messages_reset_at = datetime.utcnow()
+        # Reset monthly — if reset_at is None or in a different month
+        if not reset_at or reset_at.month != now.month or reset_at.year != now.year:
+            entry.messages_today = 0  # reusing column for monthly count
+            entry.messages_reset_at = now
             db.commit()
 
-        if entry.messages_today < DAILY_MSG_LIMIT:
-            remaining = DAILY_MSG_LIMIT - entry.messages_today
+        if entry.messages_today < MONTHLY_MSG_LIMIT:
+            remaining = MONTHLY_MSG_LIMIT - entry.messages_today
             return {"access": "taste", "remaining": remaining, "entry": entry}
         else:
             return {"access": "limited", "entry": entry}
