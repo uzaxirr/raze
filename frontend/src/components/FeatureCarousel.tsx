@@ -78,15 +78,16 @@ function WordReveal({
 
 function PhoneMockup({ screen }: { screen: string }) {
   return (
-    <Image
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
       src={screen}
       alt=""
-      width={196}
-      height={400}
-      className="relative z-10"
       style={{
+        display: "block",
         width: "clamp(240px, 26%, 460px)",
         height: "auto",
+        position: "relative",
+        zIndex: 1,
         borderRadius: "17% / 8%",
         boxShadow:
           "0 35px 80px -12px rgba(0,0,0,0.32), 0 18px 40px -10px rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.06)",
@@ -134,15 +135,16 @@ function MobileFeatureCard({ feature }: { feature: Feature }) {
           }}
           aria-hidden="true"
         />
-        <Image
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
           src={feature.screen}
           alt=""
-          width={196}
-          height={400}
-          className="relative z-10"
           style={{
+            display: "block",
             width: "min(220px, 60vw)",
             height: "auto",
+            position: "relative",
+            zIndex: 1,
             borderRadius: "17% / 8%",
             boxShadow:
               "0 35px 80px -12px rgba(0,0,0,0.32), 0 18px 40px -10px rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.06)",
