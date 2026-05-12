@@ -2,9 +2,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { ImageResponse } from "next/og";
 
-export const alt = "Raze — Your On-Chain Intelligence";
-export const size = { width: 1200, height: 630 };
-export const contentType = "image/png";
+export const runtime = "nodejs";
 
 const fontData = readFileSync(
   join(process.cwd(), "src/app/fonts/VanillaDreamers.otf")
@@ -15,7 +13,7 @@ const impDataUrl = `data:image/png;base64,${readFileSync(
 ).toString("base64")}`;
 
 // Option C: Minimal Brand Card
-export default function Image() {
+export async function GET() {
   return new ImageResponse(
     (
       <div
@@ -85,7 +83,8 @@ export default function Image() {
       </div>
     ),
     {
-      ...size,
+      width: 1200,
+      height: 630,
       fonts: [{ name: "Vanilla", data: fontData, style: "normal" }],
     }
   );
