@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
+import ChatMockup, { ChatMessage } from "./ChatMockup";
 
 interface Feature {
   title: string;
@@ -10,7 +11,7 @@ interface Feature {
   pillClass: string;
   body: string;
   gradient: string;
-  screen: string;
+  conversation: ChatMessage[];
 }
 
 const features: Feature[] = [
@@ -20,7 +21,17 @@ const features: Feature[] = [
     pillClass: "pill-blue",
     body: "Raze turns token security, holders, liquidity, whale activity, and market sentiment into one readable answer.",
     gradient: "gradient-blue-yellow",
-    screen: "/landing/screen-1.png",
+    conversation: [
+      { sender: "user", text: "is BONK safe?" },
+      {
+        sender: "bot",
+        text: "checked security, holders, momentum, sentiment...",
+      },
+      {
+        sender: "bot",
+        text: "bonk looks clean. massive holder base, high liquidity, no bundles ✅\n\nprice: $0.00003\nmcap: $2.1B\nholders: 847K\nmomentum: 6/8\n\nyou're late tho, 25% off ATH. similar setup to when you missed WIF 😏\n\n• low risk · legit",
+      },
+    ],
   },
   {
     title: "Protect active positions",
@@ -28,7 +39,13 @@ const features: Feature[] = [
     pillClass: "pill-red",
     body: "Authority changes, bundle risk, suspicious holders, and wallet exposure become alerts, not post-mortems.",
     gradient: "gradient-orange",
-    screen: "/landing/screen-2.png",
+    conversation: [
+      { sender: "user", text: "check $DOGGO for bundles" },
+      {
+        sender: "bot",
+        text: "🚨 nope. bundled.\n\n7 wallets bought $DOGGO same block on raydium. coordinated af\n\nbundled wallets: 7\nbought: 10% supply\nsold so far: 0%\nrisk: HIGH\n\ndump incoming. stay away unless you like losing money 💀",
+      },
+    ],
   },
   {
     title: "Monitor wallets in real time",
@@ -36,7 +53,13 @@ const features: Feature[] = [
     pillClass: "pill-green",
     body: "Track wallets, decode transactions, and receive readable alerts without opening five dashboards.",
     gradient: "gradient-purple-green",
-    screen: "/landing/screen-3.png",
+    conversation: [
+      { sender: "user", text: "what's this whale buying?" },
+      {
+        sender: "bot",
+        text: "your fav whale is cooking 👨‍🍳\n\n$2.4M bag, 72% win rate\njust bought $WIF — $340K\n\nlast 7d:\n• WIF +$340K\n• JUP +$180K\n• BONK −$95K\n\nlast time you copied them you made 40%. want me to set alerts?",
+      },
+    ],
   },
   {
     title: "Swap any token instantly",
@@ -44,7 +67,13 @@ const features: Feature[] = [
     pillClass: "pill-purple",
     body: "Best route found automatically. Preview the trade, confirm with one tap. No dApp switching needed.",
     gradient: "gradient-purple-pink",
-    screen: "/landing/screen-4.png",
+    conversation: [
+      { sender: "user", text: "swap 5 SOL to USDC" },
+      {
+        sender: "bot",
+        text: "done ✅\n\n674.50 USDC in your wallet\nvia Jupiter, 0.4s\nslippage: 0.1%\nfee: $0.02\n\noh btw 'SOL to $250 by march' is 62% on polymarket. probably wrong knowing this market 😂",
+      },
+    ],
   },
 ];
 
@@ -76,23 +105,11 @@ function WordReveal({
   );
 }
 
-function PhoneMockup({ screen }: { screen: string }) {
+function PhoneMockup({ conversation, active }: { conversation: ChatMessage[]; active: boolean }) {
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={screen}
-      alt=""
-      style={{
-        display: "block",
-        width: "clamp(240px, 26%, 460px)",
-        height: "auto",
-        position: "relative",
-        zIndex: 1,
-        borderRadius: "17% / 8%",
-        boxShadow:
-          "0 35px 80px -12px rgba(0,0,0,0.32), 0 18px 40px -10px rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.06)",
-      }}
-    />
+    <div style={{ width: "clamp(240px, 26%, 460px)" }}>
+      <ChatMockup conversation={conversation} active={active} />
+    </div>
   );
 }
 
@@ -135,21 +152,9 @@ function MobileFeatureCard({ feature }: { feature: Feature }) {
           }}
           aria-hidden="true"
         />
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={feature.screen}
-          alt=""
-          style={{
-            display: "block",
-            width: "min(220px, 60vw)",
-            height: "auto",
-            position: "relative",
-            zIndex: 1,
-            borderRadius: "17% / 8%",
-            boxShadow:
-              "0 35px 80px -12px rgba(0,0,0,0.32), 0 18px 40px -10px rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.06)",
-          }}
-        />
+        <div style={{ width: "min(220px, 60vw)", position: "relative", zIndex: 1 }}>
+          <ChatMockup conversation={feature.conversation} active={true} />
+        </div>
       </div>
     </motion.article>
   );
@@ -292,7 +297,7 @@ export default function FeatureCarousel() {
                     }}
                     aria-hidden="true"
                   />
-                  <PhoneMockup screen={f.screen} />
+                  <PhoneMockup conversation={f.conversation} active={i === activeIndex} />
                 </div>
               ))}
             </div>
