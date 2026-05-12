@@ -1,93 +1,61 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import ImpMascot from "./ImpMascot";
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import { motion } from "framer-motion";
 
 export default function Nav() {
-  const [hidden, setHidden] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const lastScrollY = useRef(0);
+  const [pastHero, setPastHero] = useState(false);
 
   useEffect(() => {
     const onScroll = () => {
-      const y = window.scrollY;
-      setScrolled(y > 40);
-      // Hide when scrolling down past 100px, show when scrolling up
-      if (y > 100 && y > lastScrollY.current + 5) {
-        setHidden(true);
-      } else if (y < lastScrollY.current - 5) {
-        setHidden(false);
-      }
-      lastScrollY.current = y;
+      setPastHero(window.scrollY > window.innerHeight * 0.85);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   return (
-    <nav
-      className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
-      style={{
-        transform: hidden ? "translateY(-100%)" : "translateY(0)",
-        backdropFilter: scrolled ? "blur(16px) saturate(1.2)" : "none",
-        WebkitBackdropFilter: scrolled ? "blur(16px) saturate(1.2)" : "none",
-        backgroundColor: scrolled ? "rgba(250, 250, 254, 0.85)" : "transparent",
-        borderBottom: scrolled ? "1px solid rgba(0,0,0,0.04)" : "1px solid transparent",
-      }}
+    <motion.header
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className={`fixed top-0 left-0 right-0 z-50 flex w-full items-center justify-between px-5 py-6 transition-all duration-300
+        sm:px-7 md:px-12 lg:px-20 xl:px-[120px]
+        ${pastHero ? "bg-cream/90 backdrop-blur-md shadow-[0_1px_0_rgba(0,0,0,0.06)]" : "bg-transparent"}`}
+      style={{ height: 89 }}
+      aria-label="Primary navigation"
     >
-      <div className="flex items-center justify-between w-full max-w-[1440px] mx-auto px-6 md:px-16 py-4">
-        <a href="/" className="flex items-center gap-2.5 group">
-          <span className="nav-ghost inline-block">
-            <ImpMascot
-              expression="waving"
-              className="w-[34px] h-[34px] object-contain"
-            />
-          </span>
-          <span className="font-display text-xl font-bold text-[#1A1A1A] group-hover:text-purple transition-colors flex items-baseline">
-            raze
-            <span className="inline-flex items-baseline overflow-hidden">
-              <span
-                className="inline-block"
-                style={{
-                  animation: "dot-drop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s both",
-                }}
-              >
-                .
-              </span>
-              <span
-                className="inline-block"
-                style={{
-                  animation: "fun-slide 0.4s cubic-bezier(0.16, 1, 0.3, 1) 1.2s both",
-                }}
-              >
-                fun
-              </span>
-            </span>
-          </span>
-        </a>
-        <div className="flex items-center gap-9">
-          <a
-            href="#features"
-            className="hidden md:inline font-sans text-[14px] text-[#888] hover:text-[#1A1A1A] transition-colors"
-          >
-            Features
-          </a>
-          <a
-            href="https://t.me/razeaii_bot"
-            className="hidden md:inline font-sans text-[14px] text-[#888] hover:text-[#1A1A1A] transition-colors"
-          >
-            How it works
-          </a>
-          <a
-            href="https://t.me/razeaii_bot"
-            className="btn-glow bg-[#1A1A1A] rounded-full px-[22px] py-[10px]"
-          >
-            <span className="font-sans text-[13px] font-medium text-white leading-4">
-              Start Chatting
-            </span>
-          </a>
-        </div>
-      </div>
-    </nav>
+      <a
+        className="inline-flex items-center justify-center rounded-md"
+        href="/"
+        aria-label="raze.fun home"
+      >
+        <Image
+          src="/landing/logo.svg"
+          alt="raze.fun"
+          width={120}
+          height={40}
+          className={`h-8 w-24 transition-all duration-300 sm:h-10 sm:w-[120px] ${
+            pastHero ? "logo-accent" : "brightness-0 invert"
+          }`}
+          priority
+        />
+      </a>
+      <a
+        className={`inline-flex items-center justify-center whitespace-nowrap rounded-full px-4 py-3 text-sm font-normal transition-all duration-300 ease-out hover:-translate-y-px
+          ${pastHero
+            ? "bg-purple text-white hover:bg-purple-dark"
+            : "bg-cream/90 text-purple-brand"
+          }`}
+        href="https://t.me/razeaii_bot"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ minWidth: 126, minHeight: 41 }}
+      >
+        Start Chatting
+      </a>
+    </motion.header>
   );
 }

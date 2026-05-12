@@ -1,19 +1,16 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
+import { Geist } from "next/font/google";
 import "./globals.css";
 
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
-  subsets: ["latin"],
+const vanillaDreamers = localFont({
+  src: "./fonts/VanillaDreamers.otf",
+  variable: "--font-vanilla",
+  display: "swap",
 });
 
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains-mono",
+const geist = Geist({
+  variable: "--font-geist",
   subsets: ["latin"],
 });
 
@@ -21,19 +18,19 @@ export const metadata: Metadata = {
   title: "Raze — Your On-Chain Intelligence",
   description:
     "Trade, research, and explore Solana through natural conversation. Your wallet, your trades, your alpha — all in one Telegram chat.",
-  // Favicon + Apple touch icon are auto-wired by Next.js via the
-  // file-based convention: src/app/icon.png and src/app/apple-icon.png.
   metadataBase: new URL("https://raze.fun"),
   openGraph: {
     title: "Raze — Everything Solana inside one chat",
-    description: "Trade, research, and explore Solana through natural conversation. All in one Telegram chat.",
+    description:
+      "Trade, research, and explore Solana through natural conversation. All in one Telegram chat.",
     siteName: "Raze",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
     title: "Raze — Everything Solana inside one chat",
-    description: "Trade, research, and explore Solana through natural conversation. All in one Telegram chat.",
+    description:
+      "Trade, research, and explore Solana through natural conversation. All in one Telegram chat.",
   },
 };
 
@@ -43,10 +40,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable}`}
-    >
+    <html lang="en" className={`${vanillaDreamers.variable} ${geist.variable}`}>
       <body>{children}</body>
     </html>
   );
