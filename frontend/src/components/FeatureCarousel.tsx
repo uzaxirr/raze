@@ -228,10 +228,10 @@ const features: Feature[] = [
     messages: swapMessages,
   },
   {
-    title: "And so much more",
-    pill: "Ask Raze anything",
+    title: "Everything else, one message away",
+    pill: "One chat for everything",
     pillClass: "pill-blue",
-    body: "Send crypto, track sentiment, set alerts, stake tokens — all from one chat. No dApp switching, no dashboards.",
+    body: "Transfers, staking, sentiment, alerts, market intel — Raze handles it all without leaving the chat.",
     gradient: "gradient-blue-yellow",
     messages: quickFireMessages,
   },
