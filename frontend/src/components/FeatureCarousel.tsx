@@ -202,12 +202,27 @@ function WordReveal({
   );
 }
 
+// Build cumulative message arrays: feature 0 = [msg0], feature 1 = [msg0, msg1], etc.
+const cumulativeMessages: ChatMessage[][] = [];
+const animateFromIndices: number[] = [];
+{
+  let running: ChatMessage[] = [];
+  for (const f of features) {
+    const prevLen = running.length;
+    running = [...running, ...f.messages];
+    cumulativeMessages.push(running);
+    animateFromIndices.push(prevLen);
+  }
+}
+
 function PhoneMockup({
   messages,
+  animateFrom,
   active,
   width,
 }: {
   messages: ChatMessage[];
+  animateFrom: number;
   active: boolean;
   width?: string;
 }) {
@@ -221,7 +236,7 @@ function PhoneMockup({
         zIndex: 1,
       }}
     >
-      <ChatMockup messages={messages} active={active} />
+      <ChatMockup messages={messages} animateFrom={animateFrom} active={active} />
     </IphoneMockup>
   );
 }
@@ -265,7 +280,7 @@ function MobileFeatureCard({ feature }: { feature: Feature }) {
           }}
           aria-hidden="true"
         />
-        <PhoneMockup messages={feature.messages} active={true} width="min(240px, 60vw)" />
+        <PhoneMockup messages={feature.messages} animateFrom={0} active={true} width="min(240px, 60vw)" />
       </div>
     </motion.article>
   );
@@ -384,16 +399,14 @@ export default function FeatureCarousel() {
               })}
             </div>
 
-            {/* Right: Visual */}
+            {/* Right: Visual — gradient layers + single persistent phone */}
             <div className="relative isolate h-full overflow-hidden">
+              {/* Gradient backgrounds — one per feature, fade in/out */}
               {features.map((f, i) => (
                 <div
                   key={i}
-                  className={`${f.gradient} pointer-events-none absolute inset-0 grid place-items-center transition-opacity duration-600 ease-in-out`}
-                  style={{
-                    opacity: i === activeIndex ? 1 : 0,
-                    pointerEvents: i === activeIndex ? "auto" : "none",
-                  }}
+                  className={`${f.gradient} pointer-events-none absolute inset-0 transition-opacity duration-600 ease-in-out`}
+                  style={{ opacity: i === activeIndex ? 1 : 0 }}
                 >
                   <Image
                     src="/landing/dither.png"
@@ -408,9 +421,16 @@ export default function FeatureCarousel() {
                     }}
                     aria-hidden="true"
                   />
-                  <PhoneMockup messages={f.messages} active={i === activeIndex} />
                 </div>
               ))}
+              {/* Single persistent phone — cumulative messages */}
+              <div className="absolute inset-0 grid place-items-center" style={{ zIndex: 1 }}>
+                <PhoneMockup
+                  messages={cumulativeMessages[activeIndex]}
+                  animateFrom={animateFromIndices[activeIndex]}
+                  active={true}
+                />
+              </div>
             </div>
           </div>
         </div>
