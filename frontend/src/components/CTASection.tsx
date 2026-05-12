@@ -13,7 +13,7 @@ export default function CTASection() {
     >
       <div className="flex flex-col items-center gap-2">
         <h2 className="m-0 whitespace-nowrap font-display text-[28px] leading-8 text-black md:text-[36px] md:leading-10">
-          Put Solana on autopilot
+          Touching grass? Still catch the move!
         </h2>
         <p className="m-0 max-w-[calc(100%-48px)] text-base leading-5 font-normal text-black/50 md:hidden">
           Use Raze as the front door for research, trading, monitoring, and

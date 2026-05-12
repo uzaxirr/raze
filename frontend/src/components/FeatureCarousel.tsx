@@ -228,7 +228,7 @@ const features: Feature[] = [
     messages: swapMessages,
   },
   {
-    title: "Everything else, one message away",
+    title: "Crypto, finally as simple as texting.",
     pill: "One chat for everything",
     pillClass: "pill-blue",
     body: "Transfers, staking, sentiment, alerts, market intel — Raze handles it all without leaving the chat.",
