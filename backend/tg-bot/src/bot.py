@@ -1807,16 +1807,24 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             return  # silently ignore
 
         if access["access"] == "limited":
-            entry = access.get("entry")
-            code = entry.referral_code if entry else "???"
-            await update.message.reply_text(
-                f"you've used all 25 messages for this month.\n\n"
-                f"upgrade to Raze Unleashed for unlimited access — $5/month.\n"
-                f"auto-sign wallet, whale alerts, KOL feed intel, iMessage access.\n\n"
-                f"say \"upgrade\" to pay with crypto or card.\n"
-                f"or wait until next month for 25 more."
-            )
-            return
+            msg_lower = message_text.strip().lower().strip('"\'')
+
+            # Let upgrade/payment-related messages through to the bouncer
+            upgrade_keywords = ("upgrade", "pay", "paid", "done", "crypto", "card", "usdc", "subscribe")
+            if any(kw in msg_lower for kw in upgrade_keywords):
+                # Route to bouncer — don't block, fall through to bouncer handler below
+                pass
+            else:
+                entry = access.get("entry")
+                code = entry.referral_code if entry else "???"
+                await update.message.reply_text(
+                    f"you've used all 25 messages for this month.\n\n"
+                    f"upgrade to Raze Unleashed for unlimited access — $5/month.\n"
+                    f"auto-sign wallet, whale alerts, KOL feed intel, iMessage access.\n\n"
+                    f"say \"upgrade\" to pay with crypto or card.\n"
+                    f"or wait until next month for 25 more."
+                )
+                return
 
         if access["access"] == "taste":
             # Increment message counter
