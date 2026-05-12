@@ -65,7 +65,6 @@ export default function HowItWorks() {
               ${i > 0 ? "dashed-top md:[background-image:none]" : ""}
             `}
             style={
-              // Vertical dashed borders between cards on desktop
               i === 0
                 ? {
                     backgroundImage:
@@ -90,7 +89,7 @@ export default function HowItWorks() {
               alt=""
               width={32}
               height={32}
-              className="icon-purple"
+              className="icon-accent"
               aria-hidden="true"
             />
             <div className="flex w-full max-w-[275px] flex-col gap-2">

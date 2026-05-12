@@ -21,7 +21,7 @@ export default function CTASection() {
         </p>
       </div>
       <a
-        className="inline-flex items-center justify-center whitespace-nowrap rounded-full bg-purple px-4 py-3 text-sm font-normal leading-[17px] text-white transition-all duration-150 ease-out hover:-translate-y-px hover:bg-purple-dark"
+        className="inline-flex items-center justify-center whitespace-nowrap rounded-full bg-accent px-4 py-3 text-sm font-normal leading-[17px] text-cream transition-transform duration-150 ease-out hover:-translate-y-px"
         href="https://t.me/razeaii_bot"
         target="_blank"
         rel="noopener noreferrer"

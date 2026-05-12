@@ -3,8 +3,6 @@
 @theme inline {
   --color-cream: #fbf9ef;
   --color-purple-brand: #3b0067;
-  --color-purple: #9945FF;
-  --color-purple-dark: #7B2FE0;
   --color-accent: #0983db;
   --color-dash: rgba(0, 0, 0, 0.2);
   --font-sans: var(--font-geist);
@@ -141,17 +139,7 @@ img {
   transform: scaleX(-1);
 }
 
-/* Icon color filter — Solana purple */
-.icon-purple {
-  filter: brightness(0) saturate(100%) invert(32%) sepia(98%) saturate(3674%) hue-rotate(258deg) brightness(98%) contrast(107%);
-}
-
-/* Icon color filter — blue accent */
+/* Icon/logo color filter — blue accent */
 .icon-accent {
   filter: brightness(0) saturate(100%) invert(38%) sepia(96%) saturate(2167%) hue-rotate(190deg) brightness(96%) contrast(99%);
-}
-
-/* Logo color filter for footer — purple */
-.logo-accent {
-  filter: brightness(0) saturate(100%) invert(32%) sepia(98%) saturate(3674%) hue-rotate(258deg) brightness(98%) contrast(107%);
 }

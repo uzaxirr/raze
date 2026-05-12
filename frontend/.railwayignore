@@ -1,5 +1,1 @@
-node_modules
-.next
-.git
-.playwright-mcp
-.omc
+public/landing/*.mp4

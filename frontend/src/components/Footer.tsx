@@ -19,7 +19,7 @@ export default function Footer() {
           alt="raze.fun"
           width={120}
           height={40}
-          className="logo-accent h-8 w-24 sm:h-10 sm:w-[120px]"
+          className="icon-accent h-8 w-24 sm:h-10 sm:w-[120px]"
         />
         <p className="m-0 whitespace-nowrap text-base leading-5 font-normal text-black/50">
           &copy; 2026 Raze.fun

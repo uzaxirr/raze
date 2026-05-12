@@ -38,7 +38,7 @@ export default function Nav() {
           width={120}
           height={40}
           className={`h-8 w-24 transition-all duration-300 sm:h-10 sm:w-[120px] ${
-            pastHero ? "logo-accent" : "brightness-0 invert"
+            pastHero ? "" : "brightness-0 invert"
           }`}
           priority
         />
@@ -46,8 +46,8 @@ export default function Nav() {
       <a
         className={`inline-flex items-center justify-center whitespace-nowrap rounded-full px-4 py-3 text-sm font-normal transition-all duration-300 ease-out hover:-translate-y-px
           ${pastHero
-            ? "bg-purple text-white hover:bg-purple-dark"
-            : "bg-cream/90 text-purple-brand"
+            ? "bg-accent text-cream"
+            : "bg-cream text-accent"
           }`}
         href="https://t.me/razeaii_bot"
         target="_blank"
