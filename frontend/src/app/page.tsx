@@ -13,13 +13,9 @@ export default function Home() {
         <Hero />
       </section>
       <FeatureCarousel />
-      <section className="relative min-h-svh overflow-hidden bg-cream flex flex-col max-[900px]:min-h-0 max-[900px]:pt-[72px]">
-        {/* CTA - centered */}
-        <div className="flex-1 flex items-center justify-center">
-          <CTASection />
-        </div>
-        {/* Footer - always at bottom */}
-        <div className="mt-auto md:absolute md:inset-x-0 md:bottom-0">
+      <section className="relative overflow-hidden bg-cream flex flex-col py-16 md:py-24">
+        <CTASection />
+        <div className="mt-16">
           <Footer />
         </div>
       </section>
