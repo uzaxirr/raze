@@ -16,7 +16,7 @@
     "@solana/kit": "^5.5.1",
     "@solana/pay": "^0.2.6",
     "@solana/web3.js": "^1.98.4",
-    "axios": "^1.15.0",
+    "axios": "^1.15.2",
     "framer-motion": "^12.38.0",
     "gsap": "^3.14.2",
     "landing-effects": "^0.1.1",
