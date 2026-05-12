@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
+import ChatMockup, { ChatMessage } from "./ChatMockup";
 
 interface Feature {
   title: string;
@@ -10,7 +11,7 @@ interface Feature {
   pillClass: string;
   body: string;
   gradient: string;
-  video: string;
+  conversation: ChatMessage[];
 }
 
 const features: Feature[] = [
@@ -20,7 +21,25 @@ const features: Feature[] = [
     pillClass: "pill-blue",
     body: "Raze turns token security, holders, liquidity, whale activity, and market sentiment into one readable answer.",
     gradient: "gradient-blue-yellow",
-    video: "/landing/feature1.mp4",
+    conversation: [
+      { sender: "user", text: "full dyor on POPCAT" },
+      { sender: "bot", text: "scanning POPCAT..." },
+      {
+        sender: "bot",
+        text: `📊 POPCAT — $1.24B mcap
+
+✅ mint authority revoked
+✅ freeze authority revoked
+✅ top 10 holders: 18.2%
+⚠️ LP: 68% locked (214 days)
+
+24h volume: $89.2M
+liquidity: $12.4M
+holders: 142,891
+
+overall: looks clean. large holder base, solid liquidity. LP lock expiring in ~7 months — set a reminder.`,
+      },
+    ],
   },
   {
     title: "Protect active positions",
@@ -28,7 +47,28 @@ const features: Feature[] = [
     pillClass: "pill-red",
     body: "Authority changes, bundle risk, suspicious holders, and wallet exposure become alerts, not post-mortems.",
     gradient: "gradient-orange",
-    video: "/landing/feature2.mp4",
+    conversation: [
+      { sender: "user", text: "check $DOGGO for bundles" },
+      { sender: "bot", text: "running bundle detection..." },
+      {
+        sender: "bot",
+        text: `🔍 $DOGGO bundle scan
+
+⚠️ 3 bundle clusters found
+
+bundle #1: 12 wallets, 4.2% supply
+  — bought within same block
+  — funded from same CEX deposit
+
+bundle #2: 8 wallets, 2.1% supply
+  — all created same day
+
+bundle #3: 5 wallets, 0.8% supply
+
+total bundled: 7.1% of supply
+risk: MEDIUM — watch for coordinated sells`,
+      },
+    ],
   },
   {
     title: "Monitor wallets in real time",
@@ -36,7 +76,24 @@ const features: Feature[] = [
     pillClass: "pill-green",
     body: "Track wallets, decode transactions, and receive readable alerts without opening five dashboards.",
     gradient: "gradient-purple-green",
-    video: "/landing/feature3.mp4",
+    conversation: [
+      { sender: "user", text: "what's this whale buying?" },
+      { sender: "bot", text: "checking recent activity..." },
+      {
+        sender: "bot",
+        text: `🐋 whale 7xK9...mR2p — last 24h
+
+bought 892K WIF ($1.4M)
+bought 2.1M BONK ($58K)
+sold 450 SOL ($76.5K)
+staked 1,200 SOL on Marinade
+
+portfolio: $4.2M across 23 tokens
+biggest bag: WIF (33%)
+
+want me to set up alerts for this wallet?`,
+      },
+    ],
   },
   {
     title: "Swap any token instantly",
@@ -44,7 +101,30 @@ const features: Feature[] = [
     pillClass: "pill-purple",
     body: "Best route found automatically. Preview the trade, confirm with one tap. No dApp switching needed.",
     gradient: "gradient-purple-pink",
-    video: "/landing/feature4.mp4",
+    conversation: [
+      { sender: "user", text: "swap 2.3 SOL to USDC" },
+      { sender: "bot", text: "finding best route..." },
+      {
+        sender: "bot",
+        text: `🔄 swap ready
+
+2.3 SOL → 391.82 USDC
+rate: 1 SOL = $170.36
+route: SOL → USDC via Raydium
+price impact: <0.01%
+fee: 0.04 USDC
+
+confirm swap?`,
+      },
+      { sender: "user", text: "yes" },
+      {
+        sender: "bot",
+        text: `✅ swap confirmed
+
+sent 2.3 SOL → received 391.82 USDC
+tx: 4xR2...kM9p`,
+      },
+    ],
   },
 ];
 
@@ -76,25 +156,20 @@ function WordReveal({
   );
 }
 
-function PhoneMockup({ video, active }: { video: string; active: boolean }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    if (!videoRef.current) return;
-    if (active) {
-      videoRef.current.play().catch(() => {});
-    } else {
-      videoRef.current.pause();
-    }
-  }, [active]);
-
+function PhoneMockup({
+  conversation,
+  active,
+}: {
+  conversation: ChatMessage[];
+  active: boolean;
+}) {
   return (
     <div
       className="relative z-10 w-[clamp(260px,24.38vw,491px)]"
       style={{ aspectRatio: "312 / 633" }}
     >
       <div
-        className="absolute z-10 overflow-hidden bg-black"
+        className="absolute z-10 overflow-hidden bg-[#1C1C1E]"
         style={{
           top: "2.4%",
           left: "4.5%",
@@ -103,16 +178,7 @@ function PhoneMockup({ video, active }: { video: string; active: boolean }) {
           borderRadius: "12.5% / 6%",
         }}
       >
-        <video
-          ref={videoRef}
-          muted
-          loop
-          playsInline
-          preload="none"
-          className="absolute inset-0 h-full w-full object-cover"
-        >
-          <source src={video} type="video/mp4" />
-        </video>
+        <ChatMockup conversation={conversation} active={active} />
       </div>
       <Image
         src="/landing/iphone-frame.svg"
@@ -170,7 +236,7 @@ function MobileFeatureCard({ feature }: { feature: Feature }) {
           style={{ aspectRatio: "312 / 633" }}
         >
           <div
-            className="absolute z-10 overflow-hidden bg-black"
+            className="absolute z-10 overflow-hidden bg-[#1C1C1E]"
             style={{
               top: "2.4%",
               left: "4.5%",
@@ -179,16 +245,7 @@ function MobileFeatureCard({ feature }: { feature: Feature }) {
               borderRadius: "12.5% / 6%",
             }}
           >
-            <video
-              autoPlay
-              muted
-              loop
-              playsInline
-              preload="auto"
-              className="absolute inset-0 h-full w-full object-cover"
-            >
-              <source src={feature.video} type="video/mp4" />
-            </video>
+            <ChatMockup conversation={feature.conversation} active={true} />
           </div>
           <Image
             src="/landing/iphone-frame.svg"
@@ -337,7 +394,10 @@ export default function FeatureCarousel() {
                     }}
                     aria-hidden="true"
                   />
-                  <PhoneMockup video={f.video} active={i === activeIndex} />
+                  <PhoneMockup
+                    conversation={f.conversation}
+                    active={i === activeIndex}
+                  />
                 </div>
               ))}
             </div>
