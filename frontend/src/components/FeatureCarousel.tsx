@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
-import ChatMockup, { ChatMessage } from "./ChatMockup";
+import ChatMockup, { ChatMessage, Row } from "./ChatMockup";
+import IphoneMockup from "./Iphone15Pro";
 
 interface Feature {
   title: string;
@@ -11,8 +12,132 @@ interface Feature {
   pillClass: string;
   body: string;
   gradient: string;
-  conversation: ChatMessage[];
+  messages: ChatMessage[];
 }
+
+// Feature 1 — Research
+const researchMessages: ChatMessage[] = [
+  {
+    sender: "user",
+    content: "is BONK safe?",
+  },
+  {
+    sender: "bot",
+    content: (
+      <div className="flex flex-col gap-[4px]">
+        <div className="text-[9px] font-mono text-[#9945FF] leading-[12px] opacity-60">
+          checked security, holders, momentum, sentiment...
+        </div>
+        <div className="text-[11px] font-sans text-[#1A1A1A] leading-[15px]">
+          bonk looks clean. massive holder base, high liquidity, no bundles
+        </div>
+        <div className="bg-[#F5F5F5] rounded-[5px] p-[5px] flex flex-col gap-[3px]">
+          <Row label="price" value="$0.00003" small />
+          <Row label="mcap" value="$2.1B" small />
+          <Row label="holders" value="847K" small />
+          <Row label="momentum" value="6/8" small valueColor="#14A86C" />
+        </div>
+        <div className="flex items-center gap-[2px] self-start bg-[#EAFFF5] rounded-[3px] px-[5px] py-[2px]">
+          <div className="w-[3px] h-[3px] rounded-sm bg-[#14F195]" />
+          <span className="text-[7px] font-mono font-medium text-[#14A86C] leading-[10px]">
+            low risk · legit
+          </span>
+        </div>
+        <div className="text-[9px] text-[#888] leading-[12px]">
+          you&apos;re late tho, 25% off ATH. similar setup to when you missed WIF 💀
+        </div>
+      </div>
+    ),
+  },
+];
+
+// Feature 2 — Protect
+const protectMessages: ChatMessage[] = [
+  {
+    sender: "user",
+    content: "check $DOGGO for bundles",
+  },
+  {
+    sender: "bot",
+    content: (
+      <div className="flex flex-col gap-[4px]">
+        <div className="flex items-center gap-1">
+          <div className="w-[4px] h-[4px] rounded-sm bg-[#FF4545]" />
+          <span className="text-[10px] font-bold font-sans text-[#CC0000] leading-[12px]">
+            nope. bundled
+          </span>
+        </div>
+        <div className="text-[11px] font-sans text-[#1A1A1A] leading-[15px]">
+          7 wallets bought $DOGGO same block on raydium. coordinated af
+        </div>
+        <div className="bg-[#F5F5F5] rounded-[3px] p-[3px] flex flex-col gap-[2px]">
+          <Row label="bundled wallets" value="7" small />
+          <Row label="bought" value="18% supply" small />
+          <Row label="sold so far" value="0%" small />
+          <Row label="risk" value="HIGH" small valueColor="#CC0000" />
+        </div>
+        <div className="text-[9px] text-[#888] leading-[12px]">
+          dump incoming. stay away unless you like losing money 💀
+        </div>
+      </div>
+    ),
+  },
+];
+
+// Feature 3 — Monitor
+const monitorMessages: ChatMessage[] = [
+  {
+    sender: "user",
+    content: "what's this whale buying?",
+  },
+  {
+    sender: "bot",
+    content: (
+      <div className="flex flex-col gap-[4px]">
+        <div className="text-[11px] font-sans text-[#1A1A1A] leading-[15px]">
+          your favorite whale is cooking again. $2.4M bag, 72% win rate
+        </div>
+        <div className="bg-[#F5F5F5] rounded-[5px] p-[5px] flex flex-col gap-[3px]">
+          <Row label="portfolio" value="$2.4M" small />
+          <Row label="7d PnL" value="+$184K" small valueColor="#14A86C" />
+          <Row label="win rate" value="72%" small />
+          <Row label="latest" value="bought $WIF" small valueColor="#9945FF" />
+        </div>
+        <div className="text-[9px] text-[#888] leading-[12px]">
+          last time you copied them you made 40%. want me to ape in like usual?
+        </div>
+      </div>
+    ),
+  },
+];
+
+// Feature 4 — Swap
+const swapMessages: ChatMessage[] = [
+  {
+    sender: "user",
+    content: "swap 5 SOL to USDC",
+  },
+  {
+    sender: "bot",
+    content: (
+      <div className="flex flex-col gap-[4px]">
+        <div className="text-[11px] font-sans text-[#1A1A1A] leading-[15px]">
+          done. 674.50 usdc in your wallet
+        </div>
+        <div className="bg-[#F5F5F5] rounded-[5px] p-[5px] flex flex-col gap-[3px]">
+          <Row label="sent" value="5.0 SOL" small valueColor="#E65100" />
+          <Row label="got" value="674.50 USDC" small valueColor="#14A86C" />
+          <Row label="via" value="Jupiter v2" small />
+          <Row label="time" value="0.4s" small />
+        </div>
+        <div className="text-[9px] text-[#888] leading-[12px]">
+          oh btw &apos;sol to $250 by march&apos; is 62% on polymarket. probably wrong knowing this
+          market
+        </div>
+      </div>
+    ),
+  },
+];
 
 const features: Feature[] = [
   {
@@ -21,17 +146,7 @@ const features: Feature[] = [
     pillClass: "pill-blue",
     body: "Raze turns token security, holders, liquidity, whale activity, and market sentiment into one readable answer.",
     gradient: "gradient-blue-yellow",
-    conversation: [
-      { sender: "user", text: "is BONK safe?" },
-      {
-        sender: "bot",
-        text: "checked security, holders, momentum, sentiment...",
-      },
-      {
-        sender: "bot",
-        text: "bonk looks clean. massive holder base, high liquidity, no bundles ✅\n\nprice: $0.00003\nmcap: $2.1B\nholders: 847K\nmomentum: 6/8\n\nyou're late tho, 25% off ATH. similar setup to when you missed WIF 😏\n\n• low risk · legit",
-      },
-    ],
+    messages: researchMessages,
   },
   {
     title: "Protect active positions",
@@ -39,13 +154,7 @@ const features: Feature[] = [
     pillClass: "pill-red",
     body: "Authority changes, bundle risk, suspicious holders, and wallet exposure become alerts, not post-mortems.",
     gradient: "gradient-orange",
-    conversation: [
-      { sender: "user", text: "check $DOGGO for bundles" },
-      {
-        sender: "bot",
-        text: "🚨 nope. bundled.\n\n7 wallets bought $DOGGO same block on raydium. coordinated af\n\nbundled wallets: 7\nbought: 10% supply\nsold so far: 0%\nrisk: HIGH\n\ndump incoming. stay away unless you like losing money 💀",
-      },
-    ],
+    messages: protectMessages,
   },
   {
     title: "Monitor wallets in real time",
@@ -53,13 +162,7 @@ const features: Feature[] = [
     pillClass: "pill-green",
     body: "Track wallets, decode transactions, and receive readable alerts without opening five dashboards.",
     gradient: "gradient-purple-green",
-    conversation: [
-      { sender: "user", text: "what's this whale buying?" },
-      {
-        sender: "bot",
-        text: "your fav whale is cooking 👨‍🍳\n\n$2.4M bag, 72% win rate\njust bought $WIF — $340K\n\nlast 7d:\n• WIF +$340K\n• JUP +$180K\n• BONK −$95K\n\nlast time you copied them you made 40%. want me to set alerts?",
-      },
-    ],
+    messages: monitorMessages,
   },
   {
     title: "Swap any token instantly",
@@ -67,13 +170,7 @@ const features: Feature[] = [
     pillClass: "pill-purple",
     body: "Best route found automatically. Preview the trade, confirm with one tap. No dApp switching needed.",
     gradient: "gradient-purple-pink",
-    conversation: [
-      { sender: "user", text: "swap 5 SOL to USDC" },
-      {
-        sender: "bot",
-        text: "done ✅\n\n674.50 USDC in your wallet\nvia Jupiter, 0.4s\nslippage: 0.1%\nfee: $0.02\n\noh btw 'SOL to $250 by march' is 62% on polymarket. probably wrong knowing this market 😂",
-      },
-    ],
+    messages: swapMessages,
   },
 ];
 
@@ -105,11 +202,27 @@ function WordReveal({
   );
 }
 
-function PhoneMockup({ conversation, active }: { conversation: ChatMessage[]; active: boolean }) {
+function PhoneMockup({
+  messages,
+  active,
+  width,
+}: {
+  messages: ChatMessage[];
+  active: boolean;
+  width?: string;
+}) {
   return (
-    <div style={{ width: "clamp(240px, 26%, 460px)" }}>
-      <ChatMockup conversation={conversation} active={active} />
-    </div>
+    <IphoneMockup
+      mode="light"
+      style={{
+        width: width ?? "clamp(280px, 34%, 380px)",
+        filter:
+          "drop-shadow(0 25px 50px rgba(0,0,0,0.3)) drop-shadow(0 10px 20px rgba(0,0,0,0.2))",
+        zIndex: 1,
+      }}
+    >
+      <ChatMockup messages={messages} active={active} />
+    </IphoneMockup>
   );
 }
 
@@ -152,9 +265,7 @@ function MobileFeatureCard({ feature }: { feature: Feature }) {
           }}
           aria-hidden="true"
         />
-        <div style={{ width: "min(220px, 60vw)", position: "relative", zIndex: 1 }}>
-          <ChatMockup conversation={feature.conversation} active={true} />
-        </div>
+        <PhoneMockup messages={feature.messages} active={true} width="min(240px, 60vw)" />
       </div>
     </motion.article>
   );
@@ -297,7 +408,7 @@ export default function FeatureCarousel() {
                     }}
                     aria-hidden="true"
                   />
-                  <PhoneMockup conversation={f.conversation} active={i === activeIndex} />
+                  <PhoneMockup messages={f.messages} active={i === activeIndex} />
                 </div>
               ))}
             </div>
