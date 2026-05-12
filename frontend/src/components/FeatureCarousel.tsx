@@ -139,6 +139,61 @@ const swapMessages: ChatMessage[] = [
   },
 ];
 
+// Feature 5 — Quick-fire: showcases breadth of remaining capabilities
+const quickFireMessages: ChatMessage[] = [
+  { sender: "user", content: "send 10 USDC to alice.sol" },
+  {
+    sender: "bot",
+    content: (
+      <div className="text-[11px] font-sans text-[#1A1A1A] leading-[15px]">
+        sent ✅ 10 USDC → alice.sol. fee: ~$0.001
+      </div>
+    ),
+  },
+  { sender: "user", content: "what's CT saying about JUP?" },
+  {
+    sender: "bot",
+    content: (
+      <div className="flex flex-col gap-[3px]">
+        <div className="text-[11px] font-sans text-[#1A1A1A] leading-[15px]">
+          mostly bullish. 22M interactions today
+        </div>
+        <div className="bg-[#F5F5F5] rounded-[3px] p-[3px] flex flex-col gap-[2px]">
+          <Row label="sentiment" value="3.4/5" small valueColor="#14A86C" />
+          <Row label="volume" value="22M" small />
+          <Row label="vibe" value="bullish 📈" small valueColor="#14A86C" />
+        </div>
+      </div>
+    ),
+  },
+  { sender: "user", content: "alert me if SOL hits $200" },
+  {
+    sender: "bot",
+    content: (
+      <div className="flex flex-col gap-[3px]">
+        <div className="text-[11px] font-sans text-[#1A1A1A] leading-[15px]">
+          done 🔔
+        </div>
+        <div className="flex items-center gap-[3px] self-start bg-[#F0EDFF] rounded-[3px] px-[5px] py-[2px]">
+          <div className="w-[3px] h-[3px] rounded-full bg-[#9945FF]" />
+          <span className="text-[7px] font-mono font-medium text-[#9945FF] leading-[10px]">
+            alert: SOL ≥ $200
+          </span>
+        </div>
+      </div>
+    ),
+  },
+  { sender: "user", content: "stake 50 SOL on jito" },
+  {
+    sender: "bot",
+    content: (
+      <div className="text-[11px] font-sans text-[#1A1A1A] leading-[15px]">
+        staked ✅ 50 SOL on Jito. current APY: 7.2%
+      </div>
+    ),
+  },
+];
+
 const features: Feature[] = [
   {
     title: "Research before you ape",
@@ -171,6 +226,14 @@ const features: Feature[] = [
     body: "Best route found automatically. Preview the trade, confirm with one tap. No dApp switching needed.",
     gradient: "gradient-purple-pink",
     messages: swapMessages,
+  },
+  {
+    title: "And so much more",
+    pill: "Ask Raze anything",
+    pillClass: "pill-blue",
+    body: "Send crypto, track sentiment, set alerts, stake tokens — all from one chat. No dApp switching, no dashboards.",
+    gradient: "gradient-blue-yellow",
+    messages: quickFireMessages,
   },
 ];
 
