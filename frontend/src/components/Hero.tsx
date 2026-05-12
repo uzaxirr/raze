@@ -35,7 +35,7 @@ export default function Hero() {
             max-w-[480px] tracking-tight"
           style={{ letterSpacing: "-0.01em" }}
         >
-          Manage your crypto from text
+          Crypto was never this easy
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 20 }}
