@@ -412,7 +412,7 @@ export default function FeatureCarousel() {
           className="sticky top-[89px] w-full overflow-hidden"
           style={{ height: "calc(100svh - 89px)" }}
         >
-          <div className="grid h-full w-full grid-cols-2">
+          <div className="grid h-full w-full max-w-[1800px] mx-auto grid-cols-2">
             {/* Left: Text */}
             <div className="relative h-full bg-cream">
               {features.map((f, i) => {

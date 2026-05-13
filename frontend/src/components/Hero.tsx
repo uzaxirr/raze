@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 export default function Hero() {
   return (
     <section
-      className="relative h-svh w-full overflow-hidden bg-cover bg-top bg-no-repeat
+      className="relative h-svh min-h-[600px] w-full overflow-hidden bg-cover bg-center bg-no-repeat
         max-[600px]:bg-[url('/landing/hero-bg-mobile.png')]
         min-[601px]:bg-[url('/landing/hero-bg.png')]
         min-[1600px]:bg-[url('/landing/hero-bg-ultrawide.png')]"
