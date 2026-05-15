@@ -8,6 +8,7 @@ from agno.tools.workflow import WorkflowTools
 from agno.os import AgentOS
 from agno.models.anthropic import Claude
 from agno.db.postgres import PostgresDb
+from agno.memory.manager import MemoryManager
 from fastapi import FastAPI
 
 from workflows.token_sniper import token_sniper_workflow
@@ -98,6 +99,12 @@ async def lifespan(app: FastAPI):
             pass
 
 
+# Shared memory manager for both agents — extracts user facts after each run
+memory_mgr = MemoryManager(
+    model=Claude(id="claude-sonnet-4-20250514"),
+    db=db,
+)
+
 agent = Agent(
     name="Raze",
     model=Claude(
@@ -111,6 +118,7 @@ agent = Agent(
         price_alerts, market_research, sniper_workflow
     ],
     db=db,
+    memory_manager=memory_mgr,
     # debug_mode=True,
     enable_user_memories=True,
     update_memory_on_run=True,
@@ -152,6 +160,7 @@ bouncer_agent = Agent(
         read_mcp, sns_resolver, token_data, transaction_executor, market_research,
     ],
     db=db,
+    memory_manager=memory_mgr,
     enable_user_memories=True,
     update_memory_on_run=True,
     add_memories_to_context=True,
