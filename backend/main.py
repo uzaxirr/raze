@@ -99,9 +99,11 @@ async def lifespan(app: FastAPI):
             pass
 
 
-# Shared memory manager for both agents — extracts user facts after each run
+# Shared memory manager for both agents — extracts user facts after each run (background, non-blocking)
+# Uses Sonnet 4.5 because it supports structured outputs (required by MemoryManager)
+# Claude Sonnet 4 (claude-sonnet-4-20250514) does NOT support structured outputs in Agno
 memory_mgr = MemoryManager(
-    model=Claude(id="claude-sonnet-4-20250514"),
+    model=Claude(id="claude-sonnet-4-5"),
     db=db,
 )
 
