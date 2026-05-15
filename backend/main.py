@@ -128,7 +128,7 @@ agent = Agent(
     add_history_to_context=True,
     add_session_summary_to_context=True,
     store_history_messages=True,
-    num_history_runs=10,  # Only send last 10 runs to prevent context bloat
+    num_history_runs=3,  # Summary carries long-term context, last 3 runs for immediate detail
     enable_session_summaries=True,  # Summarize older exchanges
 
     # Context
@@ -169,7 +169,7 @@ bouncer_agent = Agent(
     add_history_to_context=True,
     add_session_summary_to_context=True,
     store_history_messages=True,
-    num_history_runs=10,  # Only send last 10 runs to prevent context bloat
+    num_history_runs=3,  # Summary carries long-term context, last 3 runs for immediate detail
     enable_session_summaries=True,  # Summarize older exchanges
     add_session_state_to_context=True,
     add_datetime_to_context=True,

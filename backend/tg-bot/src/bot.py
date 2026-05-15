@@ -916,11 +916,31 @@ async def get_client_and_agent() -> tuple[AgentOSClient, str]:
 
 
 def get_session_id(user_id: int, context: ContextTypes.DEFAULT_TYPE) -> str:
-    """Get or create session ID for a user."""
+    """Get or create session ID for a user. Auto-resets if session exceeds 200 runs."""
     custom_session = context.user_data.get("session_id")
     if custom_session:
-        return custom_session
-    return f"tg_user_{user_id}"
+        session_id = custom_session
+    else:
+        session_id = f"tg_user_{user_id}"
+
+    # Safety net: auto-reset if session exceeds 200 runs
+    try:
+        from db.database import SessionLocal
+        from sqlalchemy import text
+        with SessionLocal() as db:
+            row = db.execute(text(
+                "SELECT jsonb_array_length(runs) FROM agno_sessions WHERE session_id = :sid"
+            ), {"sid": session_id}).fetchone()
+            if row and row[0] and row[0] >= 200:
+                import time
+                new_session = f"tg_user_{user_id}_{int(time.time())}"
+                context.user_data["session_id"] = new_session
+                logger.info(f"Main agent session auto-reset for user {user_id} (exceeded 200 runs)")
+                return new_session
+    except Exception:
+        pass
+
+    return session_id
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -1859,6 +1879,22 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 import asyncio as _aio
                 client, _ = await get_client_and_agent()
                 bouncer_session_id = f"bouncer_{user_id}"
+
+                # Safety net: auto-reset session if it exceeds 200 runs (prevents 200K token crash)
+                try:
+                    from db.database import SessionLocal as _SL
+                    from db.models import Base as _B
+                    from sqlalchemy import text as _sql_text
+                    with _SL() as _db:
+                        _row = _db.execute(_sql_text(
+                            f"SELECT jsonb_array_length(runs) FROM agno_sessions WHERE session_id = :sid"
+                        ), {"sid": bouncer_session_id}).fetchone()
+                        if _row and _row[0] and _row[0] >= 200:
+                            bouncer_session_id = f"bouncer_{user_id}_{int(_time.time())}"
+                            logger.info(f"Session auto-reset for user {user_id} (exceeded 200 runs)")
+                except Exception:
+                    pass  # Don't block on session check failure
+
                 msg_time = update.message.date.strftime("%Y-%m-%d %H:%M:%S UTC") if update.message.date else None
                 chat_id = update.message.chat.id
 
