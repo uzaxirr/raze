@@ -2044,24 +2044,43 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                                 except Exception as e:
                                     logger.warning(f"Failed to activate unleashed after verification: {e}")
 
-                            if "pending_signature" in tool_result and tool_name in ("swap_tokens", "send_sol", "send_token"):
+                            if tool_name in ("swap_tokens", "send_sol", "send_token"):
                                 try:
                                     import json as _json
                                     result_data = _json.loads(tool_result)
-                                    if result_data.get("status") == "pending_signature":
+                                    status = result_data.get("status")
+
+                                    if status == "pending_signature":
                                         pending_swap_data = result_data
                                         logger.info(f"Bouncer: captured pending_signature from {tool_name}")
 
-                                        # Notify admin if this is a subscription payment
-                                        SUBSCRIPTION_ADDR = "3FKgJnzBFT8emAoXKFKaXqtFaub417qaMyAG4hM91XEE"
-                                        if result_data.get("to") == SUBSCRIPTION_ADDR:
-                                            from .waitlist import notify_admin
-                                            tg_user = update.effective_user
+                                    # Notify admin for ALL transactions
+                                    if status in ("pending_signature", "success"):
+                                        from .waitlist import notify_admin
+                                        tg_user = update.effective_user
+                                        tg_label = f"@{tg_user.username or tg_user.first_name}"
+                                        tx_type = result_data.get("type", tool_name)
+                                        amount = result_data.get("amount") or result_data.get("input_amount", "?")
+                                        token = result_data.get("from_token") or result_data.get("token") or result_data.get("from_symbol", "?")
+                                        to_token = result_data.get("to_token") or result_data.get("to_symbol") or result_data.get("to", "")
+                                        detail = f"{amount} {token}" + (f" → {to_token}" if to_token else "")
+
+                                        if status == "pending_signature":
                                             _aio.ensure_future(notify_admin(
-                                                f"🔔 <b>Unleashed — Payment Initiated!</b>\n"
-                                                f"User: @{tg_user.username or tg_user.first_name} ({user_id})\n"
-                                                f"Amount: {result_data.get('amount', '?')} USDC\n"
-                                                f"Status: awaiting signature"
+                                                f"🔔 <b>Txn Initiated</b>\n"
+                                                f"User: {tg_label} ({user_id})\n"
+                                                f"Type: {tx_type}\n"
+                                                f"Detail: {detail}\n"
+                                                f"Mode: external (awaiting signature)"
+                                            ))
+                                        else:
+                                            sig = result_data.get("signature", "?")
+                                            _aio.ensure_future(notify_admin(
+                                                f"✅ <b>Txn Completed (auto-sign)</b>\n"
+                                                f"User: {tg_label} ({user_id})\n"
+                                                f"Type: {tx_type}\n"
+                                                f"Detail: {detail}\n"
+                                                f"Tx: {sig[:20]}..."
                                             ))
                                 except Exception as e:
                                     logger.warning(f"Bouncer: failed to parse tool result: {e}")
@@ -2442,13 +2461,45 @@ async def stream_response(
             elif isinstance(event, ToolCallCompletedEvent) and event.tool:
                 tool_result = event.tool.result or ""
                 tool_name = event.tool.tool_name or ""
-                if "pending_signature" in tool_result and tool_name in ("swap_tokens", "send_sol", "send_token"):
+                if tool_name in ("swap_tokens", "send_sol", "send_token"):
                     try:
                         import json
                         result_data = json.loads(tool_result)
-                        if result_data.get("status") == "pending_signature":
+                        status = result_data.get("status")
+
+                        if status == "pending_signature":
                             pending_swap_data = result_data
                             logger.info(f"Captured pending_signature from {tool_name}")
+
+                        # Notify admin for ALL transactions
+                        if status in ("pending_signature", "success"):
+                            import asyncio as _async
+                            from .waitlist import notify_admin
+                            tg_user = update.effective_user
+                            tg_label = f"@{tg_user.username or tg_user.first_name}"
+                            tx_type = result_data.get("type", tool_name)
+                            amount = result_data.get("amount") or result_data.get("input_amount", "?")
+                            token = result_data.get("from_token") or result_data.get("token") or result_data.get("from_symbol", "?")
+                            to_token = result_data.get("to_token") or result_data.get("to_symbol") or result_data.get("to", "")
+                            detail = f"{amount} {token}" + (f" → {to_token}" if to_token else "")
+
+                            if status == "pending_signature":
+                                _async.ensure_future(notify_admin(
+                                    f"🔔 <b>Txn Initiated</b>\n"
+                                    f"User: {tg_label} ({user_id})\n"
+                                    f"Type: {tx_type}\n"
+                                    f"Detail: {detail}\n"
+                                    f"Mode: external (awaiting signature)"
+                                ))
+                            else:
+                                sig = result_data.get("signature", "?")
+                                _async.ensure_future(notify_admin(
+                                    f"✅ <b>Txn Completed (auto-sign)</b>\n"
+                                    f"User: {tg_label} ({user_id})\n"
+                                    f"Type: {tx_type}\n"
+                                    f"Detail: {detail}\n"
+                                    f"Tx: {sig[:20]}..."
+                                ))
                     except (json.JSONDecodeError, Exception) as e:
                         logger.warning(f"Failed to parse tool result: {e}")
 

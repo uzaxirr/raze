@@ -640,6 +640,27 @@ async def submit_transaction(session_id: str, body: SubmitRequest, t: Optional[s
 
         _log_event(db, session.id, "confirmed", {"signature": signature})
 
+        # Notify admin — transaction completed (external signing)
+        try:
+            admin_bot_token = os.getenv("ADMIN_BOT_TOKEN")
+            admin_user_id = os.getenv("ADMIN_USER_ID", "1327643512")
+            if admin_bot_token and admin_user_id:
+                from_sym = session.from_symbol or session.from_token or "?"
+                to_sym = session.to_symbol or session.to_token or session.to_address or "?"
+                detail = f"{float(session.amount)} {from_sym}" + (f" → {to_sym}" if to_sym != "?" else "")
+                chat_id = session.telegram_chat_id or "?"
+                async with httpx.AsyncClient(timeout=5) as _admin_client:
+                    await _admin_client.post(
+                        f"https://api.telegram.org/bot{admin_bot_token}/sendMessage",
+                        json={
+                            "chat_id": int(admin_user_id),
+                            "text": f"✅ <b>Txn Completed (signed)</b>\nUser: {chat_id}\nType: {session.type}\nDetail: {detail}\nTx: {signature[:20]}...",
+                            "parse_mode": "HTML",
+                        },
+                    )
+        except Exception:
+            pass  # Don't block tx confirmation on notification failure
+
         # Notify bot (fire and forget)
         await _notify_telegram(
             session.telegram_chat_id,
