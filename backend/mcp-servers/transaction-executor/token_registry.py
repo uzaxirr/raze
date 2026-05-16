@@ -1,13 +1,18 @@
 """Token registry with API-based resolution using Birdeye Search."""
 import os
 import re
+import base64
 import httpx
+import logging
 from functools import lru_cache
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 # API config
 BIRDEYE_API_KEY = os.getenv('BIRDEYE_API_KEY')
 BIRDEYE_API_URL = 'https://public-api.birdeye.so'
+SOLANA_RPC_URL = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
 
 # Well-known tokens for fast fallback (never changes)
 WELL_KNOWN_TOKENS = {
@@ -100,6 +105,42 @@ def _get_token_metadata(address: str) -> dict | None:
     return None
 
 
+@lru_cache(maxsize=500)
+def _get_decimals_from_rpc(mint_address: str) -> int | None:
+    """Get token decimals directly from the on-chain Mint account via Solana RPC.
+
+    The SPL Token Mint account layout has decimals at byte offset 44 (1 byte).
+    This is the most reliable source — it's on-chain data.
+    """
+    try:
+        with httpx.Client(timeout=5) as client:
+            response = client.post(
+                SOLANA_RPC_URL,
+                json={
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": "getAccountInfo",
+                    "params": [
+                        mint_address,
+                        {"encoding": "base64"}
+                    ]
+                }
+            )
+            if response.status_code == 200:
+                result = response.json().get("result")
+                if result and result.get("value"):
+                    data_b64 = result["value"]["data"][0]
+                    data = base64.b64decode(data_b64)
+                    # SPL Token Mint layout: decimals is at byte offset 44
+                    if len(data) >= 45:
+                        decimals = data[44]
+                        logger.info(f"RPC decimals for {mint_address}: {decimals}")
+                        return decimals
+    except Exception as e:
+        logger.warning(f"RPC decimals lookup failed for {mint_address}: {e}")
+    return None
+
+
 def resolve_token(symbol_or_address: str) -> str:
     """
     Resolve a token symbol or address to a mint address.
@@ -157,6 +198,11 @@ def get_token_decimals(symbol_or_address: str) -> int:
         metadata = _get_token_metadata(symbol_or_address)
         if metadata and "decimals" in metadata:
             return metadata["decimals"]
+
+        # Fallback: read decimals directly from on-chain Mint account
+        onchain_decimals = _get_decimals_from_rpc(symbol_or_address)
+        if onchain_decimals is not None:
+            return onchain_decimals
 
     return DEFAULT_DECIMALS
 
