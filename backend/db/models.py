@@ -1,6 +1,6 @@
 """SQLAlchemy models for the application."""
 from sqlalchemy import Column, Integer, BigInteger, String, DateTime, Boolean, Numeric, Float, ForeignKey, UniqueConstraint, Text
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import func
 
@@ -313,3 +313,35 @@ class Subscription(Base):
 
     def __repr__(self):
         return f"<Subscription(tg={self.telegram_user_id}, tier={self.tier}, expires={self.current_period_end})>"
+
+
+class UserTrigger(Base):
+    """User triggers powered by Elfa Auto — price alerts, recurring updates, and conditional execution."""
+    __tablename__ = "user_triggers"
+
+    id = Column(Integer, primary_key=True)
+    telegram_user_id = Column(BigInteger, ForeignKey('user_profiles.telegram_user_id'), nullable=False, index=True)
+    elfa_query_id = Column(String(255), unique=True, nullable=False, index=True)
+
+    # Trigger classification
+    trigger_type = Column(String(20), nullable=False)  # 'alert', 'auto_execute', 'recurring'
+    description = Column(Text, nullable=False)  # Original user prompt
+
+    # Action to take when trigger fires (for auto_execute)
+    # e.g. {"action": "swap", "params": {"from": "USDC", "to": "SOL", "amount": 500}}
+    action_config = Column(JSONB, nullable=True)
+
+    # Full Elfa EQL query for debugging
+    elfa_query_json = Column(JSONB, nullable=True)
+
+    # Lifecycle
+    status = Column(String(20), nullable=False, default='active', index=True)  # active, triggered, cancelled, expired, pending_retry
+    created_at = Column(DateTime, server_default=func.now())
+    triggered_at = Column(DateTime, nullable=True)
+    expires_at = Column(DateTime, nullable=True)  # 30 days from creation by default
+
+    # Relationship
+    user = relationship("UserProfile", backref="triggers")
+
+    def __repr__(self):
+        return f"<UserTrigger(user={self.telegram_user_id}, type={self.trigger_type}, status={self.status})>"

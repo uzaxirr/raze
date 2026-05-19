@@ -57,12 +57,17 @@ market_research = MCPTools(
     url="http://127.0.0.1:8007/sse"
 )
 
+elfa_auto = MCPTools(
+    transport="sse",
+    url="http://127.0.0.1:8008/sse"
+)
+
 sniper_workflow = WorkflowTools(
     workflow=token_sniper_workflow,
 )
 
 # List of all MCP tools to pre-connect
-ALL_MCP_TOOLS = [read_mcp, sns_resolver, token_data, transaction_executor, price_alerts, market_research]
+ALL_MCP_TOOLS = [read_mcp, sns_resolver, token_data, transaction_executor, price_alerts, market_research, elfa_auto]
 
 
 @asynccontextmanager
@@ -85,6 +90,7 @@ async def lifespan(app: FastAPI):
         connect_mcp(transaction_executor, "transaction-executor"),
         connect_mcp(price_alerts, "price-alerts"),
         connect_mcp(market_research, "market-research"),
+        connect_mcp(elfa_auto, "elfa-auto"),
     )
     logger.info("All MCP servers pre-connected")
 
@@ -117,7 +123,7 @@ agent = Agent(
     tools=[
         # ReasoningTools(add_instructions=True),  # Agent decides when to think deeply
         read_mcp, sns_resolver, token_data, transaction_executor,
-        price_alerts, market_research, sniper_workflow
+        price_alerts, market_research, elfa_auto, sniper_workflow
     ],
     db=db,
     memory_manager=memory_mgr,
@@ -159,7 +165,7 @@ bouncer_agent = Agent(
     ),
     debug_mode=True,
     tools=[
-        read_mcp, sns_resolver, token_data, transaction_executor, market_research,
+        read_mcp, sns_resolver, token_data, transaction_executor, market_research, elfa_auto,
     ],
     db=db,
     memory_manager=memory_mgr,

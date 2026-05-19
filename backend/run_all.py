@@ -17,6 +17,7 @@ COLORS = {
     "transaction-executor": "\033[96m", # Cyan
     "price-alerts": "\033[91m",       # Red
     "market-research": "\033[32m",    # Dark Green
+    "elfa-auto": "\033[94m",          # Blue
     "agent": "\033[93m",              # Yellow
     "price-monitor": "\033[90m",      # Gray
     "webhook-receiver": "\033[33m",   # Orange
@@ -55,6 +56,11 @@ MCP_SERVERS = [
         "name": "market-research",
         "cmd": ["fastmcp", "run", "server.py", "--transport", "sse", "--port", "8007"],
         "cwd": "mcp-servers/market-research",
+    },
+    {
+        "name": "elfa-auto",
+        "cmd": ["fastmcp", "run", "server.py", "--transport", "sse", "--port", "8008"],
+        "cwd": "mcp-servers/elfa-auto",
     },
 ]
 
@@ -180,6 +186,7 @@ async def run_all():
     print(f"  {COLORS['transaction-executor']}transaction-executor{COLORS['reset']} -> http://0.0.0.0:8004")
     print(f"  {COLORS['price-alerts']}price-alerts{COLORS['reset']}         -> http://0.0.0.0:8005")
     print(f"  {COLORS['market-research']}market-research{COLORS['reset']}      -> http://0.0.0.0:8007")
+    print(f"  {COLORS['elfa-auto']}elfa-auto{COLORS['reset']}            -> http://0.0.0.0:8008")
     print(f"  {COLORS['agent']}agent{COLORS['reset']}                -> http://0.0.0.0:7777")
     print(f"  {COLORS['price-monitor']}price-monitor{COLORS['reset']}        -> background service")
     print(f"  {COLORS['webhook-receiver']}webhook-receiver{COLORS['reset']}     -> http://0.0.0.0:8010")

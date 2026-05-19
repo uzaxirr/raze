@@ -4,6 +4,7 @@ Receives transaction notifications from Helius and notifies users via Telegram.
 """
 import os
 import sys
+import json
 import logging
 from pathlib import Path
 from typing import List, Optional
@@ -25,7 +26,7 @@ load_dotenv(_root / '.env')
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from db.database import SessionLocal
-from db.models import WalletAlert
+from db.models import WalletAlert, UserTrigger
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -406,3 +407,217 @@ async def receive_helius_webhook(
     except Exception as e:
         logger.error(f"Error processing webhook: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Elfa Auto Webhook — trigger notifications & conditional execution
+# ──────────────────────────────────────────────────────────────────────
+
+async def send_trigger_notification(user_id: int, trigger: "UserTrigger", payload: dict) -> bool:
+    """Send a trigger notification to user via Telegram and inject memory."""
+    if not bot:
+        logger.warning("Bot not initialized, cannot send trigger notification")
+        return False
+
+    try:
+        # Build message based on trigger type
+        desc = trigger.description
+        trigger_type = trigger.trigger_type
+
+        if trigger_type == "recurring":
+            emoji = "📊"
+            header = "Recurring update"
+        elif trigger_type == "auto_execute":
+            emoji = "⚡"
+            header = "Auto-trade triggered"
+        else:
+            emoji = "🔔"
+            header = "Alert triggered"
+
+        # Extract data from Elfa payload if available
+        data_lines = []
+        execution_data = payload.get("data", {})
+        if execution_data:
+            for key, val in execution_data.items():
+                if key not in ("queryId", "executionId", "timestamp"):
+                    data_lines.append(f"{key}: {val}")
+
+        lines = [
+            f"{emoji} *{header}*",
+            "",
+            f"{desc}",
+        ]
+        if data_lines:
+            lines.append("")
+            lines.extend(data_lines)
+
+        lines.append("")
+        lines.append(f"_set {_time_ago(trigger.created_at)} ago_")
+
+        message = "\n".join(lines)
+
+        await bot.send_message(
+            chat_id=user_id,
+            text=message,
+            parse_mode="Markdown",
+        )
+        logger.info(f"Trigger notification sent to user {user_id}: {trigger_type}")
+
+        # Inject memory so agent has context when user replies
+        memory_text = f"Trigger fired: '{desc}'. Type: {trigger_type}."
+        if data_lines:
+            memory_text += " Data: " + ", ".join(data_lines[:5])
+
+        await inject_memory(
+            user_id=user_id,
+            memory_text=memory_text,
+            topics=["triggers", "notifications", trigger_type]
+        )
+
+        return True
+
+    except Exception as e:
+        logger.error(f"Failed to send trigger notification to {user_id}: {e}", exc_info=True)
+        return False
+
+
+def _time_ago(dt) -> str:
+    """Human-readable time ago string."""
+    if not dt:
+        return "some time"
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+    if dt.tzinfo is None:
+        from datetime import timezone as tz
+        dt = dt.replace(tzinfo=tz.utc)
+    diff = now - dt
+    minutes = int(diff.total_seconds() / 60)
+    if minutes < 60:
+        return f"{minutes} minutes"
+    hours = minutes // 60
+    if hours < 24:
+        return f"{hours} hours"
+    days = hours // 24
+    return f"{days} days"
+
+
+@app.post("/webhooks/elfa")
+async def elfa_webhook(request: Request):
+    """
+    Handle Elfa Auto webhook callbacks when trigger conditions are met.
+    Flow: write to DB (pending) → dispatch by type → notify → inject memory.
+    """
+    try:
+        payload = await request.json()
+        logger.info(f"Elfa webhook received: {json.dumps(payload)[:500]}")
+
+        # Extract query ID from payload
+        query_id = payload.get("queryId") or payload.get("id") or payload.get("query_id", "")
+        if not query_id:
+            logger.warning(f"Elfa webhook missing queryId: {payload}")
+            return {"status": "ok", "message": "no queryId"}
+
+        db = SessionLocal()
+        try:
+            # Look up trigger by Elfa query ID
+            trigger = db.query(UserTrigger).filter_by(
+                elfa_query_id=str(query_id)
+            ).first()
+
+            if not trigger:
+                logger.warning(f"No trigger found for Elfa query {query_id}")
+                return {"status": "ok", "message": "trigger not found"}
+
+            if trigger.status not in ("active", "pending_retry"):
+                logger.info(f"Trigger {query_id} already {trigger.status}, skipping")
+                return {"status": "ok", "message": f"trigger already {trigger.status}"}
+
+            user_id = trigger.telegram_user_id
+            logger.info(f"Processing trigger {trigger.id} (type={trigger.trigger_type}) for user {user_id}")
+
+            # Dispatch based on trigger type
+            if trigger.trigger_type == "auto_execute" and trigger.action_config:
+                # Execute the trade directly via transaction-executor
+                success = await _execute_auto_trade(trigger, payload, db)
+                if not success:
+                    # Notify user of failure
+                    trigger.status = "pending_retry"
+                    db.commit()
+                    return {"status": "ok", "message": "execution failed, will retry"}
+
+            # Send notification (for all types including auto_execute result)
+            await send_trigger_notification(user_id, trigger, payload)
+
+            # Update trigger status
+            if trigger.trigger_type != "recurring":
+                trigger.status = "triggered"
+                from datetime import datetime, timezone
+                trigger.triggered_at = datetime.now(timezone.utc)
+            # recurring triggers stay active
+
+            db.commit()
+            return {"status": "ok", "processed": True}
+
+        finally:
+            db.close()
+
+    except Exception as e:
+        logger.error(f"Error processing Elfa webhook: {e}", exc_info=True)
+        # Return 200 anyway so Elfa doesn't retry immediately
+        return {"status": "error", "message": str(e)}
+
+
+async def _execute_auto_trade(trigger: "UserTrigger", payload: dict, db) -> bool:
+    """Execute an auto-trade via the transaction-executor MCP server."""
+    try:
+        action = trigger.action_config
+        if not action:
+            return False
+
+        action_type = action.get("action", "")
+        params = action.get("params", {})
+
+        if action_type == "swap":
+            # Call transaction-executor directly via HTTP
+            from_token = params.get("from", "USDC")
+            to_token = params.get("to", "SOL")
+            amount = params.get("amount", 0)
+
+            if not amount or amount <= 0:
+                logger.error(f"Invalid swap amount for trigger {trigger.id}: {amount}")
+                return False
+
+            # Call the swap endpoint on transaction-executor MCP (port 8004)
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                # Use the MCP SSE tool call pattern
+                resp = await client.post(
+                    "http://localhost:8004/call-tool",
+                    json={
+                        "name": "swap_tokens",
+                        "arguments": {
+                            "telegram_user_id": trigger.telegram_user_id,
+                            "from_token": from_token,
+                            "to_token": to_token,
+                            "amount": str(amount),
+                        }
+                    },
+                    timeout=60.0,
+                )
+
+                if resp.status_code == 200:
+                    result = resp.json()
+                    logger.info(f"Auto-trade executed for trigger {trigger.id}: {result}")
+                    # Update action_config with execution result
+                    trigger.action_config = {**action, "execution_result": result}
+                    return True
+                else:
+                    logger.error(f"Auto-trade failed for trigger {trigger.id}: {resp.status_code} {resp.text}")
+                    return False
+
+        else:
+            logger.warning(f"Unknown action type for trigger {trigger.id}: {action_type}")
+            return False
+
+    except Exception as e:
+        logger.error(f"Auto-trade execution error for trigger {trigger.id}: {e}", exc_info=True)
+        return False
