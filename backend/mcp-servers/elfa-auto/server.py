@@ -25,7 +25,7 @@ load_dotenv(_root / '.env')
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from db.database import SessionLocal
-from db.models import UserProfile, UserTrigger
+from db.models import UserProfile, UserTrigger, Waitlist
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -108,10 +108,20 @@ async def create_trigger(
 
     db = SessionLocal()
     try:
-        # Check user exists
+        # Check user exists (in user_profiles OR waitlist)
         user = db.query(UserProfile).filter_by(telegram_user_id=telegram_user_id).first()
         if not user:
-            return {"status": "error", "error": "User not found. Please use /start first."}
+            # Bouncer/waitlisted users may not have a user_profiles entry yet
+            waitlist_user = db.query(Waitlist).filter_by(telegram_user_id=telegram_user_id).first()
+            if not waitlist_user:
+                return {"status": "error", "error": "User not found. Please use /start first."}
+            # Create a minimal profile so FK constraint is satisfied
+            user = UserProfile(
+                telegram_user_id=telegram_user_id,
+                telegram_username=waitlist_user.telegram_username,
+            )
+            db.add(user)
+            db.flush()  # Get the ID without committing yet
 
         # Step 1: Use Elfa chat to translate NL → EQL
         webhook_url = ELFA_WEBHOOK_URL
