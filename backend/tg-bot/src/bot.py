@@ -1775,6 +1775,78 @@ async def wallet_app_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
         await query.answer("failed to change wallet app")
 
 
+async def export_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle /export command - export private key from Privy wallet."""
+    user = update.effective_user
+
+    user_profile = get_user_profile(user.id)
+    if not user_profile or not user_profile.wallet_id:
+        await update.message.reply_text(
+            "you don't have a managed wallet to export. use /start to get set up."
+        )
+        return
+
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("⚠️ yes, show my private key", callback_data="export_confirm")],
+    ])
+    await update.message.reply_text(
+        "⚠️ *WARNING*: this will display your private key *once*.\n\n"
+        "anyone with this key has full control of your wallet. "
+        "never share it. the message will auto-delete in 60 seconds.\n\n"
+        "proceed?",
+        parse_mode="Markdown",
+        reply_markup=keyboard,
+    )
+
+
+async def export_confirm_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle export confirmation button press."""
+    query = update.callback_query
+    await query.answer()
+    user = query.from_user
+
+    user_profile = get_user_profile(user.id)
+    if not user_profile or not user_profile.wallet_id:
+        await query.edit_message_text("no wallet found.")
+        return
+
+    await query.edit_message_text("exporting... one moment.")
+
+    try:
+        from .privy import PrivyClient
+        privy = PrivyClient()
+        private_key = await privy.export_wallet(user_profile.wallet_id)
+
+        # Send the private key as a separate message that auto-deletes
+        key_msg = await query.message.chat.send_message(
+            f"🔑 your private key (auto-deletes in 60s):\n\n"
+            f"`{private_key}`\n\n"
+            f"import this into phantom/solflare. never share it.",
+            parse_mode="Markdown",
+        )
+
+        # Edit the original message to show success
+        await query.edit_message_text(
+            f"✅ exported wallet `{user_profile.wallet_address[:8]}...`\n\n"
+            "the key message above will auto-delete in 60 seconds. copy it now.",
+            parse_mode="Markdown",
+        )
+
+        # Auto-delete after 60 seconds
+        import asyncio
+        await asyncio.sleep(60)
+        try:
+            await key_msg.delete()
+        except Exception:
+            pass  # Message may already be deleted by user
+
+    except Exception as e:
+        logger.error(f"Wallet export failed for user {user.id}: {e}")
+        await query.edit_message_text(
+            "export failed. try again later or contact support."
+        )
+
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle incoming text messages."""
     message_text = update.message.text
@@ -2277,7 +2349,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     logger.info(f"Message from user {user_id}: {message_text[:50]}...")
 
     await update.message.chat.send_action(ChatAction.TYPING)
-    bot_message = await update.message.reply_text("Thinking...")
+    bot_message = None  # Created lazily if draft streaming fails
 
     # Get user profile from database for session state
     user_profile = get_user_profile(user_id)
@@ -2394,13 +2466,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         )
     except RemoteServerUnavailableError:
         logger.error("AgentOS unavailable")
-        await bot_message.edit_text(
-            "I'm having trouble connecting to the agent service. "
-            "Please try again later."
-        )
+        if bot_message:
+            await bot_message.edit_text("I'm having trouble connecting. Please try again later.")
+        else:
+            await update.message.reply_text("I'm having trouble connecting. Please try again later.")
     except Exception as e:
         logger.exception(f"Unexpected error: {e}")
-        await bot_message.edit_text("Something went wrong. Please try again.")
+        if bot_message:
+            await bot_message.edit_text("Something went wrong. Please try again.")
+        else:
+            await update.message.reply_text("Something went wrong. Please try again.")
 
 
 async def stream_response(
@@ -2488,10 +2563,17 @@ async def stream_response(
                                 # Draft not supported (group chat or API issue) — fall back to edit
                                 logger.debug(f"Draft failed, falling back to edit: {e}")
                                 draft_supported = False
-                                await safe_edit_message(bot_message, display_text + " ...")
+                                # Create bot_message lazily on first fallback
+                                if bot_message is None:
+                                    bot_message = await update.message.reply_text(display_text + " ...")
+                                else:
+                                    await safe_edit_message(bot_message, display_text + " ...")
                         else:
                             # Fallback: edit-message pattern
-                            await safe_edit_message(bot_message, display_text + " ...")
+                            if bot_message is None:
+                                bot_message = await update.message.reply_text(display_text + " ...")
+                            else:
+                                await safe_edit_message(bot_message, display_text + " ...")
                     last_draft_time = current_time
 
             elif isinstance(event, ToolCallCompletedEvent) and event.tool:
@@ -2599,12 +2681,15 @@ async def stream_response(
                         photo=image_bytes,
                         caption=clean_text[:1024] if clean_text else None
                     )
-                    # Delete the "Thinking..." placeholder if we used fallback mode
-                    if not draft_supported:
+                    # Delete placeholder if it was created (fallback mode)
+                    if not draft_supported and bot_message:
                         await bot_message.delete()
                 except Exception as e:
                     logger.warning(f"Failed to send chart image: {e}")
-                    await safe_edit_message(bot_message, clean_text or "couldn't load chart")
+                    if bot_message:
+                        await safe_edit_message(bot_message, clean_text or "couldn't load chart")
+                    else:
+                        await update.message.reply_text(clean_text or "couldn't load chart")
             else:
                 import re as _clean_re
                 clean_text = accumulated_text
@@ -2635,11 +2720,12 @@ async def stream_response(
                             entities=parsed.entities if parsed.entities else None,
                             reply_markup=reply_markup,
                         )
-                        # Delete the "Thinking..." placeholder since we never used it
-                        try:
-                            await bot_message.delete()
-                        except Exception:
-                            pass
+                        # Delete placeholder if it was created (fallback mode)
+                        if bot_message:
+                            try:
+                                await bot_message.delete()
+                            except Exception:
+                                pass
                     except Exception:
                         await update.message.reply_text(
                             clean_text[:4096],
@@ -2661,12 +2747,16 @@ async def stream_response(
         elif not error_occurred:
             if draft_supported:
                 await update.message.reply_text("hmm. try again.")
-                try:
-                    await bot_message.delete()
-                except Exception:
-                    pass
+                if bot_message:
+                    try:
+                        await bot_message.delete()
+                    except Exception:
+                        pass
             else:
-                await bot_message.edit_text("I couldn't generate a response. Please try again.")
+                if bot_message:
+                    await bot_message.edit_text("I couldn't generate a response. Please try again.")
+                else:
+                    await update.message.reply_text("I couldn't generate a response. Please try again.")
 
 
 async def safe_edit_message(bot_message, text: str) -> None:
@@ -2806,6 +2896,8 @@ def create_application() -> Application:
     app.add_handler(CommandHandler("listmcp", listmcp_command))
     app.add_handler(CommandHandler("removemcp", removemcp_command))
     app.add_handler(CommandHandler("togglemcp", togglemcp_command))
+    app.add_handler(CommandHandler("export", export_command))
+    app.add_handler(CallbackQueryHandler(export_confirm_callback, pattern="^export_confirm$"))
     # Callback handlers
     app.add_handler(CallbackQueryHandler(network_callback, pattern="^network_"))
     app.add_handler(CallbackQueryHandler(wallet_mode_callback, pattern="^wallet_mode_"))
